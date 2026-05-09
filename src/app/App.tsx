@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
-import { createOnlineGame } from '../multiplayer/gameApi';
-import { getPlayerId } from '../multiplayer/playerSession';
-import { BotGamePage, type MatchMode } from '../pages/BotGamePage';
-import { HomePage } from '../pages/HomePage';
-import { OnlineGamePage } from '../pages/OnlineGamePage';
+import { cancelMatchmaking, createDailyGame, createOnlineGame, createSeededGame, findMatchmakingGame } from '../multiplayer/gameApi.js';
+import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
+import { getPlayerId } from '../multiplayer/playerSession.js';
+import { BotGamePage } from '../pages/BotGamePage.js';
+import type { MatchMode } from '../pages/BotGamePage.js';
+import { HomePage } from '../pages/HomePage.js';
+import { OnlineGamePage } from '../pages/OnlineGamePage.js';
 
 type Theme = 'light' | 'dark';
 
 type Route =
   | { name: 'home' }
-  | { name: 'bot' }
+  | { name: 'bot'; dateKey?: string; seed?: string }
   | { name: 'online'; gameId: string; matchMode: MatchMode };
 
 function isMatchMode(value: string | null): value is MatchMode {
@@ -18,9 +20,10 @@ function isMatchMode(value: string | null): value is MatchMode {
 
 function routeFromLocation(): Route {
   const gameMatch = window.location.pathname.match(/^\/game\/([^/]+)$/);
-  const mode = new URLSearchParams(window.location.search).get('mode');
+  const search = new URLSearchParams(window.location.search);
+  const mode = search.get('mode');
   if (gameMatch) return { name: 'online', gameId: gameMatch[1], matchMode: isMatchMode(mode) ? mode : 'single' };
-  if (window.location.pathname === '/bot') return { name: 'bot' };
+  if (window.location.pathname === '/bot') return { name: 'bot', dateKey: search.get('date') ?? undefined, seed: search.get('seed') ?? undefined };
   return { name: 'home' };
 }
 
@@ -37,8 +40,6 @@ function getStoredTheme(): Theme {
 export function App() {
   const [route, setRoute] = useState<Route>(() => routeFromLocation());
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
-  const [selectedMatchMode, setSelectedMatchMode] = useState<MatchMode>('single');
-  const [botMatchMode, setBotMatchMode] = useState<MatchMode>('single');
   const [inviteError, setInviteError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,24 +57,57 @@ export function App() {
     setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'));
   }
 
-  function startBot(matchMode: MatchMode) {
-    setBotMatchMode(matchMode);
-    navigate('/bot');
+  function startBot(dateKey?: string) {
+    navigate(dateKey ? `/bot?date=${encodeURIComponent(dateKey)}` : '/bot');
   }
 
-  async function handleInvite(matchMode: MatchMode) {
+  function startSeededBot(seed: string) {
+    navigate(`/bot?seed=${encodeURIComponent(seed)}`);
+  }
+
+  async function handleInvite() {
     setInviteError(null);
-    setSelectedMatchMode(matchMode);
     try {
       const { gameId } = await createOnlineGame(getPlayerId());
-      navigate(`/game/${gameId}?mode=${matchMode}`);
+      navigate(`/game/${gameId}?mode=single`);
     } catch (error) {
-      setInviteError(error instanceof Error ? error.message : 'Unable to create online game');
+      setInviteError(error instanceof Error ? error.message : 'Unable to create invite link');
     }
   }
 
+  async function handleDaily(dateKey?: string) {
+    setInviteError(null);
+    try {
+      const { gameId } = await createDailyGame(getPlayerId(), dateKey);
+      navigate(`/game/${gameId}?mode=single`);
+    } catch (error) {
+      setInviteError(error instanceof Error ? error.message : 'Unable to create daily game');
+    }
+  }
+
+  async function handleSeeded(seed: string) {
+    setInviteError(null);
+    try {
+      const { gameId } = await createSeededGame(getPlayerId(), seed);
+      navigate(`/game/${gameId}?mode=single`);
+    } catch (error) {
+      setInviteError(error instanceof Error ? error.message : 'Unable to create seeded game');
+    }
+  }
+
+  async function handleFindMatch(seed: string, backRankCode: string): Promise<MatchmakingResponse> {
+    setInviteError(null);
+    const result = await findMatchmakingGame(getPlayerId(), seed, backRankCode);
+    if (result.status === 'matched') navigate(`/game/${result.gameId}?mode=single`);
+    return result;
+  }
+
+  async function handleCancelFindMatch(queueId?: string) {
+    await cancelMatchmaking(getPlayerId(), queueId);
+  }
+
   if (route.name === 'bot') {
-    return <BotGamePage matchMode={botMatchMode} theme={theme} onToggleTheme={toggleTheme} onHome={() => navigate('/')} />;
+    return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} theme={theme} onToggleTheme={toggleTheme} onHome={() => navigate('/')} />;
   }
   if (route.name === 'online') {
     return (
@@ -91,11 +125,14 @@ export function App() {
     <>
       <HomePage
         theme={theme}
-        selectedMatchMode={selectedMatchMode}
-        onSelectMatchMode={setSelectedMatchMode}
         onToggleTheme={toggleTheme}
         onStartBot={startBot}
+        onStartSeededBot={startSeededBot}
         onInvite={handleInvite}
+        onDaily={handleDaily}
+        onSeeded={handleSeeded}
+        onFindMatch={handleFindMatch}
+        onCancelFindMatch={handleCancelFindMatch}
       />
       {inviteError && <p className="floating-error">{inviteError}</p>}
     </>

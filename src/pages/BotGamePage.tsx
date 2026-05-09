@@ -1,21 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flag, Handshake, Moon, RotateCcw, SunMedium, Trophy } from 'lucide-react';
-import { Board } from '../components/Board';
-import { GameHeader } from '../components/GameHeader';
-import { applyMove, createMoveRecord } from '../game/applyMove';
-import { type BotLevel, getBotMoveByLevel } from '../game/bot';
-import { findKingIndex, isKingInCheck } from '../game/check';
-import { createInitialBoard } from '../game/createInitialBoard';
-import { squareLabel } from '../game/coordinates';
-import { getOpponent, getStatusForTurn } from '../game/gameStatus';
-import { getLegalMoves } from '../game/legalMoves';
-import { playCheckSound, playMoveSound, playResultSound } from '../game/sound';
-import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types';
+import { Board } from '../components/Board.js';
+import { GameHeader } from '../components/GameHeader.js';
+import { applyMove, createMoveRecord } from '../game/applyMove.js';
+import { type BotLevel, getBotMoveByLevel } from '../game/bot.js';
+import { findKingIndex, isKingInCheck } from '../game/check.js';
+import { createInitialBoard } from '../game/createInitialBoard.js';
+import { squareLabel } from '../game/coordinates.js';
+import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
+import { getLegalMoves } from '../game/legalMoves.js';
+import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, normalizeSeed, resolveBackRankCode } from '../game/seed.js';
+import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
+import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types.js';
 
 export type MatchMode = 'single' | 'best-of-3' | 'best-of-5';
 
 type BotGamePageProps = {
   matchMode: MatchMode;
+  dateKey?: string;
+  customSeed?: string;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onHome: () => void;
@@ -60,8 +63,18 @@ function cloneBoard(board: ChessBoard): ChessBoard {
   return board.map((square) => ({ ...square, piece: square.piece ? { ...square.piece } : null }));
 }
 
-export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGamePageProps) {
-  const initialBoardForMount = useMemo(() => createInitialBoard(), []);
+export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, theme, onToggleTheme, onHome }: BotGamePageProps) {
+  const dailySeedInfo = useMemo(() => {
+    if (customSeed) {
+      const seed = normalizeSeed(customSeed);
+      return { dateKey: 'Custom', seed, backRankCode: resolveBackRankCode(seed) };
+    }
+    const todayKey = getUtcDateKey();
+    const dateKey = requestedDateKey && requestedDateKey <= todayKey ? requestedDateKey : todayKey;
+    const seed = getDailySeed(dateKey);
+    return { dateKey, seed, backRankCode: backRankCodeFromSeed(seed) };
+  }, [customSeed, requestedDateKey]);
+  const initialBoardForMount = useMemo(() => createInitialBoard({ backRankCode: dailySeedInfo.backRankCode }), [dailySeedInfo.backRankCode]);
   const [board, setBoard] = useState<ChessBoard>(() => initialBoardForMount);
   const [boardTimeline, setBoardTimeline] = useState<ChessBoard[]>(() => [cloneBoard(initialBoardForMount)]);
   const [turn, setTurn] = useState<Color>('white');
@@ -80,31 +93,14 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
 
   const config = modeConfig[matchMode];
   const botLevel = getBotLevel(matchMode, score, config.winsRequired, roundNumber);
-  const isPreviewing = previewPly !== null;
+  const latestPly = boardTimeline.length - 1;
+  const isPreviewing = previewPly !== null && previewPly < latestPly;
   const displayBoard = isPreviewing ? boardTimeline[previewPly] : board;
   const displayMove = isPreviewing && previewPly > 0 ? moveHistory[previewPly - 1] : lastMove;
   const checkedKingIndex = useMemo(
     () => (!isPreviewing && displayBoard.length && isKingInCheck(displayBoard, turn) ? findKingIndex(displayBoard, turn) : null),
     [displayBoard, isPreviewing, turn],
   );
-
-  useEffect(() => {
-    const initialBoard = createInitialBoard();
-    setBoard(initialBoard);
-    setBoardTimeline([cloneBoard(initialBoard)]);
-    setTurn('white');
-    setStatus('active');
-    setSelectedSquare(null);
-    setLegalMoves([]);
-    setLastMove(null);
-    setMoveHistory([]);
-    setScore({ white: 0, black: 0 });
-    setRoundNumber(1);
-    setRoundResult(null);
-    setMatchWinner(null);
-    setPreviewPly(null);
-    setPendingAction(null);
-  }, [matchMode]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -116,11 +112,14 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
       }
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
-        setPreviewPly((ply) => Math.max((ply ?? boardTimeline.length - 1) - 1, 0));
+        setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0));
       }
       if (event.key === 'ArrowRight') {
         event.preventDefault();
-        setPreviewPly((ply) => Math.min((ply ?? boardTimeline.length - 1) + 1, boardTimeline.length - 1));
+        setPreviewPly((ply) => {
+          const nextPly = Math.min((ply ?? latestPly) + 1, latestPly);
+          return nextPly >= latestPly ? null : nextPly;
+        });
       }
       if (event.key === 'ArrowUp') {
         event.preventDefault();
@@ -133,13 +132,12 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [boardTimeline.length]);
+  }, [latestPly]);
 
   const finishRound = useCallback((nextStatus: GameStatus) => {
     const winner = getWinner(nextStatus);
-    let updatedScore = score;
     if (winner) {
-      updatedScore = { ...score, [winner]: score[winner] + 1 };
+      const updatedScore = { ...score, [winner]: score[winner] + 1 };
       setScore(updatedScore);
       if (updatedScore[winner] >= config.winsRequired) setMatchWinner(winner);
     }
@@ -169,7 +167,7 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
   }, [board, finishRound]);
 
   function resetRound(nextRoundNumber = roundNumber) {
-    const initialBoard = createInitialBoard();
+    const initialBoard = createInitialBoard({ backRankCode: dailySeedInfo.backRankCode });
     setBoard(initialBoard);
     setBoardTimeline([cloneBoard(initialBoard)]);
     setTurn('white');
@@ -290,8 +288,11 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
           </div>
           <p>Game {roundNumber}/{config.maxGames}</p>
           <p>Bot level: <strong>{botLevel}</strong></p>
-          <button className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-          <button className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
+          <p>Daily seed: <strong>{dailySeedInfo.seed}</strong></p>
+          <p>Date: {dailySeedInfo.dateKey}</p>
+          <p>Back rank: {dailySeedInfo.backRankCode}</p>
+          <button type="button" className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
+          <button type="button" className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
         </aside>
 
         <section className="board-column">
@@ -317,7 +318,7 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
           <ol className="move-history move-list">
             {moveHistory.map((record, moveIndex) => (
               <li key={`${record.timestamp}-${moveIndex}`}>
-                <button className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'} onClick={() => setPreviewPly(moveIndex + 1)}>
+                <button type="button" className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'} onClick={() => setPreviewPly(moveIndex + 1 >= latestPly ? null : moveIndex + 1)}>
                   <span>{moveIndex + 1}.</span>
                   <strong>{record.color}</strong>
                   <span>{record.piece}</span>
@@ -328,16 +329,16 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
           </ol>
           <div className="review-footer">
             <div className="review-controls">
-              <button onClick={() => setPreviewPly(0)} disabled={moveHistory.length === 0}>⏮</button>
-              <button onClick={() => setPreviewPly((ply) => Math.max((ply ?? boardTimeline.length - 1) - 1, 0))} disabled={moveHistory.length === 0}>‹</button>
-              <button onClick={() => setPreviewPly(null)}>Live</button>
-              <button onClick={() => setPreviewPly((ply) => Math.min((ply ?? 0) + 1, boardTimeline.length - 1))} disabled={moveHistory.length === 0}>›</button>
-              <button onClick={() => setPreviewPly(boardTimeline.length - 1)} disabled={moveHistory.length === 0}>⏭</button>
+              <button type="button" onClick={() => setPreviewPly(0)} disabled={moveHistory.length === 0}>⏮</button>
+              <button type="button" onClick={() => setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0))} disabled={moveHistory.length === 0}>‹</button>
+              <button type="button" onClick={() => setPreviewPly(null)}>Live</button>
+              <button type="button" onClick={() => setPreviewPly((ply) => { const nextPly = Math.min((ply ?? 0) + 1, latestPly); return nextPly >= latestPly ? null : nextPly; })} disabled={moveHistory.length === 0}>›</button>
+              <button type="button" onClick={() => setPreviewPly(null)} disabled={moveHistory.length === 0}>⏭</button>
             </div>
             <div className="panel-actions stacked-actions">
-              <button onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
-              <button onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
-              <button onClick={requestRestart}>Restart Match</button>
+              <button type="button" onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
+              <button type="button" onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
+              <button type="button" onClick={requestRestart}>Restart Match</button>
             </div>
           </div>
         </aside>
@@ -353,9 +354,9 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
               Score: White {score.white} — Black {score.black}. {matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}
             </p>
             <div className="panel-actions centered-actions">
-              {!matchWinner && roundResult.status !== 'draw' && <button onClick={nextRound}>Next Game</button>}
-              {!matchWinner && roundResult.status === 'draw' && <button onClick={nextRound}>Replay Game</button>}
-              <button onClick={requestRestart}>Restart Match</button>
+              {!matchWinner && roundResult.status !== 'draw' && <button type="button" onClick={nextRound}>Next Game</button>}
+              {!matchWinner && roundResult.status === 'draw' && <button type="button" onClick={nextRound}>Replay Game</button>}
+              <button type="button" onClick={requestRestart}>Restart Match</button>
             </div>
           </div>
         </div>
@@ -367,8 +368,8 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
             <h2>{pendingAction === 'resign' ? 'Resign this game?' : pendingAction === 'draw' ? 'Offer a draw?' : 'Restart the match?'}</h2>
             <p>This action can change or reset the current game. Do you want to continue?</p>
             <div className="panel-actions centered-actions">
-              <button onClick={confirmPendingAction}>Continue</button>
-              <button onClick={() => setPendingAction(null)}>Back to game</button>
+              <button type="button" onClick={confirmPendingAction}>Continue</button>
+              <button type="button" onClick={() => setPendingAction(null)}>Back to game</button>
             </div>
           </div>
         </div>

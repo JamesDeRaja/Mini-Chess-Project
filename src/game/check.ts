@@ -1,6 +1,6 @@
-import { BOARD_FILES, BOARD_RANKS } from './constants';
-import { index, isInsideBoard } from './coordinates';
-import type { Board, Color, Piece } from './types';
+import { BOARD_FILES, BOARD_RANKS } from './constants.js';
+import { index, isInsideBoard } from './coordinates.js';
+import type { Board, Color, Piece } from './types.js';
 
 const rookDirections = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
 const bishopDirections = [[1, 1], [1, -1], [-1, 1], [-1, -1]] as const;

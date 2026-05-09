@@ -1,5 +1,5 @@
-import { PROMOTION_PIECES } from '../game/constants';
-import type { PromotionPieceType } from '../game/types';
+import { PROMOTION_PIECES } from '../game/constants.js';
+import type { PromotionPieceType } from '../game/types.js';
 
 type PromotionModalProps = {
   isOpen: boolean;

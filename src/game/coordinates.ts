@@ -1,4 +1,4 @@
-import { BOARD_FILES, BOARD_RANKS } from './constants';
+import { BOARD_FILES, BOARD_RANKS } from './constants.js';
 
 export function index(file: number, rank: number): number {
   return rank * BOARD_FILES + file;

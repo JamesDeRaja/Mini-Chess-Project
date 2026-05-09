@@ -1,4 +1,4 @@
-import type { Board, Move, MoveRecord } from './types';
+import type { Board, Move, MoveRecord } from './types.js';
 
 export function applyMove(board: Board, move: Move): Board {
   const nextBoard = board.map((square) => ({

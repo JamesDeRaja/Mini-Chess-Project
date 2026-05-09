@@ -1,6 +1,6 @@
-import { BOARD_RANKS } from './constants';
-import { index, isInsideBoard } from './coordinates';
-import type { Board, Move, Piece, PromotionPieceType } from './types';
+import { BOARD_RANKS } from './constants.js';
+import { index, isInsideBoard } from './coordinates.js';
+import type { Board, Move, Piece, PromotionPieceType } from './types.js';
 
 type Direction = [number, number];
 

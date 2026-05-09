@@ -1,8 +1,8 @@
-import { applyMove } from './applyMove';
-import { isKingInCheck } from './check';
-import { BOARD_SIZE } from './constants';
-import { getPseudoLegalMoves } from './movement';
-import type { Board, Color, Move } from './types';
+import { applyMove } from './applyMove.js';
+import { isKingInCheck } from './check.js';
+import { BOARD_SIZE } from './constants.js';
+import { getPseudoLegalMoves } from './movement.js';
+import type { Board, Color, Move } from './types.js';
 
 export function getLegalMoves(board: Board, from: number): Move[] {
   const piece = board[from]?.piece;

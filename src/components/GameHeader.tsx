@@ -1,4 +1,4 @@
-import type { Color, GameStatus } from '../game/types';
+import type { Color, GameStatus } from '../game/types.js';
 
 type GameHeaderProps = {
   title: string;
@@ -29,7 +29,7 @@ export function GameHeader({ title, turn, status, playerRole, details, onTitleCl
     <header className="game-header">
       <div>
         <button className="title-link eyebrow" onClick={onTitleClick} disabled={!onTitleClick} aria-label="Go to home">
-          Mini Chess
+          Pocket Shuffle Chess
         </button>
         <h1>{title}</h1>
         {details && <p className="game-details">{details}</p>}

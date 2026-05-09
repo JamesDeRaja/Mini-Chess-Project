@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createInitialBoard } from '../../src/game/createInitialBoard.js';
-import { backRankCodeFromSeed, getDailySeed, getUtcDateKey } from '../../src/game/seed.js';
+import { normalizeSeed, resolveBackRankCode } from '../../src/game/seed.js';
 import { safeSupabaseInsert } from '../../src/multiplayer/safeSupabaseInsert.js';
 import { getServerSupabase } from './serverSupabase.js';
 
@@ -11,14 +11,14 @@ export default async function handler(request: VercelRequest, response: VercelRe
   }
 
   const playerId = typeof request.body?.playerId === 'string' ? request.body.playerId : null;
-  if (!playerId) {
-    response.status(400).send('Missing playerId');
+  const rawSeed = typeof request.body?.seed === 'string' ? request.body.seed : null;
+  const seed = rawSeed ? normalizeSeed(rawSeed) : null;
+  if (!playerId || !seed) {
+    response.status(400).send('Missing playerId or seed');
     return;
   }
 
-  const dateKey = getUtcDateKey();
-  const seed = getDailySeed(dateKey);
-  const backRankCode = backRankCodeFromSeed(seed);
+  const backRankCode = resolveBackRankCode(seed);
   const supabase = getServerSupabase();
   const { data, error } = await safeSupabaseInsert<{ id: string }>(
     supabase,
@@ -30,7 +30,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       black_player_id: null,
       move_history: [],
       seed,
-      seed_source: 'daily',
+      seed_source: 'custom',
       back_rank_code: backRankCode,
       round_number: 1,
       total_moves: 0,
@@ -41,9 +41,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
   );
 
   if (error || !data) {
-    response.status(500).send(error?.message ?? 'Unable to create game');
+    response.status(500).send(error?.message ?? 'Unable to create seeded game');
     return;
   }
 
-  response.status(200).json({ gameId: data.id, seed, backRankCode, dateKey });
+  response.status(200).json({ gameId: data.id, seed, backRankCode });
 }
