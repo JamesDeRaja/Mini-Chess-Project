@@ -84,6 +84,7 @@ p { color: var(--muted); line-height: 1.7; }
 .home-actions,
 .panel-actions,
 .invite-row,
+.seed-form-row,
 .promotion-options,
 .centered-actions {
   display: flex;
@@ -140,6 +141,18 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 }
 .selected-mode-card span { color: rgba(255, 255, 255, 0.78); }
 .two-main-actions button { min-width: 210px; }
+.seed-form { margin-top: 20px; }
+.seed-form label { display: block; margin-bottom: 8px; color: var(--muted); font-weight: 800; }
+.seed-form-row input {
+  min-width: min(100%, 360px);
+  flex: 1;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: var(--text);
+  background: rgba(15, 23, 42, 0.12);
+}
+.compact-action { padding: 9px 12px; font-size: 0.9rem; }
 
 .theme-toggle,
 .icon-action {
