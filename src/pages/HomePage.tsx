@@ -1,4 +1,4 @@
-import { Bot, Link as LinkIcon, Moon, Sparkles, SunMedium } from 'lucide-react';
+import { Bot, CalendarDays, Link as LinkIcon, Moon, Sparkles, SunMedium } from 'lucide-react';
 import type { MatchMode } from './BotGamePage';
 
 type HomePageProps = {
@@ -8,6 +8,8 @@ type HomePageProps = {
   onToggleTheme: () => void;
   onStartBot: (matchMode: MatchMode) => void;
   onInvite: (matchMode: MatchMode) => void;
+  onDaily: (matchMode: MatchMode) => void;
+  onSeeded: (matchMode: MatchMode, seed: string) => void;
 };
 
 const matchModes: Array<{ mode: MatchMode; title: string; description: string }> = [
@@ -23,7 +25,10 @@ export function HomePage({
   onToggleTheme,
   onStartBot,
   onInvite,
+  onDaily,
+  onSeeded,
 }: HomePageProps) {
+  const seedInputId = 'custom-seed-input';
   return (
     <main className="home-page">
       <button className="theme-toggle floating-theme-toggle" onClick={onToggleTheme} aria-label="Toggle theme">
@@ -57,9 +62,27 @@ export function HomePage({
             <Bot size={20} /> Play AI
           </button>
           <button className="secondary-action" onClick={() => onInvite(selectedMatchMode)}>
-            <LinkIcon size={20} /> Invite People
+            <LinkIcon size={20} /> Random Invite
+          </button>
+          <button className="secondary-action" onClick={() => onDaily(selectedMatchMode)}>
+            <CalendarDays size={20} /> Daily Seed
           </button>
         </div>
+        <form
+          className="seed-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            const seed = String(formData.get('seed') ?? '');
+            if (seed.trim()) onSeeded(selectedMatchMode, seed);
+          }}
+        >
+          <label htmlFor={seedInputId}>Custom seed or direct code</label>
+          <div className="seed-form-row">
+            <input id={seedInputId} name="seed" placeholder="boss-battle-1 or BQKRN" maxLength={48} />
+            <button className="secondary-action" type="submit">Create challenge</button>
+          </div>
+        </form>
       </section>
     </main>
   );

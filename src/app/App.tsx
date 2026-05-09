@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { createOnlineGame } from '../multiplayer/gameApi';
+import { createDailyGame, createOnlineGame, createSeededGame } from '../multiplayer/gameApi';
 import { getPlayerId } from '../multiplayer/playerSession';
 import { BotGamePage, type MatchMode } from '../pages/BotGamePage';
 import { HomePage } from '../pages/HomePage';
@@ -72,6 +72,28 @@ export function App() {
     }
   }
 
+  async function handleDaily(matchMode: MatchMode) {
+    setInviteError(null);
+    setSelectedMatchMode(matchMode);
+    try {
+      const { gameId } = await createDailyGame(getPlayerId());
+      navigate(`/game/${gameId}?mode=${matchMode}`);
+    } catch (error) {
+      setInviteError(error instanceof Error ? error.message : 'Unable to create daily game');
+    }
+  }
+
+  async function handleSeeded(matchMode: MatchMode, seed: string) {
+    setInviteError(null);
+    setSelectedMatchMode(matchMode);
+    try {
+      const { gameId } = await createSeededGame(getPlayerId(), seed);
+      navigate(`/game/${gameId}?mode=${matchMode}`);
+    } catch (error) {
+      setInviteError(error instanceof Error ? error.message : 'Unable to create seeded game');
+    }
+  }
+
   if (route.name === 'bot') {
     return <BotGamePage matchMode={botMatchMode} theme={theme} onToggleTheme={toggleTheme} onHome={() => navigate('/')} />;
   }
@@ -96,6 +118,8 @@ export function App() {
         onToggleTheme={toggleTheme}
         onStartBot={startBot}
         onInvite={handleInvite}
+        onDaily={handleDaily}
+        onSeeded={handleSeeded}
       />
       {inviteError && <p className="floating-error">{inviteError}</p>}
     </>

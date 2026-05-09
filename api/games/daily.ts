@@ -1,9 +1,19 @@
-import { randomUUID } from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createInitialBoard } from '../../src/game/createInitialBoard';
-import { backRankCodeFromSeed } from '../../src/game/seed';
+import { backRankCodeFromSeed, getDailySeed, getUtcDateKey } from '../../src/game/seed';
 import { safeSupabaseInsert } from '../../src/multiplayer/safeSupabaseInsert';
 import { getServerSupabase } from './serverSupabase';
+
+type DailySeedRecord = {
+  seed?: string;
+  back_rank_code?: string;
+};
+
+async function getStoredDailySeed(supabase: ReturnType<typeof getServerSupabase>, dateKey: string): Promise<DailySeedRecord | null> {
+  const { data, error } = await supabase.from('daily_seeds').select('seed, back_rank_code').eq('date_key', dateKey).maybeSingle();
+  if (error || !data) return null;
+  return data as DailySeedRecord;
+}
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== 'POST') {
@@ -17,9 +27,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return;
   }
 
-  const seed = `random-${randomUUID()}`;
-  const backRankCode = backRankCodeFromSeed(seed);
+  const dateKey = getUtcDateKey();
   const supabase = getServerSupabase();
+  const storedDailySeed = await getStoredDailySeed(supabase, dateKey);
+  const seed = storedDailySeed?.seed ?? getDailySeed(dateKey);
+  const backRankCode = storedDailySeed?.back_rank_code ?? backRankCodeFromSeed(seed);
+
   const { data, error } = await safeSupabaseInsert<{ id: string }>(
     supabase,
     {
@@ -30,7 +43,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       black_player_id: null,
       move_history: [],
       seed,
-      seed_source: 'random',
+      seed_source: 'daily',
       back_rank_code: backRankCode,
       round_number: 1,
       total_moves: 0,
@@ -41,9 +54,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
   );
 
   if (error || !data) {
-    response.status(500).send(error?.message ?? 'Unable to create game');
+    response.status(500).send(error?.message ?? 'Unable to create daily game');
     return;
   }
 
-  response.status(200).json({ gameId: data.id, seed, backRankCode });
+  response.status(200).json({ gameId: data.id, seed, backRankCode, dateKey });
 }
