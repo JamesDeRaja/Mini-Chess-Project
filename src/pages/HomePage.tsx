@@ -114,7 +114,7 @@ export function HomePage({
 
       <section className="hero-card shuffle-hero-card">
         <div className="hero-copy">
-          <p className="eyebrow">Mini Shuffle Chess</p>
+          <p className="eyebrow">Pocket Shuffle Chess</p>
           <h1>Fast chess without memorized openings.</h1>
           <p className="hero-subtitle">Today's setup is shared by everyone. Pick an opponent and play the same daily seed.</p>
 
@@ -218,8 +218,8 @@ export function HomePage({
           <div className="confirm-card utility-modal rules-modal">
             <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Close rules"><X size={18} /></button>
             <p className="eyebrow">How It Works</p>
-            <h2 id="rules-modal-title">Mini Shuffle Chess rules</h2>
-            <p>Mini Shuffle Chess is played on a 5×6 board. Each side has a king, queen, rook, bishop, knight, and five pawns.</p>
+            <h2 id="rules-modal-title">Pocket Shuffle Chess rules</h2>
+            <p>Pocket Shuffle Chess is played on a 5×6 board. Each side has a king, queen, rook, bishop, knight, and five pawns.</p>
             <ul>
               <li>The back rank is shuffled for White and mirrored for Black.</li>
               <li>No castling and no en passant.</li>

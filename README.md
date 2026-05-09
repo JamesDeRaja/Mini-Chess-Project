@@ -1,10 +1,10 @@
-# Mini Chess
+# Pocket Shuffle Chess
 
-A polished 5×6 Mini Chess app with a pure TypeScript rules engine, seeded shuffle setups, local bot matches, and Supabase-ready online multiplayer APIs.
+A polished 5×6 Pocket Shuffle Chess app with a pure TypeScript rules engine, seeded shuffle setups, local bot matches, and Supabase-ready online multiplayer APIs.
 
 ## What is included
 
-- 5×6 randomized mirrored Mini Chess setup.
+- 5×6 randomized mirrored Pocket Shuffle Chess setup.
 - Daily seeded games by default, so Play AI and Invite Link use the same UTC-date setup each day.
 - A daily seed calendar that reveals only today and past daily seeds for fair replay.
 - Custom seed challenge games that accept text seeds or direct back-rank codes such as `BQKRN`.

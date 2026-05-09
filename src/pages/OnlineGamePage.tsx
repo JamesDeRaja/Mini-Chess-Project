@@ -37,7 +37,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   const [error, setError] = useState<string | null>(null);
   const playerId = useMemo(() => getPlayerId(), []);
   const inviteLink = `${window.location.origin}/game/${gameId}?mode=${matchMode}`;
-  const shareText = `Mini Chess ${seedLabel} (${backRankCode ?? 'setup pending'}) — ${status.replace('_', ' ')} after ${moveHistory.length} moves. ${inviteLink}`;
+  const shareText = `Pocket Shuffle Chess ${seedLabel} (${backRankCode ?? 'setup pending'}) — ${status.replace('_', ' ')} after ${moveHistory.length} moves. ${inviteLink}`;
   const checkedKingIndex = useMemo(() => (board.length && isKingInCheck(board, turn) ? findKingIndex(board, turn) : null), [board, turn]);
 
   function applyGameRecord(game: Awaited<ReturnType<typeof joinOnlineGame>>['game']) {
