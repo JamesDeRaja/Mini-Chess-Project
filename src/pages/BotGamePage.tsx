@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Flag, Handshake, Moon, RotateCcw, SunMedium, Trophy } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
@@ -90,6 +90,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   const [isFlipped, setIsFlipped] = useState(false);
   const [previewPly, setPreviewPly] = useState<number | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const historyListRef = useRef<HTMLOListElement | null>(null);
 
   const config = modeConfig[matchMode];
   const botLevel = getBotLevel(matchMode, score, config.winsRequired, roundNumber);
@@ -101,6 +102,13 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
     () => (!isPreviewing && displayBoard.length && isKingInCheck(displayBoard, turn) ? findKingIndex(displayBoard, turn) : null),
     [displayBoard, isPreviewing, turn],
   );
+
+  useEffect(() => {
+    const historyList = historyListRef.current;
+    if (!historyList) return;
+
+    historyList.scrollTop = historyList.scrollHeight;
+  }, [moveHistory.length]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -310,24 +318,33 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
           />
         </section>
 
-        <aside className="side-panel review-panel">
-          <div className="panel-topbar">
-            <h2>Move history</h2>
+        <aside className="side-panel review-panel history-panel">
+          <div className="history-header">
+            <div className="panel-topbar">
+              <h2>Move history</h2>
+            </div>
+            <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
           </div>
-          <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
-          <ol className="move-history move-list">
-            {moveHistory.map((record, moveIndex) => (
-              <li key={`${record.timestamp}-${moveIndex}`}>
-                <button type="button" className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'} onClick={() => setPreviewPly(moveIndex + 1 >= latestPly ? null : moveIndex + 1)}>
-                  <span>{moveIndex + 1}.</span>
-                  <strong>{record.color}</strong>
-                  <span>{record.piece}</span>
-                  <span>{squareLabel(record.to % 5, Math.floor(record.to / 5))}</span>
-                </button>
+          <ol ref={historyListRef} className="move-history move-list history-list">
+            {moveHistory.length === 0 ? (
+              <li className="empty-history">
+                <span>No moves yet.</span>
+                <span>Select a piece to see legal moves.</span>
               </li>
-            ))}
+            ) : (
+              moveHistory.map((record, moveIndex) => (
+                <li key={`${record.timestamp}-${moveIndex}`}>
+                  <button type="button" className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'} onClick={() => setPreviewPly(moveIndex + 1 >= latestPly ? null : moveIndex + 1)}>
+                    <span>{moveIndex + 1}.</span>
+                    <strong>{record.color}</strong>
+                    <span>{record.piece}</span>
+                    <span>{squareLabel(record.to % 5, Math.floor(record.to / 5))}</span>
+                  </button>
+                </li>
+              ))
+            )}
           </ol>
-          <div className="review-footer">
+          <div className="review-footer history-actions">
             <div className="review-controls">
               <button type="button" onClick={() => setPreviewPly(0)} disabled={moveHistory.length === 0}>⏮</button>
               <button type="button" onClick={() => setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0))} disabled={moveHistory.length === 0}>‹</button>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Moon, SunMedium } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
@@ -35,6 +35,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   const [roundNumber, setRoundNumber] = useState(1);
   const [scores, setScores] = useState({ whiteScore: 0, blackScore: 0 });
   const [error, setError] = useState<string | null>(null);
+  const historyListRef = useRef<HTMLOListElement | null>(null);
   const playerId = useMemo(() => getPlayerId(), []);
   const inviteLink = `${window.location.origin}/game/${gameId}?mode=${matchMode}`;
   const shareText = `Pocket Shuffle Chess ${seedLabel} (${backRankCode ?? 'setup pending'}) — ${status.replace('_', ' ')} after ${moveHistory.length} moves. ${inviteLink}`;
@@ -56,6 +57,13 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
       blackScore: game.black_score ?? estimatedScores.blackScore,
     });
   }
+
+  useEffect(() => {
+    const historyList = historyListRef.current;
+    if (!historyList) return;
+
+    historyList.scrollTop = historyList.scrollHeight;
+  }, [moveHistory.length]);
 
   useEffect(() => {
     joinOnlineGame(gameId, playerId)
@@ -122,19 +130,28 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
             checkedKingIndex={checkedKingIndex}
             onSquareClick={handleSquareClick}
           />
-          <aside className="side-panel">
-            <h2>Seed</h2>
-            <p><strong>{seedLabel}</strong></p>
-            <p>Back rank: {backRankCode ?? 'Derived after board loads'} · Round {roundNumber}</p>
-            <p>Score: White {scores.whiteScore} · Black {scores.blackScore}</p>
-            <button className="secondary-action compact-action" onClick={() => navigator.clipboard.writeText(shareText)}>Copy result/share text</button>
-            <h2>Players</h2>
-            <p>Only the player whose color matches the current turn can move.</p>
-            <h2>Move history</h2>
-            <ol className="move-history">
-              {moveHistory.map((record, moveIndex) => (
-                <li key={`${record.timestamp}-${moveIndex}`}>{record.color} {record.piece}: {record.from}→{record.to}</li>
-              ))}
+          <aside className="side-panel online-game-panel history-panel">
+            <div className="history-header online-history-header">
+              <h2>Seed</h2>
+              <p><strong>{seedLabel}</strong></p>
+              <p>Back rank: {backRankCode ?? 'Derived after board loads'} · Round {roundNumber}</p>
+              <p>Score: White {scores.whiteScore} · Black {scores.blackScore}</p>
+              <button className="secondary-action compact-action" onClick={() => navigator.clipboard.writeText(shareText)}>Copy result/share text</button>
+              <h2>Players</h2>
+              <p>Only the player whose color matches the current turn can move.</p>
+              <h2>Move history</h2>
+            </div>
+            <ol ref={historyListRef} className="move-history move-list history-list">
+              {moveHistory.length === 0 ? (
+                <li className="empty-history">
+                  <span>No moves yet.</span>
+                  <span>Select a piece to see legal moves.</span>
+                </li>
+              ) : (
+                moveHistory.map((record, moveIndex) => (
+                  <li key={`${record.timestamp}-${moveIndex}`}>{record.color} {record.piece}: {record.from}→{record.to}</li>
+                ))
+              )}
             </ol>
           </aside>
         </div>
