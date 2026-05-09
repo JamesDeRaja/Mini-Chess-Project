@@ -189,9 +189,10 @@ export function HomePage({
 
       <section className="hero-card shuffle-hero-card">
         <div className="hero-copy">
+          <div className="brand-badge" aria-hidden="true"><span>♔</span></div>
           <p className="eyebrow">Pocket Shuffle Chess</p>
-          <h1>Fast chess without memorized openings.</h1>
-          <p className="hero-subtitle">Today’s setup is shared by everyone. Play AI, find a match, or invite a friend to battle the same daily seed.</p>
+          <h1 className="home-title"><span>Pocket</span><span>Shuffle</span><span>Chess</span></h1>
+          <p className="hero-subtitle">Fast chess. New opening every time.</p>
 
           <div className="daily-summary-card">
             <span>Today’s Daily</span>
@@ -221,16 +222,19 @@ export function HomePage({
         </div>
 
         <aside className="setup-preview-card" aria-label="Today's setup preview">
+          <span className="decor-dot decor-dot-one" aria-hidden="true" />
+          <span className="decor-dot decor-dot-two" aria-hidden="true" />
+          <span className="decor-spark decor-spark-one" aria-hidden="true">✦</span>
+          <span className="decor-spark decor-spark-two" aria-hidden="true">✦</span>
+          <span className="decor-heart" aria-hidden="true">♥</span>
           <p className="eyebrow">Today’s Setup</p>
-          <span className="preview-side-label">Black top</span>
           <div className="mini-board-preview" aria-hidden="true">
-            {blackBackRankCode.split('').map((piece, index) => <span key={`black-${piece}-${index}`}>{piece}</span>)}
+            {blackBackRankCode.split('').map((piece, index) => <span key={`black-${piece}-${index}`} className="preview-piece preview-piece-black">{piece}</span>)}
             {Array.from({ length: 20 }, (_, index) => <span key={`empty-${index}`} className="preview-empty" />)}
-            {dailyBackRankCode.split('').map((piece, index) => <span key={`white-${piece}-${index}`}>{piece}</span>)}
+            {dailyBackRankCode.split('').map((piece, index) => <span key={`white-${piece}-${index}`} className="preview-piece preview-piece-white">{piece}</span>)}
           </div>
-          <span className="preview-side-label preview-white-label">White bottom</span>
           <div className="setup-code-stack">
-            <small>5x6 daily tactical chess</small>
+            <small>Daily shuffle</small>
             <span>White: {spacedCode(dailyBackRankCode)}</span>
             <span>Black: {spacedCode(blackBackRankCode)}</span>
             <strong>{dailyBackRankCode}</strong>
