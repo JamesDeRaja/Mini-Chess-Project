@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Link as LinkIcon, Moon, Search, Shuffle, SunMedium, Users, X } from 'lucide-react';
+import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded } from '../game/dailyAIProgress.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, resolveBackRankCode } from '../game/seed.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 
@@ -82,7 +83,7 @@ export function HomePage({
   onCancelFindMatch,
 }: HomePageProps) {
   const seedInputId = 'custom-seed-input';
-  const todayKey = useMemo(() => getUtcDateKey(), []);
+  const [todayKey, setTodayKey] = useState(() => getUtcDateKey());
   const yesterdayKey = useMemo(() => addUtcDays(todayKey, -1), [todayKey]);
   const [calendarDateKey, setCalendarDateKey] = useState(todayKey);
   const [calendarMonthKey, setCalendarMonthKey] = useState(monthKeyFromDateKey(todayKey));
@@ -90,6 +91,7 @@ export function HomePage({
   const [customSeed, setCustomSeed] = useState('');
   const [modal, setModal] = useState<ModalName>(null);
   const [matchmaking, setMatchmaking] = useState<MatchmakingState>({ status: 'idle' });
+  const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
   const [matchTarget, setMatchTarget] = useState({ seed: getDailySeed(todayKey), backRankCode: backRankCodeFromSeed(getDailySeed(todayKey)) });
   const dailySeed = getDailySeed(todayKey);
   const dailyBackRankCode = backRankCodeFromSeed(dailySeed);
@@ -104,6 +106,26 @@ export function HomePage({
     ? 'Direct codes must contain exactly one B, R, K, N, and Q.'
     : null;
   const customBackRankCode = customSeedValue && !customSeedError ? resolveBackRankCode(customSeedValue) : null;
+  const dailyAIStatusLine = getDailyAIStatusLine(dailyAIProgress);
+
+  useEffect(() => {
+    const dateRefreshId = window.setInterval(() => setTodayKey(getUtcDateKey()), 60000);
+    return () => window.clearInterval(dateRefreshId);
+  }, []);
+
+  useEffect(() => {
+    function refreshDailyAIProgress() {
+      setDailyAIProgress(getDailyAIProgress(todayKey));
+    }
+
+    refreshDailyAIProgress();
+    window.addEventListener('focus', refreshDailyAIProgress);
+    window.addEventListener('storage', refreshDailyAIProgress);
+    return () => {
+      window.removeEventListener('focus', refreshDailyAIProgress);
+      window.removeEventListener('storage', refreshDailyAIProgress);
+    };
+  }, [todayKey]);
 
   function handleDateChange(nextDateKey: string) {
     if (nextDateKey > todayKey) {
@@ -200,9 +222,12 @@ export function HomePage({
           </div>
 
           <div className="opponent-actions" aria-label="Choose opponent">
-            <button type="button" className="opponent-card primary-action" onClick={() => onStartBot(todayKey)}>
+            <button type="button" className="opponent-card primary-action daily-ai-card" onClick={() => onStartBot(todayKey)}>
+              <span className={dailyAIProgress.magicStarUnlocked ? 'daily-ai-stars magic-star-active' : 'daily-ai-stars'} aria-label={dailyAIProgress.magicStarUnlocked ? 'Magic star unlocked' : `${dailyAIProgress.stars} of 3 daily AI stars earned`}>
+                {dailyAIProgress.magicStarUnlocked ? <span aria-hidden="true">✦</span> : [0, 1, 2].map((starIndex) => <span key={starIndex} aria-hidden="true">{starIndex < dailyAIProgress.stars ? '★' : '☆'}</span>)}
+              </span>
               <Bot size={22} />
-              <span><strong>Play AI</strong><small>Instant daily game</small></span>
+              <span><strong>Play AI</strong><small>Instant daily game</small><small className="daily-ai-status">{dailyAIStatusLine}</small></span>
             </button>
             <button type="button" className="opponent-card primary-action" onClick={() => requestMatchFor(dailySeed, dailyBackRankCode)}>
               <Search size={22} />
