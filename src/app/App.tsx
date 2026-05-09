@@ -68,15 +68,15 @@ export function App() {
       const { gameId } = await createOnlineGame(getPlayerId());
       navigate(`/game/${gameId}?mode=${matchMode}`);
     } catch (error) {
-      setInviteError(error instanceof Error ? error.message : 'Unable to create online game');
+      setInviteError(error instanceof Error ? error.message : 'Unable to create invite link');
     }
   }
 
-  async function handleDaily(matchMode: MatchMode) {
+  async function handleDaily(matchMode: MatchMode, dateKey?: string) {
     setInviteError(null);
     setSelectedMatchMode(matchMode);
     try {
-      const { gameId } = await createDailyGame(getPlayerId());
+      const { gameId } = await createDailyGame(getPlayerId(), dateKey);
       navigate(`/game/${gameId}?mode=${matchMode}`);
     } catch (error) {
       setInviteError(error instanceof Error ? error.message : 'Unable to create daily game');
@@ -95,7 +95,7 @@ export function App() {
   }
 
   if (route.name === 'bot') {
-    return <BotGamePage matchMode={botMatchMode} theme={theme} onToggleTheme={toggleTheme} onHome={() => navigate('/')} />;
+    return <BotGamePage key={botMatchMode} matchMode={botMatchMode} theme={theme} onToggleTheme={toggleTheme} onHome={() => navigate('/')} />;
   }
   if (route.name === 'online') {
     return (

@@ -1,7 +1,6 @@
-import { randomUUID } from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createInitialBoard } from '../../src/game/createInitialBoard';
-import { backRankCodeFromSeed } from '../../src/game/seed';
+import { backRankCodeFromSeed, getDailySeed, getUtcDateKey } from '../../src/game/seed';
 import { safeSupabaseInsert } from '../../src/multiplayer/safeSupabaseInsert';
 import { getServerSupabase } from './serverSupabase';
 
@@ -17,7 +16,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return;
   }
 
-  const seed = `random-${randomUUID()}`;
+  const dateKey = getUtcDateKey();
+  const seed = getDailySeed(dateKey);
   const backRankCode = backRankCodeFromSeed(seed);
   const supabase = getServerSupabase();
   const { data, error } = await safeSupabaseInsert<{ id: string }>(
@@ -30,7 +30,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       black_player_id: null,
       move_history: [],
       seed,
-      seed_source: 'random',
+      seed_source: 'daily',
       back_rank_code: backRankCode,
       round_number: 1,
       total_moves: 0,
@@ -45,5 +45,5 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return;
   }
 
-  response.status(200).json({ gameId: data.id, seed, backRankCode });
+  response.status(200).json({ gameId: data.id, seed, backRankCode, dateKey });
 }

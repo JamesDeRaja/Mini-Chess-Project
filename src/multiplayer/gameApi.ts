@@ -35,17 +35,17 @@ async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function createOnlineGame(playerId: string): Promise<{ gameId: string; seed?: string; backRankCode?: string }> {
+export function createOnlineGame(playerId: string): Promise<{ gameId: string; seed?: string; backRankCode?: string; dateKey?: string }> {
   return requestJson('/api/games/create', {
     method: 'POST',
     body: JSON.stringify({ playerId }),
   });
 }
 
-export function createDailyGame(playerId: string): Promise<{ gameId: string; seed: string; backRankCode: string; dateKey: string }> {
+export function createDailyGame(playerId: string, dateKey?: string): Promise<{ gameId: string; seed: string; backRankCode: string; dateKey: string }> {
   return requestJson('/api/games/daily', {
     method: 'POST',
-    body: JSON.stringify({ playerId }),
+    body: JSON.stringify({ playerId, dateKey }),
   });
 }
 

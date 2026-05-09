@@ -5,7 +5,8 @@ A polished 5×6 Mini Chess app with a pure TypeScript rules engine, seeded shuff
 ## What is included
 
 - 5×6 randomized mirrored Mini Chess setup.
-- Daily seeded games where the same UTC date always creates the same setup.
+- Daily seeded games by default, so Play AI and Invite Link use the same UTC-date setup each day.
+- A daily seed calendar that reveals only today and past daily seeds for fair replay.
 - Custom seed challenge games that accept text seeds or direct back-rank codes such as `BQKRN`.
 - Legal move validation, captures, check, checkmate, stalemate, and promotion.
 - Local bot play with selectable match modes: One Match, Best 2/3, and Best 3/5.
@@ -79,5 +80,6 @@ The app supports a tolerant daily seed layer:
 
 - If a `daily_seeds` table exists, the daily API can read `seed` and `back_rank_code` for the current `date_key`.
 - If that table does not exist, the API deterministically uses `daily-YYYY-MM-DD` and derives the back-rank code from that seed.
+- The daily API accepts today or a past `dateKey` so older dailies can be replayed, but future dates are rejected.
 
-For MVP, no stored daily seed row is required. Today's setup is stable because the fallback date key and seed are deterministic.
+For MVP, no stored daily seed row is required. Today's setup is stable because the fallback date key and seed are deterministic. The default invite-link and AI flows are daily-seeded; custom seed challenges are the opt-in alternative.
