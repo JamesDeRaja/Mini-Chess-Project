@@ -1,7 +1,7 @@
 import type { DragEvent } from 'react';
-import type { Square as ChessSquare } from '../game/types';
-import { Piece } from './Piece';
-import { MoveHint } from './MoveHint';
+import type { Square as ChessSquare } from '../game/types.js';
+import { Piece } from './Piece.js';
+import { MoveHint } from './MoveHint.js';
 
 type SquareProps = {
   square: ChessSquare;

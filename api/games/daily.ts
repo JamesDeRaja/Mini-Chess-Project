@@ -4,6 +4,26 @@ import { backRankCodeFromSeed, getDailySeed, getUtcDateKey } from '../../src/gam
 import { safeSupabaseInsert } from '../../src/multiplayer/safeSupabaseInsert.js';
 import { getServerSupabase } from './serverSupabase.js';
 
+type DailySeedRecord = {
+  seed?: string;
+  back_rank_code?: string;
+};
+
+const dateKeyPattern = /^\d{4}-\d{2}-\d{2}$/;
+
+function getRequestedDateKey(value: unknown): string | null {
+  if (typeof value !== 'string') return getUtcDateKey();
+  if (!dateKeyPattern.test(value)) return null;
+  if (value > getUtcDateKey()) return null;
+  return value;
+}
+
+async function getStoredDailySeed(supabase: ReturnType<typeof getServerSupabase>, dateKey: string): Promise<DailySeedRecord | null> {
+  const { data, error } = await supabase.from('daily_seeds').select('seed, back_rank_code').eq('date_key', dateKey).maybeSingle();
+  if (error || !data) return null;
+  return data as DailySeedRecord;
+}
+
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== 'POST') {
     response.status(405).send('Method not allowed');
@@ -11,15 +31,21 @@ export default async function handler(request: VercelRequest, response: VercelRe
   }
 
   const playerId = typeof request.body?.playerId === 'string' ? request.body.playerId : null;
+  const dateKey = getRequestedDateKey(request.body?.dateKey);
   if (!playerId) {
     response.status(400).send('Missing playerId');
     return;
   }
+  if (!dateKey) {
+    response.status(400).send('dateKey must be today or a past date in YYYY-MM-DD format');
+    return;
+  }
 
-  const dateKey = getUtcDateKey();
-  const seed = getDailySeed(dateKey);
-  const backRankCode = backRankCodeFromSeed(seed);
   const supabase = getServerSupabase();
+  const storedDailySeed = await getStoredDailySeed(supabase, dateKey);
+  const seed = storedDailySeed?.seed ?? getDailySeed(dateKey);
+  const backRankCode = storedDailySeed?.back_rank_code ?? backRankCodeFromSeed(seed);
+
   const { data, error } = await safeSupabaseInsert<{ id: string }>(
     supabase,
     {
@@ -41,7 +67,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
   );
 
   if (error || !data) {
-    response.status(500).send(error?.message ?? 'Unable to create game');
+    response.status(500).send(error?.message ?? 'Unable to create daily game');
     return;
   }
 

@@ -1,6 +1,7 @@
-import { BACK_RANK_PIECES, BOARD_FILES, BOARD_RANKS } from './constants';
-import { index } from './coordinates';
-import type { Board, Color, Piece, PieceType } from './types';
+import { BACK_RANK_PIECES, BOARD_FILES, BOARD_RANKS } from './constants.js';
+import { pieceOrderFromBackRankCode } from './seed.js';
+import { index } from './coordinates.js';
+import type { Board, Color, Piece, PieceType } from './types.js';
 
 function shufflePieces(pieces: PieceType[]): PieceType[] {
   const shuffled = [...pieces];
@@ -28,7 +29,16 @@ export function createEmptyBoard(): Board {
   }));
 }
 
-export function createInitialBoard(whiteOrder = shufflePieces(BACK_RANK_PIECES)): Board {
+type CreateInitialBoardOptions = {
+  backRankCode?: string;
+};
+
+export function createInitialBoard(optionsOrWhiteOrder: CreateInitialBoardOptions | PieceType[] = shufflePieces(BACK_RANK_PIECES)): Board {
+  const whiteOrder = Array.isArray(optionsOrWhiteOrder)
+    ? optionsOrWhiteOrder
+    : optionsOrWhiteOrder.backRankCode
+      ? pieceOrderFromBackRankCode(optionsOrWhiteOrder.backRankCode)
+      : shufflePieces(BACK_RANK_PIECES);
   const board = createEmptyBoard();
   const blackOrder = [...whiteOrder].reverse();
 

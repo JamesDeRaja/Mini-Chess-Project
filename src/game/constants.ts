@@ -1,4 +1,4 @@
-import type { Color, PieceType } from './types';
+import type { Color, PieceType } from './types.js';
 
 export const BOARD_FILES = 5;
 export const BOARD_RANKS = 6;

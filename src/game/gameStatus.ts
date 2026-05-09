@@ -1,6 +1,6 @@
-import { isKingInCheck } from './check';
-import { getAllLegalMoves } from './legalMoves';
-import type { Board, Color, GameStatus } from './types';
+import { isKingInCheck } from './check.js';
+import { getAllLegalMoves } from './legalMoves.js';
+import type { Board, Color, GameStatus } from './types.js';
 
 export function getOpponent(color: Color): Color {
   return color === 'white' ? 'black' : 'white';

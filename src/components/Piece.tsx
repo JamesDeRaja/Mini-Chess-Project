@@ -1,6 +1,6 @@
 import type { DragEvent } from 'react';
-import { pieceSymbols } from '../game/constants';
-import type { Piece as ChessPiece } from '../game/types';
+import { pieceSymbols } from '../game/constants.js';
+import type { Piece as ChessPiece } from '../game/types.js';
 
 type PieceProps = {
   piece: ChessPiece;

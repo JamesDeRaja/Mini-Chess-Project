@@ -1,8 +1,8 @@
-import { applyMove } from './applyMove';
-import { isKingInCheck, isSquareAttacked } from './check';
-import { pieceValues } from './constants';
-import { getAllLegalMoves } from './legalMoves';
-import type { Board, Color, Move } from './types';
+import { applyMove } from './applyMove.js';
+import { isKingInCheck, isSquareAttacked } from './check.js';
+import { pieceValues } from './constants.js';
+import { getAllLegalMoves } from './legalMoves.js';
+import type { Board, Color, Move } from './types.js';
 
 export type BotLevel = 'weak' | 'medium' | 'powerful';
 
