@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">
+  <defs>
+    <radialGradient id="wg" cx="40%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#d0cab8"/>
+    </radialGradient>
+  </defs>
+  <!-- base -->
+  <rect x="9" y="36" width="27" height="5" rx="2.5" fill="url(#wg)" stroke="#3d3020" stroke-width="1.5"/>
+  <!-- neck/body -->
+  <path d="M14 36 L14 28 Q14 14 22 10 Q28 7 31 11 Q34 15 32 20 Q30 24 26 26 L26 36 Z"
+    fill="url(#wg)" stroke="#3d3020" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- head -->
+  <path d="M22 10 Q18 8 16 11 Q14 14 16 18 Q18 22 22 24 Q26 22 28 18 Q30 14 28 11 Q26 8 22 10 Z"
+    fill="url(#wg)" stroke="#3d3020" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- nostril -->
+  <circle cx="18" cy="17" r="1.5" fill="#3d3020"/>
+  <!-- ear -->
+  <path d="M22 10 L24 6 L27 9" fill="url(#wg)" stroke="#3d3020" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>

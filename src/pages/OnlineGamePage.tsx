@@ -4,7 +4,9 @@ import { Board } from '../components/Board';
 import { GameHeader } from '../components/GameHeader';
 import { InvitePanel } from '../components/InvitePanel';
 import { findKingIndex, isKingInCheck } from '../game/check';
+import { getStatusForTurn } from '../game/gameStatus';
 import { getLegalMoves } from '../game/legalMoves';
+import { playMoveFeedback, playSound } from '../audio/audioManager';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types';
 import { joinOnlineGame, submitOnlineMove } from '../multiplayer/gameApi';
 import { getPlayerId } from '../multiplayer/playerSession';
@@ -32,7 +34,10 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   const [error, setError] = useState<string | null>(null);
   const playerId = useMemo(() => getPlayerId(), []);
   const inviteLink = `${window.location.origin}/game/${gameId}?mode=${matchMode}`;
-  const checkedKingIndex = useMemo(() => (board.length && isKingInCheck(board, turn) ? findKingIndex(board, turn) : null), [board, turn]);
+  const checkedKingIndex = useMemo(
+    () => (board.length && isKingInCheck(board, turn) ? findKingIndex(board, turn) : null),
+    [board, turn],
+  );
 
   useEffect(() => {
     joinOnlineGame(gameId, playerId)
@@ -67,8 +72,16 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
       setLastMove(selectedMove);
       try {
         const { game } = await submitOnlineMove(gameId, playerId, selectedMove);
-        setBoard(game.board);
-        setTurn(game.turn);
+        const nextBoard = game.board as ChessBoard;
+        const nextTurn = game.turn as Color;
+        const nextStatus = getStatusForTurn(nextBoard, nextTurn);
+        const isCheckmate = nextStatus !== 'active' && nextStatus !== 'draw';
+        const isCheck = !isCheckmate && isKingInCheck(nextBoard, nextTurn);
+
+        playMoveFeedback({ isCapture: selectedMove.isCapture, isCheck, isCheckmate });
+
+        setBoard(nextBoard);
+        setTurn(nextTurn);
         setStatus(game.status);
         setMoveHistory(game.move_history);
       } catch (moveError) {
@@ -83,21 +96,41 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
     if (piece?.color === role) {
       setSelectedSquare(squareIndex);
       setLegalMoves(getLegalMoves(board, squareIndex));
+    } else if (selectedSquare !== null && legalMoves.length > 0) {
+      // Invalid target after piece selected
+      playSound('invalid');
+      setSelectedSquare(null);
+      setLegalMoves([]);
     }
   }
 
   return (
     <main className="game-page">
       <div className="panel-topbar">
-        <GameHeader title="Online Game" turn={turn} status={status} playerRole={`You are ${role}`} details={`Mode: ${matchMode}`} onTitleClick={onHome} />
+        <GameHeader
+          title="Online Game"
+          turn={turn}
+          status={status}
+          playerRole={`You are ${role}`}
+          details={`Mode: ${matchMode}`}
+          onTitleClick={onHome}
+        />
         <button className="theme-toggle" onClick={onToggleTheme} aria-label="Toggle light and dark theme">
           {theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />}
           {theme === 'dark' ? 'Light' : 'Dark'}
         </button>
       </div>
-      {!isSupabaseConfigured && <p className="notice">Supabase environment variables are required for live multiplayer.</p>}
+      {!isSupabaseConfigured && (
+        <p className="notice">Supabase environment variables are required for live multiplayer.</p>
+      )}
       {error && <p className="error-message">{error}</p>}
-      <InvitePanel inviteLink={inviteLink} onCopy={() => navigator.clipboard.writeText(inviteLink)} />
+      <InvitePanel
+        inviteLink={inviteLink}
+        onCopy={() => {
+          void navigator.clipboard.writeText(inviteLink);
+          playSound('button');
+        }}
+      />
       {board.length > 0 && (
         <div className="game-layout">
           <Board
@@ -114,7 +147,9 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
             <h2>Move history</h2>
             <ol className="move-history">
               {moveHistory.map((record, moveIndex) => (
-                <li key={`${record.timestamp}-${moveIndex}`}>{record.color} {record.piece}: {record.from}→{record.to}</li>
+                <li key={`${record.timestamp}-${moveIndex}`}>
+                  {record.color} {record.piece}: {record.from}→{record.to}
+                </li>
               ))}
             </ol>
           </aside>

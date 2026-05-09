@@ -9,7 +9,7 @@ import { createInitialBoard } from '../game/createInitialBoard';
 import { squareLabel } from '../game/coordinates';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus';
 import { getLegalMoves } from '../game/legalMoves';
-import { playCheckSound, playMoveSound, playResultSound } from '../game/sound';
+import { playMoveFeedback, playSound } from '../audio/audioManager';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types';
 
 export type MatchMode = 'single' | 'best-of-3' | 'best-of-5';
@@ -150,6 +150,9 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
     const nextBoard = applyMove(board, move);
     const nextTurn = getOpponent(move.piece.color);
     const nextStatus = getStatusForTurn(nextBoard, nextTurn);
+    const isCheckmate = nextStatus !== 'active' && nextStatus !== 'draw';
+    const isCheck = !isCheckmate && isKingInCheck(nextBoard, nextTurn);
+
     setBoard(nextBoard);
     setBoardTimeline((timeline) => [...timeline, cloneBoard(nextBoard)]);
     setTurn(nextTurn);
@@ -159,12 +162,12 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
     setLastMove({ from: move.from, to: move.to });
     setMoveHistory((history) => [...history, createMoveRecord(move)]);
     setPreviewPly(null);
-    playMoveSound(move.isCapture);
+
+    // Play feedback sounds from the UI layer only
+    playMoveFeedback({ isCapture: move.isCapture, isCheck, isCheckmate });
+
     if (nextStatus !== 'active') {
-      playResultSound(getWinner(nextStatus) === 'white');
       finishRound(nextStatus);
-    } else if (isKingInCheck(nextBoard, nextTurn)) {
-      playCheckSound();
     }
   }, [board, finishRound]);
 
@@ -223,6 +226,10 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
   function handleSquareClick(squareIndex: number) {
     if (tryMoveTo(squareIndex)) return;
     if (selectSquare(squareIndex)) return;
+    // Invalid target after piece is selected
+    if (selectedSquare !== null && legalMoves.length > 0) {
+      playSound('invalid');
+    }
     setSelectedSquare(null);
     setLegalMoves([]);
   }
@@ -255,6 +262,11 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
     if (pendingAction === 'draw') requestDraw();
     if (pendingAction === 'restart') restartMatch();
     setPendingAction(null);
+  }
+
+  function handlePanelAction(action: 'draw' | 'resign') {
+    playSound('button');
+    setPendingAction(action);
   }
 
   useEffect(() => {
@@ -290,8 +302,12 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
           </div>
           <p>Game {roundNumber}/{config.maxGames}</p>
           <p>Bot level: <strong>{botLevel}</strong></p>
-          <button className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-          <button className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
+          <button className="wide-action" onClick={() => { setIsFlipped((f) => !f); playSound('button'); }}>
+            <RotateCcw size={18} /> Flip Board
+          </button>
+          <button className="wide-action" onClick={onToggleTheme}>
+            {theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme
+          </button>
         </aside>
 
         <section className="board-column">
@@ -317,7 +333,10 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
           <ol className="move-history move-list">
             {moveHistory.map((record, moveIndex) => (
               <li key={`${record.timestamp}-${moveIndex}`}>
-                <button className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'} onClick={() => setPreviewPly(moveIndex + 1)}>
+                <button
+                  className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'}
+                  onClick={() => setPreviewPly(moveIndex + 1)}
+                >
                   <span>{moveIndex + 1}.</span>
                   <strong>{record.color}</strong>
                   <span>{record.piece}</span>
@@ -335,22 +354,26 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
               <button onClick={() => setPreviewPly(boardTimeline.length - 1)} disabled={moveHistory.length === 0}>⏭</button>
             </div>
             <div className="panel-actions stacked-actions">
-              <button onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
-              <button onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
+              <button onClick={() => handlePanelAction('draw')}><Handshake size={18} /> Request Draw</button>
+              <button onClick={() => handlePanelAction('resign')}><Flag size={18} /> Resign</button>
               <button onClick={requestRestart}>Restart Match</button>
             </div>
           </div>
         </aside>
       </div>
+
       {roundResult && (
         <div className="winner-overlay" role="status">
           {roundResult.winner === 'white' && <div className="confetti" />}
           <div className={roundResult.winner === 'white' ? 'winner-card player-winner-card' : 'winner-card calm-result-card'}>
-            {roundResult.winner === 'white' ? <Trophy size={48} /> : <span className="result-emoji">{roundResult.winner === 'black' ? '😅' : '🤝'}</span>}
+            {roundResult.winner === 'white'
+              ? <Trophy size={48} />
+              : <span className="result-emoji">{roundResult.winner === 'black' ? '😅' : '🤝'}</span>}
             <p className="eyebrow">{matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}</p>
             <h2>{matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}</h2>
             <p>
-              Score: White {score.white} — Black {score.black}. {matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}
+              Score: White {score.white} — Black {score.black}.{' '}
+              {matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}
             </p>
             <div className="panel-actions centered-actions">
               {!matchWinner && roundResult.status !== 'draw' && <button onClick={nextRound}>Next Game</button>}
@@ -360,11 +383,16 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
           </div>
         </div>
       )}
+
       {pendingAction && (
         <div className="confirm-overlay" role="dialog" aria-modal="true">
           <div className="confirm-card">
             <p className="eyebrow">Confirm</p>
-            <h2>{pendingAction === 'resign' ? 'Resign this game?' : pendingAction === 'draw' ? 'Offer a draw?' : 'Restart the match?'}</h2>
+            <h2>
+              {pendingAction === 'resign' ? 'Resign this game?' :
+               pendingAction === 'draw'   ? 'Offer a draw?' :
+               'Restart the match?'}
+            </h2>
             <p>This action can change or reset the current game. Do you want to continue?</p>
             <div className="panel-actions centered-actions">
               <button onClick={confirmPendingAction}>Continue</button>
