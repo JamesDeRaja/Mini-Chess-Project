@@ -37,7 +37,6 @@ function getGamePayload(playerId: string, seed: string, backRankCode: string) {
     seed,
     seed_source: seed.startsWith('daily-') ? 'daily_matchmaking' : 'custom_matchmaking',
     back_rank_code: backRankCode,
-    round_number: 1,
     total_moves: 0,
     white_score: 0,
     black_score: 0,

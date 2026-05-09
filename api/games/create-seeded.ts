@@ -32,7 +32,6 @@ export default async function handler(request: VercelRequest, response: VercelRe
       seed,
       seed_source: 'custom',
       back_rank_code: backRankCode,
-      round_number: 1,
       total_moves: 0,
       white_score: 0,
       black_score: 0,
