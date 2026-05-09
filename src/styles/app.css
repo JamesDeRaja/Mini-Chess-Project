@@ -31,8 +31,8 @@
 body { margin: 0; min-width: 320px; min-height: 100vh; overflow: hidden; }
 button { font: inherit; }
 
-.home-page,
-.game-page {
+/* ── Home page ── */
+.home-page {
   height: 100vh;
   min-height: 100vh;
   overflow: hidden;
@@ -42,10 +42,17 @@ button { font: inherit; }
     linear-gradient(145deg, var(--page-bg) 0%, var(--page-bg-2) 100%);
 }
 
+/* ── Game page: fill full viewport, board area fills everything ── */
 .game-page {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: clamp(8px, 1.2vh, 16px);
+  height: 100vh;
+  overflow: hidden;
+  padding: clamp(10px, 1.4vw, 18px);
+  background:
+    radial-gradient(circle at 8% 5%, rgba(142, 188, 232, 0.2), transparent 28rem),
+    linear-gradient(145deg, var(--page-bg) 0%, var(--page-bg-2) 100%);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1vh, 14px);
 }
 
 .hero-card {
@@ -60,9 +67,9 @@ button { font: inherit; }
 }
 
 .eyebrow {
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   color: var(--accent);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 900;
   letter-spacing: 0.26em;
   text-transform: uppercase;
@@ -76,10 +83,9 @@ h1 {
   line-height: 0.92;
   letter-spacing: -0.075em;
 }
-.game-page h1 { font-size: clamp(2rem, 5.5vw, 5rem); }
-h2 { margin: 0 0 12px; color: var(--text); }
+h2 { margin: 0 0 10px; color: var(--text); }
 p { color: var(--muted); line-height: 1.7; }
-.game-details { margin: 14px 0 0; font-weight: 800; color: var(--accent); }
+.game-details { margin: 4px 0 0; font-size: 0.8rem; font-weight: 700; color: var(--accent); }
 
 .home-actions,
 .panel-actions,
@@ -153,65 +159,94 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   z-index: 5;
 }
 
-/* ── Game header ── */
+/* ── Game header (used by OnlineGamePage) ── */
 .game-header {
-  width: min(100%, 1720px);
-  margin: 0 auto;
+  flex-shrink: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: clamp(14px, 2vw, 28px);
 }
+.game-page h1 { font-size: clamp(2rem, 5.5vw, 5rem); }
 
-/* ── Main chess layout: board fills height, panels fill remaining width ── */
+/* ── Chess shell: the three-column layout that fills the full game area ── */
 .chess-shell {
-  /* fill the 1fr row completely */
-  height: 100%;
-  width: min(100%, 1720px);
+  flex: 1 1 0;      /* fill remaining height in game-page flex column */
+  min-height: 0;    /* allow shrinking below content size */
+  width: min(100%, 1760px);
   margin: 0 auto;
+  align-self: stretch;
 
   display: flex;
   flex-direction: row;
-  align-items: stretch;
-  gap: clamp(10px, 1.4vw, 22px);
+  align-items: stretch;   /* all columns fill full height */
+  gap: clamp(10px, 1.2vw, 20px);
   overflow: hidden;
 }
 
-/* Board column: sized by the board's intrinsic width (aspect-ratio from height) */
-.board-column {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  overflow: hidden;
-}
-
-/* Left panel */
+/* ── Left panel ── */
 .side-panel.match-panel {
-  flex: 0 0 clamp(150px, 16vw, 220px);
-  width: clamp(150px, 16vw, 220px);
+  flex: 0 0 clamp(160px, 15vw, 220px);
+  width: clamp(160px, 15vw, 220px);
   overflow-y: auto;
   overflow-x: hidden;
 }
 
-/* Right panel: fills remaining space */
+/* Title block inside left panel */
+.panel-title-area {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.panel-title-area h1 {
+  font-size: clamp(1.1rem, 2vw, 1.55rem);
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin: 4px 0 6px;
+}
+.status-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.status-inline strong {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+/* ── Board column: fills the height; board width is auto from aspect-ratio ── */
+.board-column {
+  flex: 0 0 auto;
+  /* height comes from align-items: stretch on chess-shell.
+     Explicitly repeat it so percentage children resolve correctly. */
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ── Right panel ── */
 .side-panel.review-panel {
   flex: 1 1 0;
-  min-width: 200px;
-  max-width: 380px;
+  min-width: 190px;
+  max-width: 370px;
   overflow-y: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
+/* ── Shared panel styling ── */
 .status-card,
 .side-panel,
 .invite-panel {
-  padding: 18px;
+  padding: 16px;
   border: 1px solid var(--panel-border);
-  border-radius: 26px;
+  border-radius: 24px;
   background: var(--panel-bg);
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.05), 0 25px 70px rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(18px);
@@ -230,13 +265,13 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   background: var(--panel-bg);
 }
 
-.match-panel { display: flex; flex-direction: column; gap: 10px; }
-.score-stack { display: grid; gap: 8px; margin: 8px 0; }
-.score-stack span { display: flex; justify-content: space-between; padding: 10px 12px; border-radius: 14px; background: rgba(139, 184, 232, 0.1); }
-.wide-action { width: 100%; justify-content: flex-start; }
+.match-panel { display: flex; flex-direction: column; gap: 8px; }
+.score-stack { display: grid; gap: 6px; margin: 6px 0; }
+.score-stack span { display: flex; justify-content: space-between; padding: 9px 12px; border-radius: 12px; background: rgba(139, 184, 232, 0.1); font-size: 0.9rem; }
+.wide-action { width: 100%; justify-content: flex-start; padding: 10px 14px; font-size: 0.88rem; }
 .review-panel { min-height: 0; }
 .panel-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.panel-note { margin-top: 0; font-size: 0.88rem; }
+.panel-note { margin-top: 0; font-size: 0.82rem; }
 
 .move-history {
   flex: 1;
@@ -248,35 +283,36 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   list-style: none;
   margin: 0;
 }
-.move-list li { margin-bottom: 6px; }
+.move-list li { margin-bottom: 4px; }
 .history-move {
   width: 100%;
   justify-content: flex-start;
-  padding: 8px 10px;
+  padding: 7px 10px;
   border-radius: 8px;
   background: transparent;
   box-shadow: none;
   color: var(--muted);
+  font-size: 0.86rem;
 }
 .history-move:hover,
 .active-history-move { background: rgba(139, 184, 232, 0.16); color: var(--text); }
-.review-footer { margin-top: auto; padding-top: 10px; flex-shrink: 0; }
-.review-controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 0 0 10px; }
-.review-controls button { padding: 9px; }
-.stacked-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.stacked-actions button { width: 100%; }
+.review-footer { margin-top: auto; padding-top: 8px; flex-shrink: 0; }
+.review-controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin: 0 0 8px; }
+.review-controls button { padding: 8px 4px; font-size: 0.88rem; }
+.stacked-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.stacked-actions button { width: 100%; padding: 9px 10px; font-size: 0.82rem; }
 
-/* Inline round result banner (replaces blocking overlay) */
+/* Inline result banner */
 .round-result-banner {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: 14px;
-  margin-bottom: 8px;
-  font-size: 0.92rem;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  font-size: 0.84rem;
 }
 .round-result-banner.win {
   background: rgba(131, 169, 95, 0.22);
@@ -291,8 +327,8 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   border: 1px solid rgba(139, 184, 232, 0.3);
 }
 .round-result-banner strong { color: var(--text); }
-.round-result-banner .banner-actions { display: flex; gap: 6px; flex-shrink: 0; }
-.round-result-banner button { padding: 6px 12px; font-size: 0.82rem; border-radius: 10px; }
+.round-result-banner .banner-actions { display: flex; gap: 5px; flex-shrink: 0; }
+.round-result-banner button { padding: 5px 10px; font-size: 0.78rem; border-radius: 9px; }
 
 .invite-panel {
   max-width: 1100px;
@@ -359,63 +395,45 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ── Responsive: narrow/portrait — board fills width, panels stack vertically ── */
-@media (max-width: 1100px) {
-  .game-page {
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    gap: 8px;
-  }
-  .game-page h1 { font-size: clamp(1.8rem, 7vw, 3.6rem); }
-
+/* ── Responsive: narrow screens — stack vertically ── */
+@media (max-width: 1060px) {
+  .game-page { overflow-y: auto; height: auto; min-height: 100vh; padding: 12px; gap: 10px; }
   .chess-shell {
     flex-direction: column;
     align-items: center;
+    flex: unset;
     height: auto;
-    overflow-y: auto;
+    min-height: 0;
     width: 100%;
-    gap: 10px;
   }
-
-  /* Hide the verbose status card on narrow screens */
-  .status-card { display: none; }
-
-  .board-column {
-    flex: 0 0 auto;
-    width: 100%;
-    justify-content: center;
-  }
-
+  .board-column { height: auto; width: 100%; justify-content: center; }
   .side-panel.match-panel {
     flex: 0 0 auto;
-    width: min(100%, 760px);
+    width: min(100%, 720px);
     overflow-y: visible;
-    /* Horizontal layout for match info */
+    /* show as compact horizontal strip */
     display: grid;
-    grid-template-columns: auto auto 1fr auto;
-    align-items: center;
-    gap: 12px;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
-  .match-panel .eyebrow,
-  .match-panel h2 { margin: 0; }
+  .panel-title-area { grid-column: 1 / -1; margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
   .score-stack { grid-template-columns: 1fr 1fr; margin: 0; }
   .wide-action { justify-content: center; }
-
   .side-panel.review-panel {
     flex: 0 0 auto;
-    width: min(100%, 760px);
+    width: min(100%, 720px);
     min-width: unset;
     max-width: unset;
-    min-height: 0;
     overflow-y: visible;
   }
-  .move-history { max-height: 80px; overflow-y: auto; }
+  .move-history { max-height: 90px; overflow-y: auto; }
+  .status-card { display: none; }
 }
 
 @media (max-width: 760px) {
   body { overflow: auto; }
-  .home-page, .game-page { height: auto; overflow: visible; }
-  .game-header { display: flex; flex-direction: column; }
-  .match-panel { grid-template-columns: 1fr 1fr; }
+  .home-page { height: auto; overflow: visible; }
+  .match-panel { grid-template-columns: 1fr; }
   .match-mode-grid { grid-template-columns: 1fr; }
   .stacked-actions { grid-template-columns: 1fr; }
 }

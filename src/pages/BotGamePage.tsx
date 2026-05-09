@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flag, Handshake, Moon, RotateCcw, SunMedium } from 'lucide-react';
 import { Board } from '../components/Board';
-import { GameHeader } from '../components/GameHeader';
 import { applyMove, createMoveRecord } from '../game/applyMove';
 import { type BotLevel, getBotMoveByLevel } from '../game/bot';
 import { findKingIndex, isKingInCheck } from '../game/check';
@@ -45,6 +44,14 @@ function getWinner(status: GameStatus): Color | null {
 function getRoundMessage(status: GameStatus): string {
   if (status === 'white_won') return 'White wins!';
   if (status === 'black_won') return 'Black wins!';
+  if (status === 'draw') return 'Draw';
+  return '';
+}
+
+function getStatusLabel(status: GameStatus): string {
+  if (status === 'active') return 'Active';
+  if (status === 'white_won') return 'White won';
+  if (status === 'black_won') return 'Black won';
   if (status === 'draw') return 'Draw';
   return '';
 }
@@ -287,26 +294,27 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
 
   return (
     <main className="game-page">
-      <GameHeader
-        title="Play Against Bot"
-        turn={turn}
-        status={status}
-        playerRole="You are White"
-        details={`${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
-        onTitleClick={onHome}
-      />
-      <div className="game-layout chess-shell">
+      <div className="chess-shell">
         <aside className="side-panel match-panel">
-          <p className="eyebrow">Match</p>
-          <h2>{config.label}</h2>
+          {/* Title area — replaces the top header so the board fills full height */}
+          <div className="panel-title-area">
+            <button className="title-link eyebrow" onClick={onHome}>← Mini Chess</button>
+            <h1>Play Against Bot</h1>
+            <p className="game-details">{config.label} · Game {roundNumber}/{config.maxGames} · {botLevel} bot</p>
+            <div className="status-inline">
+              <span>You are White</span>
+              <strong>{getStatusLabel(status)}</strong>
+              <span>{turn === 'white' ? 'White' : 'Black'} to move</span>
+            </div>
+          </div>
+          <p className="eyebrow" style={{ marginTop: 4 }}>Match</p>
+          <h2 style={{ fontSize: '1rem', marginBottom: 4 }}>{config.label}</h2>
           <div className="score-stack">
             <span>White <strong>{score.white}</strong></span>
             <span>Black <strong>{score.black}</strong></span>
           </div>
-          <p>Game {roundNumber}/{config.maxGames}</p>
-          <p>Bot level: <strong>{botLevel}</strong></p>
-          <button className="wide-action" onClick={() => setIsFlipped((f) => !f)}><RotateCcw size={16} /> Flip Board</button>
-          <button className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={16} /> : <Moon size={16} />} Theme</button>
+          <button className="wide-action" onClick={() => setIsFlipped((f) => !f)}><RotateCcw size={15} /> Flip Board</button>
+          <button className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={15} /> : <Moon size={15} />} Theme</button>
         </aside>
 
         <section className="board-column">

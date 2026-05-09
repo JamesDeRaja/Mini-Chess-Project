@@ -2,13 +2,13 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   grid-template-rows: repeat(6, 1fr);
-  /* Height fills the board-column (which stretches to chess-shell height).
-     Width is auto-calculated from aspect-ratio. */
+  /* Height fills the board-column height (which is chess-shell height = full viewport area).
+     Width auto-calculates from aspect-ratio 5:6. */
   height: 100%;
   width: auto;
   aspect-ratio: 5 / 6;
-  /* Safety: don't exceed viewport width on wide screens */
-  max-width: min(52vw, calc(90vh * 5 / 6));
+  /* Prevent board from being wider than the space available between panels */
+  max-width: 100%;
   overflow: hidden;
   padding: 8px;
   border: 0;
@@ -185,16 +185,16 @@
 }
 
 /* Responsive: board fills width when stacked vertically */
-@media (max-width: 1100px) {
+@media (max-width: 1060px) {
   .board {
     height: auto;
-    width: min(88vw, 480px);
-    max-width: min(88vw, 480px);
+    width: min(88vw, 500px);
+    max-width: min(88vw, 500px);
     aspect-ratio: 5 / 6;
   }
 }
 
 @media (max-width: 760px) {
-  .board { width: min(92vw, 420px); max-width: min(92vw, 420px); }
+  .board { width: min(94vw, 420px); max-width: min(94vw, 420px); }
   .piece { font-size: clamp(1.4rem, 11vw, 3rem); }
 }
