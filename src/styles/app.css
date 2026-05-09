@@ -41,7 +41,9 @@ button { font: inherit; }
 .home-page,
 .game-page {
   height: 100vh;
+  height: 100svh;
   min-height: 100vh;
+  min-height: 100svh;
   overflow: hidden;
   padding: clamp(12px, 2vw, 24px);
   background:
@@ -194,14 +196,15 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 }
 .game-layout { min-height: 0; align-items: stretch; }
 .chess-shell {
-  --play-area-height: min(100%, calc(100vh - clamp(190px, 23vh, 285px)));
+  --play-area-height: min(100%, calc(100svh - clamp(190px, 23vh, 285px)));
+  height: 100%;
   display: grid;
   grid-template-columns: minmax(150px, 230px) minmax(0, min(calc(var(--play-area-height) * 5 / 6), 52vw)) minmax(240px, 390px);
   justify-content: center;
   align-items: center;
   gap: clamp(12px, 1.6vw, 26px);
 }
-.board-column { display: grid; min-height: 0; justify-items: center; align-content: center; }
+.board-column { display: grid; min-height: 0; overflow: hidden; justify-items: center; align-content: center; }
 
 .status-card,
 .side-panel,
@@ -236,7 +239,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .wide-action { width: 100%; justify-content: flex-start; }
 .review-panel,
 .history-panel { display: flex; min-height: 0; flex-direction: column; }
-.online-game-panel { height: min(100%, calc(100vh - clamp(300px, 38vh, 460px))); max-height: min(100%, calc(100vh - clamp(300px, 38vh, 460px))); }
+.online-game-panel { height: min(100%, calc(100svh - clamp(300px, 38vh, 460px))); max-height: min(100%, calc(100svh - clamp(300px, 38vh, 460px))); }
 .panel-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .panel-note { margin-top: 0; font-size: 0.92rem; }
 .history-header { flex: 0 0 auto; }
@@ -367,14 +370,17 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 
 @media (max-width: 1180px) {
   body { overflow: hidden; }
-  .game-page { grid-template-rows: auto minmax(0, 1fr) auto; }
+  .game-page { grid-template-rows: auto minmax(0, 1fr); }
   .game-page h1 { font-size: clamp(2.2rem, 8vw, 4.4rem); }
   .status-card { display: none; }
   .chess-shell {
-    --play-area-height: calc(100vh - clamp(245px, 34vh, 360px));
+    --panel-strip-height: clamp(118px, 15svh, 180px);
+    --history-strip-height: clamp(160px, 19svh, 240px);
+    --play-area-height: 100%;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, var(--play-area-height)) auto;
-    align-content: center;
+    grid-template-rows: var(--panel-strip-height) minmax(0, 1fr) var(--history-strip-height);
+    align-items: stretch;
+    align-content: stretch;
   }
   .match-panel,
   .review-panel {
@@ -382,27 +388,37 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
     justify-self: center;
   }
   .match-panel {
-    height: auto;
-    max-height: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    align-items: center;
+    height: var(--panel-strip-height);
+    max-height: var(--panel-strip-height);
+    overflow-y: auto;
   }
-  .history-panel {
-    height: clamp(220px, 28vh, 320px);
-    max-height: clamp(220px, 28vh, 320px);
-  }
-  .match-panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center; }
   .match-panel .eyebrow, .match-panel h2 { margin: 0; }
+  .match-panel p { margin: 0; }
   .score-stack { grid-template-columns: 1fr 1fr; margin: 0; }
   .wide-action { justify-content: center; }
+  .history-panel {
+    height: var(--history-strip-height);
+    max-height: var(--history-strip-height);
+  }
   .review-panel { min-height: 0; }
 }
 
 @media (max-width: 760px) {
   body { overflow: auto; }
-  .home-page, .game-page { height: auto; overflow: visible; }
+  .home-page { height: auto; min-height: 100svh; overflow: visible; }
+  .game-page { height: 100svh; min-height: 100svh; overflow: hidden; }
   .game-header, .game-layout, .chess-shell { display: flex; flex-direction: column; }
+  .chess-shell {
+    --panel-strip-height: clamp(108px, 14svh, 150px);
+    --history-strip-height: clamp(140px, 17svh, 190px);
+  }
   .status-card, .side-panel { width: 100%; }
-  .match-panel { height: auto; }
-  .history-panel { height: clamp(260px, 42vh, 380px); max-height: clamp(260px, 42vh, 380px); }
+  .match-panel { height: var(--panel-strip-height); max-height: var(--panel-strip-height); }
+  .board-column { flex: 1 1 auto; }
+  .history-panel { height: var(--history-strip-height); max-height: var(--history-strip-height); }
   .match-mode-grid, .seed-tools-grid { grid-template-columns: 1fr; }
 }
 

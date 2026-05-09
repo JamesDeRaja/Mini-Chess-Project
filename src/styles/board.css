@@ -190,11 +190,23 @@
 }
 
 @media (max-width: 1180px) {
-  .board { width: min(92vw, calc(var(--play-area-height, 62vh) * 5 / 6)); }
+  .board {
+    align-self: center;
+    justify-self: center;
+    width: auto;
+    height: min(100%, calc(92vw * 6 / 5));
+    max-width: 92vw;
+    max-height: 100%;
+  }
 }
 
 @media (max-width: 760px) {
-  .board { width: min(92vw, 560px); }
+  .board {
+    width: auto;
+    height: min(100%, calc(92vw * 6 / 5));
+    max-width: 92vw;
+    max-height: 100%;
+  }
   .piece::before,
   .piece::after { display: none; }
 }
