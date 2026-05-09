@@ -1,22 +1,43 @@
 import { BOARD_FILES, BOARD_RANKS } from '../game/constants';
-import { index } from '../game/coordinates';
+import { fileLabel, index } from '../game/coordinates';
 import type { Board as ChessBoard, Move } from '../game/types';
 import { Square } from './Square';
+
+type LastMove = Pick<Move, 'from' | 'to'> | null;
 
 type BoardProps = {
   board: ChessBoard;
   selectedSquare: number | null;
   legalMoves: Move[];
-  lastMove: Move | null;
+  lastMove: LastMove;
   checkedKingIndex: number | null;
+  isFlipped?: boolean;
+  isInteractive?: boolean;
   onSquareClick: (squareIndex: number) => void;
+  onDragStart?: (squareIndex: number) => boolean;
+  onDrop?: (squareIndex: number) => void;
 };
 
-export function Board({ board, selectedSquare, legalMoves, lastMove, checkedKingIndex, onSquareClick }: BoardProps) {
+export function Board({
+  board,
+  selectedSquare,
+  legalMoves,
+  lastMove,
+  checkedKingIndex,
+  isFlipped = false,
+  isInteractive = true,
+  onSquareClick,
+  onDragStart,
+  onDrop,
+}: BoardProps) {
   const squares = [];
+  const ranks = Array.from({ length: BOARD_RANKS }, (_, rank) => rank);
+  const files = Array.from({ length: BOARD_FILES }, (_, file) => file);
+  const visualRanks = isFlipped ? ranks : [...ranks].reverse();
+  const visualFiles = isFlipped ? [...files].reverse() : files;
 
-  for (let rank = BOARD_RANKS - 1; rank >= 0; rank -= 1) {
-    for (let file = 0; file < BOARD_FILES; file += 1) {
+  for (const rank of visualRanks) {
+    for (const file of visualFiles) {
       const squareIndex = index(file, rank);
       const legalMove = legalMoves.find((move) => move.to === squareIndex);
       squares.push(
@@ -28,7 +49,11 @@ export function Board({ board, selectedSquare, legalMoves, lastMove, checkedKing
           isCapture={Boolean(legalMove?.isCapture)}
           isLastMove={lastMove?.from === squareIndex || lastMove?.to === squareIndex}
           isKingInCheck={checkedKingIndex === squareIndex}
+          isInteractive={isInteractive}
+          coordinateLabel={`${fileLabel(file)}${rank + 1}`}
           onClick={() => onSquareClick(squareIndex)}
+          onDragStart={onDragStart ? () => onDragStart(squareIndex) : undefined}
+          onDrop={onDrop ? () => onDrop(squareIndex) : undefined}
         />,
       );
     }

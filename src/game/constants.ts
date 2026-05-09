@@ -18,12 +18,12 @@ export const pieceValues: Record<PieceType, number> = {
 
 export const pieceSymbols: Record<Color, Record<PieceType, string>> = {
   white: {
-    king: '♔',
-    queen: '♕',
-    rook: '♖',
-    bishop: '♗',
-    knight: '♘',
-    pawn: '♙',
+    king: '♚',
+    queen: '♛',
+    rook: '♜',
+    bishop: '♝',
+    knight: '♞',
+    pawn: '♟',
   },
   black: {
     king: '♚',

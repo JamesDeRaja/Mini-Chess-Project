@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Moon, SunMedium } from 'lucide-react';
 import { Board } from '../components/Board';
 import { GameHeader } from '../components/GameHeader';
 import { InvitePanel } from '../components/InvitePanel';
@@ -9,13 +10,17 @@ import { joinOnlineGame, submitOnlineMove } from '../multiplayer/gameApi';
 import { getPlayerId } from '../multiplayer/playerSession';
 import { subscribeToGame, unsubscribeFromGame } from '../multiplayer/realtime';
 import { isSupabaseConfigured } from '../multiplayer/supabaseClient';
+import type { MatchMode } from './BotGamePage';
 
 type OnlineGamePageProps = {
   gameId: string;
+  matchMode: MatchMode;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
   onHome: () => void;
 };
 
-export function OnlineGamePage({ gameId, onHome }: OnlineGamePageProps) {
+export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome }: OnlineGamePageProps) {
   const [board, setBoard] = useState<ChessBoard>([]);
   const [turn, setTurn] = useState<Color>('white');
   const [status, setStatus] = useState<GameStatus>('waiting');
@@ -26,7 +31,7 @@ export function OnlineGamePage({ gameId, onHome }: OnlineGamePageProps) {
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const playerId = useMemo(() => getPlayerId(), []);
-  const inviteLink = `${window.location.origin}/game/${gameId}`;
+  const inviteLink = `${window.location.origin}/game/${gameId}?mode=${matchMode}`;
   const checkedKingIndex = useMemo(() => (board.length && isKingInCheck(board, turn) ? findKingIndex(board, turn) : null), [board, turn]);
 
   useEffect(() => {
@@ -83,7 +88,13 @@ export function OnlineGamePage({ gameId, onHome }: OnlineGamePageProps) {
 
   return (
     <main className="game-page">
-      <GameHeader title="Online Game" turn={turn} status={status} playerRole={`You are ${role}`} />
+      <div className="panel-topbar">
+        <GameHeader title="Online Game" turn={turn} status={status} playerRole={`You are ${role}`} details={`Mode: ${matchMode}`} onTitleClick={onHome} />
+        <button className="theme-toggle" onClick={onToggleTheme} aria-label="Toggle light and dark theme">
+          {theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />}
+          {theme === 'dark' ? 'Light' : 'Dark'}
+        </button>
+      </div>
       {!isSupabaseConfigured && <p className="notice">Supabase environment variables are required for live multiplayer.</p>}
       {error && <p className="error-message">{error}</p>}
       <InvitePanel inviteLink={inviteLink} onCopy={() => navigator.clipboard.writeText(inviteLink)} />
@@ -106,7 +117,6 @@ export function OnlineGamePage({ gameId, onHome }: OnlineGamePageProps) {
                 <li key={`${record.timestamp}-${moveIndex}`}>{record.color} {record.piece}: {record.from}→{record.to}</li>
               ))}
             </ol>
-            <button onClick={onHome}>Home</button>
           </aside>
         </div>
       )}
