@@ -83,3 +83,20 @@ The app supports a tolerant daily seed layer:
 - The daily API accepts today or a past `dateKey` so older dailies can be replayed, but future dates are rejected.
 
 For MVP, no stored daily seed row is required. Today's setup is stable because the fallback date key and seed are deterministic. The default invite-link and AI flows are daily-seeded; custom seed challenges are the opt-in alternative.
+
+## Optional matchmaking queue
+
+The Find Match button uses Supabase when a `matchmaking_queue` table is available from the dashboard. If that table is not configured yet, the app falls back to showing an invite-friend path instead of crashing.
+
+Recommended matchmaking fields:
+
+- `id`
+- `player_id`
+- `seed`
+- `back_rank_code`
+- `status`
+- `game_id`
+- `created_at`
+- `updated_at`
+
+Queue rows match only when players are waiting on the same seed, so today’s daily players are paired with other players using `daily-YYYY-MM-DD`.

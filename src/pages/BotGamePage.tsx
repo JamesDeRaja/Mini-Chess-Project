@@ -17,6 +17,7 @@ export type MatchMode = 'single' | 'best-of-3' | 'best-of-5';
 
 type BotGamePageProps = {
   matchMode: MatchMode;
+  dateKey?: string;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onHome: () => void;
@@ -61,12 +62,13 @@ function cloneBoard(board: ChessBoard): ChessBoard {
   return board.map((square) => ({ ...square, piece: square.piece ? { ...square.piece } : null }));
 }
 
-export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGamePageProps) {
+export function BotGamePage({ matchMode, dateKey: requestedDateKey, theme, onToggleTheme, onHome }: BotGamePageProps) {
   const dailySeedInfo = useMemo(() => {
-    const dateKey = getUtcDateKey();
+    const todayKey = getUtcDateKey();
+    const dateKey = requestedDateKey && requestedDateKey <= todayKey ? requestedDateKey : todayKey;
     const seed = getDailySeed(dateKey);
     return { dateKey, seed, backRankCode: backRankCodeFromSeed(seed) };
-  }, []);
+  }, [requestedDateKey]);
   const initialBoardForMount = useMemo(() => createInitialBoard({ backRankCode: dailySeedInfo.backRankCode }), [dailySeedInfo.backRankCode]);
   const [board, setBoard] = useState<ChessBoard>(() => initialBoardForMount);
   const [boardTimeline, setBoardTimeline] = useState<ChessBoard[]>(() => [cloneBoard(initialBoardForMount)]);
@@ -282,6 +284,7 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
           <p>Game {roundNumber}/{config.maxGames}</p>
           <p>Bot level: <strong>{botLevel}</strong></p>
           <p>Daily seed: <strong>{dailySeedInfo.seed}</strong></p>
+          <p>Date: {dailySeedInfo.dateKey}</p>
           <p>Back rank: {dailySeedInfo.backRankCode}</p>
           <button type="button" className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
           <button type="button" className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>

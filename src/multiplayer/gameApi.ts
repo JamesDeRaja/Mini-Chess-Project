@@ -1,5 +1,11 @@
 import type { Board, Color, GameStatus, Move, MoveRecord } from '../game/types.js';
 
+
+export type MatchmakingResponse =
+  | { status: 'matched'; gameId: string }
+  | { status: 'waiting'; queueId: string; seed: string; backRankCode: string }
+  | { status: 'unavailable'; message: string };
+
 export type OnlineGameRecord = {
   id: string;
   board: Board;
@@ -53,6 +59,20 @@ export function createSeededGame(playerId: string, seed: string): Promise<{ game
   return requestJson('/api/games/create-seeded', {
     method: 'POST',
     body: JSON.stringify({ playerId, seed }),
+  });
+}
+
+export function findMatchmakingGame(playerId: string, seed: string, backRankCode: string): Promise<MatchmakingResponse> {
+  return requestJson('/api/matchmaking/find', {
+    method: 'POST',
+    body: JSON.stringify({ playerId, seed, backRankCode }),
+  });
+}
+
+export function cancelMatchmaking(playerId: string, queueId?: string): Promise<{ ok: boolean; message?: string }> {
+  return requestJson('/api/matchmaking/cancel', {
+    method: 'POST',
+    body: JSON.stringify({ playerId, queueId }),
   });
 }
 

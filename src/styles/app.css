@@ -383,3 +383,122 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   .match-panel, .review-panel { height: auto; }
   .match-mode-grid, .seed-tools-grid { grid-template-columns: 1fr; }
 }
+
+.shuffle-hero-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.72fr);
+  gap: clamp(18px, 4vw, 44px);
+  width: min(1120px, calc(100vw - 32px));
+  max-width: 1120px;
+  margin: clamp(54px, 8vh, 84px) auto 0;
+  padding: clamp(22px, 4vw, 44px);
+}
+.shuffle-hero-card h1 {
+  max-width: 680px;
+  font-size: clamp(2.55rem, 6vw, 5.4rem);
+}
+.hero-copy { display: grid; align-content: center; gap: 18px; min-width: 0; }
+.hero-subtitle { max-width: 620px; margin: 0; font-size: clamp(1rem, 1.6vw, 1.18rem); }
+.daily-summary-card {
+  display: grid;
+  gap: 4px;
+  width: min(100%, 430px);
+  padding: 14px 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  background: rgba(139, 184, 232, 0.1);
+}
+.daily-summary-card span,
+.daily-summary-card p { margin: 0; color: var(--muted); }
+.daily-summary-card strong { color: var(--accent); font-size: 1.25rem; }
+.opponent-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.opponent-card {
+  min-height: 104px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px;
+  text-align: left;
+}
+.opponent-card span { display: grid; gap: 4px; }
+.opponent-card small { color: rgba(255, 255, 255, 0.78); font-weight: 700; line-height: 1.35; }
+.secondary-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.secondary-links button {
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(15, 23, 42, 0.12);
+  color: var(--text);
+  box-shadow: none;
+}
+.setup-preview-card {
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--panel-border);
+  border-radius: 26px;
+  background: rgba(15, 23, 42, 0.16);
+}
+.mini-board-preview {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(30px, 1fr));
+  gap: 6px;
+}
+.mini-board-preview span {
+  display: grid;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--text);
+  background: rgba(139, 184, 232, 0.18);
+  font-weight: 950;
+}
+.mini-board-preview span:nth-child(even) { background: rgba(131, 169, 95, 0.22); }
+.mini-board-preview .preview-empty { opacity: 0.32; }
+.setup-code-stack { display: grid; gap: 6px; color: var(--muted); font-weight: 800; }
+.setup-code-stack strong { color: var(--accent); font-size: 1.5rem; letter-spacing: 0.16em; }
+.utility-modal {
+  display: grid;
+  gap: 14px;
+  width: min(92vw, 560px);
+  text-align: left;
+}
+.utility-modal h2,
+.utility-modal p { margin: 0; }
+.utility-modal input {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: #f8fbff;
+  background: rgba(15, 23, 42, 0.36);
+}
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  min-width: auto;
+  padding: 8px;
+  border-radius: 999px;
+}
+.quick-chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.quick-chip-row button { padding: 8px 11px; }
+.rules-modal ul { margin: 0; padding-left: 20px; color: #dbe8ff; line-height: 1.7; }
+.inline-message { max-width: none; margin: 0; color: #fecaca; }
+.matchmaking-modal .panel-actions { justify-content: flex-start; }
+
+@media (max-width: 920px) {
+  .shuffle-hero-card { grid-template-columns: 1fr; margin-top: 72px; }
+  .opponent-actions { grid-template-columns: 1fr; }
+  .opponent-card { min-height: 82px; }
+}
+
+@media (max-width: 760px) {
+  .shuffle-hero-card { width: min(100%, calc(100vw - 24px)); padding: 20px; }
+  .setup-preview-card { display: none; }
+}
