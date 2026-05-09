@@ -27,6 +27,8 @@ type RoundResult = {
   message: string;
 };
 
+type PendingAction = 'resign' | 'draw' | 'restart' | null;
+
 const modeConfig: Record<MatchMode, { label: string; maxGames: number; winsRequired: number }> = {
   single: { label: 'One Match', maxGames: 1, winsRequired: 1 },
   'best-of-3': { label: 'Best 2 / 3', maxGames: 3, winsRequired: 2 },
@@ -73,6 +75,7 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
   const [matchWinner, setMatchWinner] = useState<Color | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
   const [previewPly, setPreviewPly] = useState<number | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
   const config = modeConfig[matchMode];
   const botLevel = getBotLevel(matchMode, score, config.winsRequired, roundNumber);
@@ -99,6 +102,7 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
     setRoundResult(null);
     setMatchWinner(null);
     setPreviewPly(null);
+    setPendingAction(null);
   }, [matchMode]);
 
   useEffect(() => {
@@ -106,11 +110,29 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
       if (event.key === 'Escape') {
         setSelectedSquare(null);
         setLegalMoves([]);
+        setPendingAction(null);
+        return;
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setPreviewPly((ply) => Math.max((ply ?? boardTimeline.length - 1) - 1, 0));
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setPreviewPly((ply) => Math.min((ply ?? boardTimeline.length - 1) + 1, boardTimeline.length - 1));
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setPreviewPly(null);
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setPreviewPly(0);
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [boardTimeline.length]);
 
   const finishRound = useCallback((nextStatus: GameStatus) => {
     const winner = getWinner(nextStatus);
@@ -213,6 +235,13 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
     finishRound('draw');
   }
 
+  function confirmPendingAction() {
+    if (pendingAction === 'resign') resign();
+    if (pendingAction === 'draw') requestDraw();
+    if (pendingAction === 'restart') restartMatch();
+    setPendingAction(null);
+  }
+
   useEffect(() => {
     if (status !== 'active' || turn !== 'black' || isPreviewing) return;
 
@@ -234,14 +263,23 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
         status={status}
         playerRole="You are White"
         details={`${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
+        onTitleClick={onHome}
       />
       <div className="game-layout chess-shell">
-        <section className="board-column">
-          <div className="score-strip">
-            <span>White {score.white}</span>
-            <strong>{config.label}</strong>
-            <span>Black {score.black}</span>
+        <aside className="side-panel match-panel">
+          <p className="eyebrow">Match</p>
+          <h2>{config.label}</h2>
+          <div className="score-stack">
+            <span>White <strong>{score.white}</strong></span>
+            <span>Black <strong>{score.black}</strong></span>
           </div>
+          <p>Game {roundNumber}/{config.maxGames}</p>
+          <p>Bot level: <strong>{botLevel}</strong></p>
+          <button className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
+          <button className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
+        </aside>
+
+        <section className="board-column">
           <Board
             board={displayBoard}
             selectedSquare={isPreviewing ? null : selectedSquare}
@@ -255,14 +293,12 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
             onDrop={handleDrop}
           />
         </section>
+
         <aside className="side-panel review-panel">
           <div className="panel-topbar">
             <h2>Move history</h2>
-            <button className="icon-action" onClick={onToggleTheme} aria-label="Toggle light and dark theme">
-              {theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />}
-            </button>
           </div>
-          <p className="panel-note">Click any move to review the board. Press Escape to cancel a selected or dragged piece.</p>
+          <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
           <ol className="move-history move-list">
             {moveHistory.map((record, moveIndex) => (
               <li key={`${record.timestamp}-${moveIndex}`}>
@@ -275,27 +311,27 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
               </li>
             ))}
           </ol>
-          <div className="review-controls">
-            <button onClick={() => setPreviewPly(0)} disabled={moveHistory.length === 0}>⏮</button>
-            <button onClick={() => setPreviewPly((ply) => Math.max((ply ?? boardTimeline.length - 1) - 1, 0))} disabled={moveHistory.length === 0}>‹</button>
-            <button onClick={() => setPreviewPly(null)}>Live</button>
-            <button onClick={() => setPreviewPly((ply) => Math.min((ply ?? 0) + 1, boardTimeline.length - 1))} disabled={moveHistory.length === 0}>›</button>
-            <button onClick={() => setPreviewPly(boardTimeline.length - 1)} disabled={moveHistory.length === 0}>⏭</button>
-          </div>
-          <div className="panel-actions stacked-actions">
-            <button onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-            <button onClick={requestDraw}><Handshake size={18} /> Request Draw</button>
-            <button onClick={resign}><Flag size={18} /> Resign</button>
-            <button onClick={restartMatch}>Restart</button>
-            <button onClick={onHome}>Home</button>
+          <div className="review-footer">
+            <div className="review-controls">
+              <button onClick={() => setPreviewPly(0)} disabled={moveHistory.length === 0}>⏮</button>
+              <button onClick={() => setPreviewPly((ply) => Math.max((ply ?? boardTimeline.length - 1) - 1, 0))} disabled={moveHistory.length === 0}>‹</button>
+              <button onClick={() => setPreviewPly(null)}>Live</button>
+              <button onClick={() => setPreviewPly((ply) => Math.min((ply ?? 0) + 1, boardTimeline.length - 1))} disabled={moveHistory.length === 0}>›</button>
+              <button onClick={() => setPreviewPly(boardTimeline.length - 1)} disabled={moveHistory.length === 0}>⏭</button>
+            </div>
+            <div className="panel-actions stacked-actions">
+              <button onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
+              <button onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
+              <button onClick={() => setPendingAction('restart')}>Restart Match</button>
+            </div>
           </div>
         </aside>
       </div>
       {roundResult && (
         <div className="winner-overlay" role="status">
-          <div className="confetti" />
-          <div className="winner-card">
-            <Trophy size={48} />
+          {roundResult.winner === 'white' && <div className="confetti" />}
+          <div className={roundResult.winner === 'white' ? 'winner-card player-winner-card' : 'winner-card calm-result-card'}>
+            {roundResult.winner === 'white' ? <Trophy size={48} /> : <span className="result-emoji">{roundResult.winner === 'black' ? '😅' : '🤝'}</span>}
             <p className="eyebrow">{matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}</p>
             <h2>{matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}</h2>
             <p>
@@ -304,8 +340,20 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
             <div className="panel-actions centered-actions">
               {!matchWinner && roundResult.status !== 'draw' && <button onClick={nextRound}>Next Game</button>}
               {!matchWinner && roundResult.status === 'draw' && <button onClick={nextRound}>Replay Game</button>}
-              <button onClick={restartMatch}>Restart Match</button>
-              <button onClick={onHome}>Home</button>
+              <button onClick={() => setPendingAction('restart')}>Restart Match</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {pendingAction && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true">
+          <div className="confirm-card">
+            <p className="eyebrow">Confirm</p>
+            <h2>{pendingAction === 'resign' ? 'Resign this game?' : pendingAction === 'draw' ? 'Offer a draw?' : 'Restart the match?'}</h2>
+            <p>This action can change or reset the current game. Do you want to continue?</p>
+            <div className="panel-actions centered-actions">
+              <button onClick={confirmPendingAction}>Continue</button>
+              <button onClick={() => setPendingAction(null)}>Back to game</button>
             </div>
           </div>
         </div>

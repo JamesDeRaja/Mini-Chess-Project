@@ -3,9 +3,11 @@ import type { MatchMode } from './BotGamePage';
 
 type HomePageProps = {
   theme: 'light' | 'dark';
+  selectedMatchMode: MatchMode;
+  onSelectMatchMode: (matchMode: MatchMode) => void;
   onToggleTheme: () => void;
   onStartBot: (matchMode: MatchMode) => void;
-  onInvite: () => void;
+  onInvite: (matchMode: MatchMode) => void;
 };
 
 const matchModes: Array<{ mode: MatchMode; title: string; description: string }> = [
@@ -14,7 +16,14 @@ const matchModes: Array<{ mode: MatchMode; title: string; description: string }>
   { mode: 'best-of-5', title: 'Best 3 / 5', description: 'A longer set with adaptive bot pressure.' },
 ];
 
-export function HomePage({ theme, onToggleTheme, onStartBot, onInvite }: HomePageProps) {
+export function HomePage({
+  theme,
+  selectedMatchMode,
+  onSelectMatchMode,
+  onToggleTheme,
+  onStartBot,
+  onInvite,
+}: HomePageProps) {
   return (
     <main className="home-page">
       <button className="theme-toggle floating-theme-toggle" onClick={onToggleTheme} aria-label="Toggle theme">
@@ -25,23 +34,29 @@ export function HomePage({ theme, onToggleTheme, onStartBot, onInvite }: HomePag
         <p className="eyebrow">Mini Chess</p>
         <h1>Play smarter short chess.</h1>
         <p>
-          Choose a match format, drag pieces like a modern chess board, and play through adaptive bot rounds on a
-          chess.com-inspired board.
+          Select a match format once, then use it for either the AI game or an invite game. One Match is selected by
+          default.
         </p>
-        <div className="match-mode-grid">
+        <div className="match-mode-grid" role="radiogroup" aria-label="Match format">
           {matchModes.map((matchMode) => (
-            <button key={matchMode.mode} className="mode-card" onClick={() => onStartBot(matchMode.mode)}>
+            <button
+              key={matchMode.mode}
+              className={matchMode.mode === selectedMatchMode ? 'mode-card selected-mode-card' : 'mode-card'}
+              onClick={() => onSelectMatchMode(matchMode.mode)}
+              role="radio"
+              aria-checked={matchMode.mode === selectedMatchMode}
+            >
               <Sparkles size={18} />
               <strong>{matchMode.title}</strong>
               <span>{matchMode.description}</span>
             </button>
           ))}
         </div>
-        <div className="home-actions">
-          <button className="primary-action" onClick={() => onStartBot('single')}>
-            <Bot size={20} /> Quick Bot Game
+        <div className="home-actions two-main-actions">
+          <button className="primary-action" onClick={() => onStartBot(selectedMatchMode)}>
+            <Bot size={20} /> Play AI
           </button>
-          <button className="secondary-action" onClick={onInvite}>
+          <button className="secondary-action" onClick={() => onInvite(selectedMatchMode)}>
             <LinkIcon size={20} /> Invite People
           </button>
         </div>

@@ -43,11 +43,12 @@ export function Square({
     .filter(Boolean)
     .join(' ');
 
-  function handleDragStart(event: DragEvent<HTMLButtonElement>) {
+  function handlePieceDragStart(event: DragEvent<HTMLSpanElement>) {
     if (!isInteractive || !onDragStart || !onDragStart()) {
       event.preventDefault();
       return;
     }
+    event.currentTarget.classList.add('piece-dragging');
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', `${square.file},${square.rank}`);
   }
@@ -67,15 +68,21 @@ export function Square({
   return (
     <button
       className={className}
-      draggable={isInteractive && Boolean(square.piece)}
       onClick={onClick}
-      onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       aria-label={`Square ${coordinateLabel}`}
     >
       <span className="coordinate-label">{coordinateLabel}</span>
-      {square.piece && <Piece piece={square.piece} />}
+      {square.piece && (
+        <Piece
+          piece={square.piece}
+          isDraggable={isInteractive}
+          isSelected={isSelected}
+          onDragStart={handlePieceDragStart}
+          onDragEnd={() => setTimeout(() => document.querySelector('.piece-dragging')?.classList.remove('piece-dragging'), 0)}
+        />
+      )}
       {isLegalMove && <MoveHint isCapture={isCapture} />}
     </button>
   );
