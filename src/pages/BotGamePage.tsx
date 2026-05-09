@@ -9,6 +9,7 @@ import { createInitialBoard } from '../game/createInitialBoard';
 import { squareLabel } from '../game/coordinates';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus';
 import { getLegalMoves } from '../game/legalMoves';
+import { playCheckSound, playMoveSound, playResultSound } from '../game/sound';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types';
 
 export type MatchMode = 'single' | 'best-of-3' | 'best-of-5';
@@ -158,7 +159,13 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
     setLastMove({ from: move.from, to: move.to });
     setMoveHistory((history) => [...history, createMoveRecord(move)]);
     setPreviewPly(null);
-    if (nextStatus !== 'active') finishRound(nextStatus);
+    playMoveSound(move.isCapture);
+    if (nextStatus !== 'active') {
+      playResultSound(getWinner(nextStatus) === 'white');
+      finishRound(nextStatus);
+    } else if (isKingInCheck(nextBoard, nextTurn)) {
+      playCheckSound();
+    }
   }, [board, finishRound]);
 
   function resetRound(nextRoundNumber = roundNumber) {
@@ -180,6 +187,14 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
     setScore({ white: 0, black: 0 });
     setMatchWinner(null);
     resetRound(1);
+  }
+
+  function requestRestart() {
+    if (status === 'active' && !roundResult) {
+      setPendingAction('restart');
+      return;
+    }
+    restartMatch();
   }
 
   function nextRound() {
@@ -322,7 +337,7 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
             <div className="panel-actions stacked-actions">
               <button onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
               <button onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
-              <button onClick={() => setPendingAction('restart')}>Restart Match</button>
+              <button onClick={requestRestart}>Restart Match</button>
             </div>
           </div>
         </aside>
@@ -340,7 +355,7 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
             <div className="panel-actions centered-actions">
               {!matchWinner && roundResult.status !== 'draw' && <button onClick={nextRound}>Next Game</button>}
               {!matchWinner && roundResult.status === 'draw' && <button onClick={nextRound}>Replay Game</button>}
-              <button onClick={() => setPendingAction('restart')}>Restart Match</button>
+              <button onClick={requestRestart}>Restart Match</button>
             </div>
           </div>
         </div>
