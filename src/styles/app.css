@@ -649,3 +649,21 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   .opponent-actions { grid-template-columns: 1fr; }
   .setup-preview-card { display: grid; }
 }
+.daily-ai-card { position: relative; }
+.daily-ai-stars {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: inline-flex;
+  gap: 1px;
+  color: rgba(45, 43, 40, 0.64);
+  font-size: 0.82rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+}
+.magic-star-active {
+  color: #7c6ee6;
+  text-shadow: 0 0 8px rgba(124, 110, 230, 0.38), 0 0 12px rgba(247, 212, 124, 0.32);
+}
+.daily-ai-status { font-size: 0.78rem; opacity: 0.82; }

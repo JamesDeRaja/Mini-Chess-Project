@@ -4,6 +4,14 @@ import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { type BotLevel, getBotMoveByLevel } from '../game/bot.js';
+import {
+  type DailyAIDifficulty,
+  type DailyAIProgress,
+  getDailyAIDifficulty,
+  getDailyAIPlayerColor,
+  handleDailyAIGameResult,
+  resetDailyAIProgressIfNeeded,
+} from '../game/dailyAIProgress.js';
 import { findKingIndex, isKingInCheck } from '../game/check.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
 import { squareLabel } from '../game/coordinates.js';
@@ -29,6 +37,8 @@ type RoundResult = {
   status: GameStatus;
   winner: Color | null;
   message: string;
+  progressionMessage?: string;
+  didPlayerWin: boolean;
 };
 
 type PendingAction = 'resign' | 'draw' | 'restart' | null;
@@ -59,6 +69,21 @@ function getBotLevel(matchMode: MatchMode, score: MatchScore, winsRequired: numb
   return 'weak';
 }
 
+
+function getBotLevelForDailyDifficulty(difficulty: DailyAIDifficulty): BotLevel {
+  if (difficulty === 'easy') return 'weak';
+  if (difficulty === 'medium') return 'medium';
+  return 'powerful';
+}
+
+function getDailyProgressionMessage(progress: DailyAIProgress, didPlayerWin: boolean): string {
+  if (!didPlayerWin) return 'No star lost. Retry the same bot.';
+  if (progress.stars === 0) return 'Star earned. Medium bot unlocked.';
+  if (progress.stars === 1) return 'Star earned. Hard bot unlocked.';
+  if (progress.stars === 2) return 'Third star earned. Final boss unlocked.';
+  return 'Magic star unlocked.';
+}
+
 function cloneBoard(board: ChessBoard): ChessBoard {
   return board.map((square) => ({ ...square, piece: square.piece ? { ...square.piece } : null }));
 }
@@ -74,6 +99,11 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
     const seed = getDailySeed(dateKey);
     return { dateKey, seed, backRankCode: backRankCodeFromSeed(seed) };
   }, [customSeed, requestedDateKey]);
+  const isDailyAI = !customSeed;
+  const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
+  const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
+  const playerColor = isDailyAI ? getDailyAIPlayerColor(dailyAIProgress) : 'white';
+  const botColor = getOpponent(playerColor);
   const initialBoardForMount = useMemo(() => createInitialBoard({ backRankCode: dailySeedInfo.backRankCode }), [dailySeedInfo.backRankCode]);
   const [board, setBoard] = useState<ChessBoard>(() => initialBoardForMount);
   const [boardTimeline, setBoardTimeline] = useState<ChessBoard[]>(() => [cloneBoard(initialBoardForMount)]);
@@ -87,13 +117,13 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   const [roundNumber, setRoundNumber] = useState(1);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [matchWinner, setMatchWinner] = useState<Color | null>(null);
-  const [isFlipped, setIsFlipped] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(() => playerColor === 'black');
   const [previewPly, setPreviewPly] = useState<number | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const historyListRef = useRef<HTMLOListElement | null>(null);
 
   const config = modeConfig[matchMode];
-  const botLevel = getBotLevel(matchMode, score, config.winsRequired, roundNumber);
+  const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber);
   const latestPly = boardTimeline.length - 1;
   const isPreviewing = previewPly !== null && previewPly < latestPly;
   const displayBoard = isPreviewing ? boardTimeline[previewPly] : board;
@@ -102,6 +132,10 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
     () => (!isPreviewing && displayBoard.length && isKingInCheck(displayBoard, turn) ? findKingIndex(displayBoard, turn) : null),
     [displayBoard, isPreviewing, turn],
   );
+
+  useEffect(() => {
+    if (isDailyAI) setDailyAIProgress(resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
+  }, [dailySeedInfo.dateKey, isDailyAI]);
 
   useEffect(() => {
     const historyList = historyListRef.current;
@@ -144,13 +178,23 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
 
   const finishRound = useCallback((nextStatus: GameStatus) => {
     const winner = getWinner(nextStatus);
+    const didPlayerWin = winner === playerColor;
+    let progressionMessage: string | undefined;
+
+    if (isDailyAI) {
+      progressionMessage = getDailyProgressionMessage(dailyAIProgress, didPlayerWin);
+      const nextProgress = handleDailyAIGameResult(dailyAIProgress, didPlayerWin ? 'win' : 'loss');
+      setDailyAIProgress(nextProgress);
+      setIsFlipped(getDailyAIPlayerColor(nextProgress) === 'black');
+    }
+
     if (winner) {
       const updatedScore = { ...score, [winner]: score[winner] + 1 };
       setScore(updatedScore);
-      if (updatedScore[winner] >= config.winsRequired) setMatchWinner(winner);
+      if (!isDailyAI && updatedScore[winner] >= config.winsRequired) setMatchWinner(winner);
     }
-    setRoundResult({ status: nextStatus, winner, message: getRoundMessage(nextStatus) });
-  }, [config.winsRequired, score]);
+    setRoundResult({ status: nextStatus, winner, message: getRoundMessage(nextStatus), progressionMessage, didPlayerWin });
+  }, [config.winsRequired, dailyAIProgress, isDailyAI, playerColor, score]);
 
   const completeMove = useCallback((move: Move) => {
     const nextBoard = applyMove(board, move);
@@ -167,12 +211,12 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
     setPreviewPly(null);
     playMoveSound(move.isCapture);
     if (nextStatus !== 'active') {
-      playResultSound(getWinner(nextStatus) === 'white');
+      playResultSound(getWinner(nextStatus) === playerColor);
       finishRound(nextStatus);
     } else if (isKingInCheck(nextBoard, nextTurn)) {
       playCheckSound();
     }
-  }, [board, finishRound]);
+  }, [board, finishRound, playerColor]);
 
   function resetRound(nextRoundNumber = roundNumber) {
     const initialBoard = createInitialBoard({ backRankCode: dailySeedInfo.backRankCode });
@@ -208,7 +252,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   }
 
   function selectSquare(squareIndex: number): boolean {
-    if (status !== 'active' || turn !== 'white' || isPreviewing) return false;
+    if (status !== 'active' || turn !== playerColor || isPreviewing) return false;
     const piece = board[squareIndex]?.piece;
     if (piece?.color !== turn) return false;
     setSelectedSquare(squareIndex);
@@ -217,7 +261,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   }
 
   function tryMoveTo(squareIndex: number): boolean {
-    if (status !== 'active' || turn !== 'white' || isPreviewing) return false;
+    if (status !== 'active' || turn !== playerColor || isPreviewing) return false;
     const selectedMove = legalMoves.find((move) => move.to === squareIndex);
     if (selectedMove) {
       completeMove(selectedMove);
@@ -246,8 +290,9 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
 
   function resign() {
     if (status !== 'active') return;
-    setStatus('black_won');
-    finishRound('black_won');
+    const resignationStatus = playerColor === 'white' ? 'black_won' : 'white_won';
+    setStatus(resignationStatus);
+    finishRound(resignationStatus);
   }
 
   function requestDraw() {
@@ -264,15 +309,15 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   }
 
   useEffect(() => {
-    if (status !== 'active' || turn !== 'black' || isPreviewing) return;
+    if (status !== 'active' || turn !== botColor || isPreviewing) return;
 
     const timeoutId = window.setTimeout(() => {
-      const botMove = getBotMoveByLevel(board, 'black', botLevel);
+      const botMove = getBotMoveByLevel(board, botColor, botLevel);
       if (botMove) completeMove(botMove);
     }, 300);
 
     return () => window.clearTimeout(timeoutId);
-  }, [board, botLevel, completeMove, isPreviewing, status, turn]);
+  }, [board, botColor, botLevel, completeMove, isPreviewing, status, turn]);
 
   const activeLegalMoves = isPreviewing ? [] : legalMoves;
 
@@ -282,8 +327,8 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
         title="Play Against Bot"
         turn={turn}
         status={status}
-        playerRole="You are White"
-        details={`${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
+        playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
+        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
         onTitleClick={onHome}
       />
       <div className="game-layout chess-shell">
@@ -295,7 +340,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
             <span>Black <strong>{score.black}</strong></span>
           </div>
           <p>Game {roundNumber}/{config.maxGames}</p>
-          <p>Bot level: <strong>{botLevel}</strong></p>
+          <p>Bot level: <strong>{dailyAIDifficulty ?? botLevel}</strong></p>
           <p>Daily seed: <strong>{dailySeedInfo.seed}</strong></p>
           <p>Date: {dailySeedInfo.dateKey}</p>
           <p>Back rank: {dailySeedInfo.backRankCode}</p>
@@ -362,14 +407,15 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
       </div>
       {roundResult && (
         <div className="winner-overlay" role="status">
-          {roundResult.winner === 'white' && <div className="confetti" />}
-          <div className={roundResult.winner === 'white' ? 'winner-card player-winner-card' : 'winner-card calm-result-card'}>
-            {roundResult.winner === 'white' ? <Trophy size={48} /> : <span className="result-emoji">{roundResult.winner === 'black' ? '😅' : '🤝'}</span>}
+          {roundResult.didPlayerWin && <div className="confetti" />}
+          <div className={roundResult.didPlayerWin ? 'winner-card player-winner-card' : 'winner-card calm-result-card'}>
+            {roundResult.didPlayerWin ? <Trophy size={48} /> : <span className="result-emoji">{roundResult.winner ? '😅' : '🤝'}</span>}
             <p className="eyebrow">{matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}</p>
             <h2>{matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}</h2>
             <p>
-              Score: White {score.white} — Black {score.black}. {matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}
+              Score: White {score.white} — Black {score.black}. {isDailyAI ? 'Daily ladder mode.' : matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}
             </p>
+            {roundResult.progressionMessage && <p className="panel-note">{roundResult.progressionMessage}</p>}
             <div className="panel-actions centered-actions">
               {!matchWinner && roundResult.status !== 'draw' && <button type="button" onClick={nextRound}>Next Game</button>}
               {!matchWinner && roundResult.status === 'draw' && <button type="button" onClick={nextRound}>Replay Game</button>}
