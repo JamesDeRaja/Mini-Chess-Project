@@ -5,6 +5,7 @@ import { GameHeader } from '../components/GameHeader';
 import { InvitePanel } from '../components/InvitePanel';
 import { findKingIndex, isKingInCheck } from '../game/check';
 import { getLegalMoves } from '../game/legalMoves';
+import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../game/seed';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types';
 import { joinOnlineGame, submitOnlineMove } from '../multiplayer/gameApi';
 import { getPlayerId } from '../multiplayer/playerSession';
@@ -29,18 +30,37 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<Move | null>(null);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
+  const [seedLabel, setSeedLabel] = useState('Random');
+  const [backRankCode, setBackRankCode] = useState<string | null>(null);
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [scores, setScores] = useState({ whiteScore: 0, blackScore: 0 });
   const [error, setError] = useState<string | null>(null);
   const playerId = useMemo(() => getPlayerId(), []);
   const inviteLink = `${window.location.origin}/game/${gameId}?mode=${matchMode}`;
+  const shareText = `Mini Chess ${seedLabel} (${backRankCode ?? 'setup pending'}) — ${status.replace('_', ' ')} after ${moveHistory.length} moves. ${inviteLink}`;
   const checkedKingIndex = useMemo(() => (board.length && isKingInCheck(board, turn) ? findKingIndex(board, turn) : null), [board, turn]);
+
+  function applyGameRecord(game: Awaited<ReturnType<typeof joinOnlineGame>>['game']) {
+    const safeMoveHistory = game.move_history ?? [];
+    const derivedBackRankCode = game.back_rank_code ?? deriveBackRankCodeFromBoard(game.board);
+    const estimatedScores = estimateMaterialScores(safeMoveHistory);
+    setBoard(game.board);
+    setTurn(game.turn);
+    setStatus(game.status);
+    setMoveHistory(safeMoveHistory);
+    setSeedLabel(game.seed ?? 'Random');
+    setBackRankCode(derivedBackRankCode);
+    setRoundNumber(game.round_number ?? 1);
+    setScores({
+      whiteScore: game.white_score ?? estimatedScores.whiteScore,
+      blackScore: game.black_score ?? estimatedScores.blackScore,
+    });
+  }
 
   useEffect(() => {
     joinOnlineGame(gameId, playerId)
       .then(({ game, role: joinedRole }) => {
-        setBoard(game.board);
-        setTurn(game.turn);
-        setStatus(game.status);
-        setMoveHistory(game.move_history);
+        applyGameRecord(game);
         setRole(joinedRole);
       })
       .catch((joinError: Error) => setError(joinError.message));
@@ -48,10 +68,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
 
   useEffect(() => {
     const channel = subscribeToGame(gameId, (game) => {
-      setBoard(game.board);
-      setTurn(game.turn);
-      setStatus(game.status);
-      setMoveHistory(game.move_history);
+      applyGameRecord(game);
       setSelectedSquare(null);
       setLegalMoves([]);
     });
@@ -67,10 +84,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
       setLastMove(selectedMove);
       try {
         const { game } = await submitOnlineMove(gameId, playerId, selectedMove);
-        setBoard(game.board);
-        setTurn(game.turn);
-        setStatus(game.status);
-        setMoveHistory(game.move_history);
+        applyGameRecord(game);
       } catch (moveError) {
         setError(moveError instanceof Error ? moveError.message : 'Unable to submit move');
       }
@@ -109,6 +123,11 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
             onSquareClick={handleSquareClick}
           />
           <aside className="side-panel">
+            <h2>Seed</h2>
+            <p><strong>{seedLabel}</strong></p>
+            <p>Back rank: {backRankCode ?? 'Derived after board loads'} · Round {roundNumber}</p>
+            <p>Score: White {scores.whiteScore} · Black {scores.blackScore}</p>
+            <button className="secondary-action compact-action" onClick={() => navigator.clipboard.writeText(shareText)}>Copy result/share text</button>
             <h2>Players</h2>
             <p>Only the player whose color matches the current turn can move.</p>
             <h2>Move history</h2>

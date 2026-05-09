@@ -2,8 +2,22 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { applyMove, createMoveRecord } from '../../src/game/applyMove';
 import { getOpponent, getStatusForTurn } from '../../src/game/gameStatus';
 import { getLegalMoves } from '../../src/game/legalMoves';
-import type { Move } from '../../src/game/types';
+import { estimateMaterialScores } from '../../src/game/seed';
+import type { Color, GameStatus, Move } from '../../src/game/types';
+import { safeSupabaseUpdate } from '../../src/multiplayer/safeSupabaseUpdate';
 import { getServerSupabase } from './serverSupabase';
+
+function getWinner(status: GameStatus): Color | null {
+  if (status === 'white_won') return 'white';
+  if (status === 'black_won') return 'black';
+  return null;
+}
+
+function getResultType(status: GameStatus): string | null {
+  if (status === 'white_won' || status === 'black_won') return 'checkmate';
+  if (status === 'draw') return 'draw';
+  return null;
+}
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== 'POST') {
@@ -41,14 +55,24 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const nextBoard = applyMove(game.board, legalMove);
   const nextTurn = getOpponent(game.turn);
   const nextStatus = getStatusForTurn(nextBoard, nextTurn);
-  const moveHistory = [...game.move_history, createMoveRecord(legalMove)];
+  const moveHistory = [...(game.move_history ?? []), createMoveRecord(legalMove)];
+  const materialScores = estimateMaterialScores(moveHistory);
 
-  const { data: updatedGame, error: updateError } = await supabase
-    .from('games')
-    .update({ board: nextBoard, turn: nextTurn, status: nextStatus, move_history: moveHistory })
-    .eq('id', gameId)
-    .select('*')
-    .single();
+  const { data: updatedGame, error: updateError } = await safeSupabaseUpdate(
+    supabase,
+    gameId,
+    {
+      board: nextBoard,
+      turn: nextTurn,
+      status: nextStatus,
+      move_history: moveHistory,
+      winner: getWinner(nextStatus),
+      result_type: getResultType(nextStatus),
+      total_moves: moveHistory.length,
+      white_score: materialScores.whiteScore,
+      black_score: materialScores.blackScore,
+    },
+  );
 
   if (updateError) {
     response.status(500).send(updateError.message);
