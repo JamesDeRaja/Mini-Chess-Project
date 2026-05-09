@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Flag, Handshake, Moon, RotateCcw, SunMedium, Trophy } from 'lucide-react';
+import { Flag, Handshake, Moon, RotateCcw, SunMedium } from 'lucide-react';
 import { Board } from '../components/Board';
 import { GameHeader } from '../components/GameHeader';
 import { applyMove, createMoveRecord } from '../game/applyMove';
@@ -43,9 +43,9 @@ function getWinner(status: GameStatus): Color | null {
 }
 
 function getRoundMessage(status: GameStatus): string {
-  if (status === 'white_won') return 'Checkmate — White wins this game!';
-  if (status === 'black_won') return 'Checkmate — Black wins this game!';
-  if (status === 'draw') return 'Draw agreed for this game.';
+  if (status === 'white_won') return 'White wins!';
+  if (status === 'black_won') return 'Black wins!';
+  if (status === 'draw') return 'Draw';
   return '';
 }
 
@@ -58,6 +58,12 @@ function getBotLevel(matchMode: MatchMode, score: MatchScore, winsRequired: numb
 
 function cloneBoard(board: ChessBoard): ChessBoard {
   return board.map((square) => ({ ...square, piece: square.piece ? { ...square.piece } : null }));
+}
+
+function getBannerClass(result: RoundResult): string {
+  if (result.winner === 'white') return 'round-result-banner win';
+  if (result.winner === 'black') return 'round-result-banner loss';
+  return 'round-result-banner draw';
 }
 
 export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGamePageProps) {
@@ -190,7 +196,9 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
   }
 
   function requestRestart() {
-    if (status === 'active' && !roundResult) {
+    // Skip confirmation if the game or match is already finished
+    const gameOver = !!roundResult || !!matchWinner || status !== 'active';
+    if (!gameOver && moveHistory.length > 0) {
       setPendingAction('restart');
       return;
     }
@@ -270,6 +278,13 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
 
   const activeLegalMoves = isPreviewing ? [] : legalMoves;
 
+  // Banner label prefix
+  const matchLabel = matchWinner
+    ? `Match: ${matchWinner === 'white' ? 'White' : 'Black'} wins the match!`
+    : roundResult
+    ? `Game ${roundNumber}: ${roundResult.message}`
+    : '';
+
   return (
     <main className="game-page">
       <GameHeader
@@ -290,8 +305,8 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
           </div>
           <p>Game {roundNumber}/{config.maxGames}</p>
           <p>Bot level: <strong>{botLevel}</strong></p>
-          <button className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-          <button className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
+          <button className="wide-action" onClick={() => setIsFlipped((f) => !f)}><RotateCcw size={16} /> Flip Board</button>
+          <button className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={16} /> : <Moon size={16} />} Theme</button>
         </aside>
 
         <section className="board-column">
@@ -310,14 +325,27 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
         </section>
 
         <aside className="side-panel review-panel">
+          {/* Inline result banner — never blocks the board */}
+          {roundResult && (
+            <div className={getBannerClass(roundResult)}>
+              <strong>{matchLabel}</strong>
+              <div className="banner-actions">
+                {!matchWinner && <button onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay' : 'Next'}</button>}
+                <button onClick={requestRestart}>Restart</button>
+              </div>
+            </div>
+          )}
           <div className="panel-topbar">
             <h2>Move history</h2>
           </div>
-          <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
+          <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start.</p>
           <ol className="move-history move-list">
             {moveHistory.map((record, moveIndex) => (
               <li key={`${record.timestamp}-${moveIndex}`}>
-                <button className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'} onClick={() => setPreviewPly(moveIndex + 1)}>
+                <button
+                  className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'}
+                  onClick={() => setPreviewPly(moveIndex + 1)}
+                >
                   <span>{moveIndex + 1}.</span>
                   <strong>{record.color}</strong>
                   <span>{record.piece}</span>
@@ -335,31 +363,14 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
               <button onClick={() => setPreviewPly(boardTimeline.length - 1)} disabled={moveHistory.length === 0}>⏭</button>
             </div>
             <div className="panel-actions stacked-actions">
-              <button onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
-              <button onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
-              <button onClick={requestRestart}>Restart Match</button>
+              <button onClick={() => setPendingAction('draw')}><Handshake size={16} /> Request Draw</button>
+              <button onClick={() => setPendingAction('resign')}><Flag size={16} /> Resign</button>
+              <button onClick={requestRestart} style={{ gridColumn: '1 / -1' }}>Restart Match</button>
             </div>
           </div>
         </aside>
       </div>
-      {roundResult && (
-        <div className="winner-overlay" role="status">
-          {roundResult.winner === 'white' && <div className="confetti" />}
-          <div className={roundResult.winner === 'white' ? 'winner-card player-winner-card' : 'winner-card calm-result-card'}>
-            {roundResult.winner === 'white' ? <Trophy size={48} /> : <span className="result-emoji">{roundResult.winner === 'black' ? '😅' : '🤝'}</span>}
-            <p className="eyebrow">{matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}</p>
-            <h2>{matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}</h2>
-            <p>
-              Score: White {score.white} — Black {score.black}. {matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}
-            </p>
-            <div className="panel-actions centered-actions">
-              {!matchWinner && roundResult.status !== 'draw' && <button onClick={nextRound}>Next Game</button>}
-              {!matchWinner && roundResult.status === 'draw' && <button onClick={nextRound}>Replay Game</button>}
-              <button onClick={requestRestart}>Restart Match</button>
-            </div>
-          </div>
-        </div>
-      )}
+
       {pendingAction && (
         <div className="confirm-overlay" role="dialog" aria-modal="true">
           <div className="confirm-card">

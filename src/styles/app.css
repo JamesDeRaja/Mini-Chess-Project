@@ -45,7 +45,7 @@ button { font: inherit; }
 .game-page {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: clamp(10px, 1.6vh, 18px);
+  gap: clamp(8px, 1.2vh, 16px);
 }
 
 .hero-card {
@@ -76,7 +76,7 @@ h1 {
   line-height: 0.92;
   letter-spacing: -0.075em;
 }
-.game-page h1 { font-size: clamp(3rem, 7.2vw, 6.6rem); }
+.game-page h1 { font-size: clamp(2rem, 5.5vw, 5rem); }
 h2 { margin: 0 0 12px; color: var(--text); }
 p { color: var(--muted); line-height: 1.7; }
 .game-details { margin: 14px 0 0; font-weight: 800; color: var(--accent); }
@@ -153,34 +153,63 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   z-index: 5;
 }
 
-.game-header,
-.game-layout {
-  width: min(100%, 1720px);
-  max-width: 1720px;
-  margin: 0 auto;
-}
+/* ── Game header ── */
 .game-header {
+  width: min(100%, 1720px);
+  margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: clamp(14px, 2vw, 28px);
 }
-.game-layout { min-height: 0; align-items: stretch; }
+
+/* ── Main chess layout: board fills height, panels fill remaining width ── */
 .chess-shell {
-  --play-area-height: min(100%, calc(100vh - clamp(190px, 23vh, 285px)));
-  display: grid;
-  grid-template-columns: minmax(150px, 230px) minmax(0, min(calc(var(--play-area-height) * 5 / 6), 52vw)) minmax(240px, 390px);
-  justify-content: center;
-  align-items: center;
-  gap: clamp(12px, 1.6vw, 26px);
+  /* fill the 1fr row completely */
+  height: 100%;
+  width: min(100%, 1720px);
+  margin: 0 auto;
+
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: clamp(10px, 1.4vw, 22px);
+  overflow: hidden;
 }
-.board-column { display: grid; min-height: 0; justify-items: center; align-content: center; }
+
+/* Board column: sized by the board's intrinsic width (aspect-ratio from height) */
+.board-column {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Left panel */
+.side-panel.match-panel {
+  flex: 0 0 clamp(150px, 16vw, 220px);
+  width: clamp(150px, 16vw, 220px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Right panel: fills remaining space */
+.side-panel.review-panel {
+  flex: 1 1 0;
+  min-width: 200px;
+  max-width: 380px;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 
 .status-card,
 .side-panel,
 .invite-panel {
-  min-width: 250px;
-  padding: 22px;
+  padding: 18px;
   border: 1px solid var(--panel-border);
   border-radius: 26px;
   background: var(--panel-bg);
@@ -201,29 +230,29 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   background: var(--panel-bg);
 }
 
-.match-panel,
-.review-panel { height: var(--play-area-height); max-height: var(--play-area-height); }
-.match-panel { display: flex; flex-direction: column; gap: 14px; }
-.score-stack { display: grid; gap: 10px; margin: 14px 0; }
-.score-stack span { display: flex; justify-content: space-between; padding: 12px 14px; border-radius: 14px; background: rgba(139, 184, 232, 0.1); }
+.match-panel { display: flex; flex-direction: column; gap: 10px; }
+.score-stack { display: grid; gap: 8px; margin: 8px 0; }
+.score-stack span { display: flex; justify-content: space-between; padding: 10px 12px; border-radius: 14px; background: rgba(139, 184, 232, 0.1); }
 .wide-action { width: 100%; justify-content: flex-start; }
-.review-panel { display: flex; min-height: 0; flex-direction: column; }
+.review-panel { min-height: 0; }
 .panel-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.panel-note { margin-top: 0; font-size: 0.92rem; }
+.panel-note { margin-top: 0; font-size: 0.88rem; }
 
 .move-history {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding-left: 0;
   color: var(--muted);
   list-style: none;
+  margin: 0;
 }
-.move-list li { margin-bottom: 8px; }
+.move-list li { margin-bottom: 6px; }
 .history-move {
   width: 100%;
   justify-content: flex-start;
-  padding: 9px 12px;
+  padding: 8px 10px;
   border-radius: 8px;
   background: transparent;
   box-shadow: none;
@@ -231,11 +260,39 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 }
 .history-move:hover,
 .active-history-move { background: rgba(139, 184, 232, 0.16); color: var(--text); }
-.review-footer { margin-top: auto; padding-top: 12px; }
-.review-controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 0 0 14px; }
-.review-controls button { padding: 10px; }
-.stacked-actions { display: grid; grid-template-columns: 1fr 1fr; }
+.review-footer { margin-top: auto; padding-top: 10px; flex-shrink: 0; }
+.review-controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 0 0 10px; }
+.review-controls button { padding: 9px; }
+.stacked-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .stacked-actions button { width: 100%; }
+
+/* Inline round result banner (replaces blocking overlay) */
+.round-result-banner {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  margin-bottom: 8px;
+  font-size: 0.92rem;
+}
+.round-result-banner.win {
+  background: rgba(131, 169, 95, 0.22);
+  border: 1px solid rgba(131, 169, 95, 0.4);
+}
+.round-result-banner.loss {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.round-result-banner.draw {
+  background: rgba(139, 184, 232, 0.14);
+  border: 1px solid rgba(139, 184, 232, 0.3);
+}
+.round-result-banner strong { color: var(--text); }
+.round-result-banner .banner-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.round-result-banner button { padding: 6px 12px; font-size: 0.82rem; border-radius: 10px; }
 
 .invite-panel {
   max-width: 1100px;
@@ -264,7 +321,6 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .floating-error { background: rgba(239, 68, 68, 0.2); }
 
 .modal-backdrop,
-.winner-overlay,
 .confirm-overlay {
   position: fixed;
   inset: 0;
@@ -274,7 +330,6 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   z-index: 20;
 }
 .promotion-modal,
-.winner-card,
 .confirm-card {
   position: relative;
   max-width: 520px;
@@ -287,10 +342,6 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   box-shadow: 0 35px 100px rgba(0, 0, 0, 0.45);
   animation: winner-pop 420ms cubic-bezier(.2, 1.4, .4, 1);
 }
-.winner-card h2 { font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1; }
-.winner-card svg { color: #facc15; filter: drop-shadow(0 0 16px rgba(250, 204, 21, 0.5)); }
-.calm-result-card svg { color: #93a4bd; filter: none; }
-.result-emoji { display: block; font-size: 3.3rem; margin-bottom: 8px; }
 .title-link {
   justify-content: flex-start;
   width: auto;
@@ -303,64 +354,68 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .title-link:not(:disabled):hover { transform: none; color: var(--text); }
 .centered-actions { justify-content: center; }
 
-.confetti,
-.confetti::before,
-.confetti::after {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  content: '';
-  background-image:
-    radial-gradient(circle, #facc15 0 4px, transparent 5px),
-    radial-gradient(circle, #60a5fa 0 4px, transparent 5px),
-    radial-gradient(circle, #fb7185 0 4px, transparent 5px),
-    radial-gradient(circle, #86efac 0 4px, transparent 5px);
-  background-size: 140px 140px, 190px 190px, 170px 170px, 210px 210px;
-  animation: confetti-fall 1.6s linear infinite;
-}
-.confetti::before { animation-delay: -0.55s; transform: rotate(12deg); }
-.confetti::after { animation-delay: -1.05s; transform: rotate(-10deg); }
-
 @keyframes winner-pop {
   from { opacity: 0; transform: translateY(24px) scale(0.92); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-@keyframes confetti-fall {
-  from { background-position: 0 -160px, 80px -200px, 40px -120px, 140px -220px; }
-  to { background-position: 0 820px, 80px 760px, 40px 920px, 140px 800px; }
-}
 
-@media (max-width: 1180px) {
-  body { overflow: hidden; }
-  .game-page { grid-template-rows: auto minmax(0, 1fr) auto; }
-  .game-page h1 { font-size: clamp(2.2rem, 8vw, 4.4rem); }
-  .status-card { display: none; }
+/* ── Responsive: narrow/portrait — board fills width, panels stack vertically ── */
+@media (max-width: 1100px) {
+  .game-page {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .game-page h1 { font-size: clamp(1.8rem, 7vw, 3.6rem); }
+
   .chess-shell {
-    --play-area-height: calc(100vh - clamp(245px, 34vh, 360px));
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, var(--play-area-height)) auto;
-    align-content: center;
-  }
-  .match-panel,
-  .review-panel {
-    width: min(100%, 760px);
+    flex-direction: column;
+    align-items: center;
     height: auto;
-    max-height: none;
-    justify-self: center;
+    overflow-y: auto;
+    width: 100%;
+    gap: 10px;
   }
-  .match-panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center; }
-  .match-panel .eyebrow, .match-panel h2 { margin: 0; }
+
+  /* Hide the verbose status card on narrow screens */
+  .status-card { display: none; }
+
+  .board-column {
+    flex: 0 0 auto;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .side-panel.match-panel {
+    flex: 0 0 auto;
+    width: min(100%, 760px);
+    overflow-y: visible;
+    /* Horizontal layout for match info */
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+  }
+  .match-panel .eyebrow,
+  .match-panel h2 { margin: 0; }
   .score-stack { grid-template-columns: 1fr 1fr; margin: 0; }
   .wide-action { justify-content: center; }
-  .review-panel { min-height: 0; }
-  .move-history { max-height: 90px; }
+
+  .side-panel.review-panel {
+    flex: 0 0 auto;
+    width: min(100%, 760px);
+    min-width: unset;
+    max-width: unset;
+    min-height: 0;
+    overflow-y: visible;
+  }
+  .move-history { max-height: 80px; overflow-y: auto; }
 }
 
 @media (max-width: 760px) {
   body { overflow: auto; }
   .home-page, .game-page { height: auto; overflow: visible; }
-  .game-header, .game-layout, .chess-shell { display: flex; flex-direction: column; }
-  .status-card, .side-panel { width: 100%; }
-  .match-panel, .review-panel { height: auto; }
+  .game-header { display: flex; flex-direction: column; }
+  .match-panel { grid-template-columns: 1fr 1fr; }
   .match-mode-grid { grid-template-columns: 1fr; }
+  .stacked-actions { grid-template-columns: 1fr; }
 }
