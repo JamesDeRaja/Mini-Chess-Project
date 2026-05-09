@@ -13,8 +13,102 @@ type QueueRow = {
   game_id?: string | null;
 };
 
+type MatchmakingGameRow = {
+  id: string;
+  status: 'waiting' | 'active';
+  white_player_id: string | null;
+  black_player_id: string | null;
+};
+
+type ServerSupabase = ReturnType<typeof getServerSupabase>;
+
 function getString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function getGamePayload(playerId: string, seed: string, backRankCode: string) {
+  return {
+    board: createInitialBoard({ backRankCode }),
+    turn: 'white',
+    status: 'waiting',
+    white_player_id: playerId,
+    black_player_id: null,
+    move_history: [],
+    seed,
+    seed_source: seed.startsWith('daily-') ? 'daily_matchmaking' : 'custom_matchmaking',
+    back_rank_code: backRankCode,
+    round_number: 1,
+    total_moves: 0,
+    white_score: 0,
+    black_score: 0,
+  };
+}
+
+async function findMatchUsingGamesTable(supabase: ServerSupabase, playerId: string, seed: string, backRankCode: string) {
+  const { data: existingRows, error: existingError } = await supabase
+    .from('games')
+    .select('id, status, white_player_id, black_player_id')
+    .eq('white_player_id', playerId)
+    .eq('seed', seed)
+    .in('status', ['waiting', 'active'])
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (existingError) {
+    return { status: 'unavailable' as const, message: 'Matchmaking is not available. Use Invite Friend for now.' };
+  }
+
+  const existing = existingRows?.[0] as MatchmakingGameRow | undefined;
+  if (existing?.status === 'active' && existing.black_player_id) {
+    return { status: 'matched' as const, gameId: existing.id };
+  }
+  if (existing?.status === 'waiting') {
+    return { status: 'waiting' as const, queueId: existing.id, seed, backRankCode };
+  }
+
+  const { data: opponentRows, error: opponentError } = await supabase
+    .from('games')
+    .select('id')
+    .eq('seed', seed)
+    .eq('status', 'waiting')
+    .is('black_player_id', null)
+    .neq('white_player_id', playerId)
+    .order('created_at', { ascending: true })
+    .limit(1);
+
+  if (opponentError) {
+    return { status: 'unavailable' as const, message: 'Matchmaking is not available. Use Invite Friend for now.' };
+  }
+
+  const opponent = opponentRows?.[0] as Pick<MatchmakingGameRow, 'id'> | undefined;
+  if (opponent) {
+    const { data: matchedGame, error: matchError } = await supabase
+      .from('games')
+      .update({ black_player_id: playerId, status: 'active' })
+      .eq('id', opponent.id)
+      .eq('status', 'waiting')
+      .is('black_player_id', null)
+      .select('id')
+      .single();
+
+    if (matchError || !matchedGame) {
+      return { status: 'unavailable' as const, message: 'Unable to claim the waiting match. Please try again.' };
+    }
+
+    return { status: 'matched' as const, gameId: matchedGame.id as string };
+  }
+
+  const { data: waitingGame, error: insertError } = await safeSupabaseInsert<{ id: string }>(
+    supabase,
+    getGamePayload(playerId, seed, backRankCode),
+    'id',
+  );
+
+  if (insertError || !waitingGame) {
+    return { status: 'unavailable' as const, message: 'Unable to create a waiting match. Use Invite Friend for now.' };
+  }
+
+  return { status: 'waiting' as const, queueId: waitingGame.id, seed, backRankCode };
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
@@ -43,7 +137,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     .limit(1);
 
   if (existingError) {
-    response.status(200).json({ status: 'unavailable', message: 'Matchmaking queue is not configured yet. Use Invite Friend for now.' });
+    response.status(200).json(await findMatchUsingGamesTable(supabase, playerId, seed, backRankCode));
     return;
   }
 
@@ -64,7 +158,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     .maybeSingle();
 
   if (opponentError) {
-    response.status(200).json({ status: 'unavailable', message: 'Matchmaking queue is not available. Use Invite Friend for now.' });
+    response.status(200).json(await findMatchUsingGamesTable(supabase, playerId, seed, backRankCode));
     return;
   }
 
@@ -73,20 +167,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const { data: game, error: gameError } = await safeSupabaseInsert<{ id: string }>(
       supabase,
       {
-        board: createInitialBoard({ backRankCode }),
-        turn: 'white',
+        ...getGamePayload(opponentRow.player_id, seed, backRankCode),
         status: 'active',
-        white_player_id: opponentRow.player_id,
         black_player_id: playerId,
-        move_history: [],
-        seed,
-        seed_source: seed.startsWith('daily-') ? 'daily_matchmaking' : 'custom_matchmaking',
-        back_rank_code: backRankCode,
         match_id: opponentRow.id,
-        round_number: 1,
-        total_moves: 0,
-        white_score: 0,
-        black_score: 0,
       },
       'id',
     );
@@ -119,7 +203,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     .single();
 
   if (insertError || !waitingRow) {
-    response.status(200).json({ status: 'unavailable', message: 'Matchmaking queue is not configured yet. Use Invite Friend for now.' });
+    response.status(200).json(await findMatchUsingGamesTable(supabase, playerId, seed, backRankCode));
     return;
   }
 

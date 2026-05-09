@@ -19,7 +19,16 @@ export default async function handler(request: VercelRequest, response: VercelRe
   if (queueId) query = query.eq('id', queueId);
   const { error } = await query;
 
-  if (error) {
+  if (!error) {
+    response.status(200).json({ ok: true });
+    return;
+  }
+
+  let deleteQuery = supabase.from('games').delete().eq('white_player_id', playerId).eq('status', 'waiting').is('black_player_id', null);
+  if (queueId) deleteQuery = deleteQuery.eq('id', queueId);
+  const { error: deleteError } = await deleteQuery;
+
+  if (deleteError) {
     response.status(200).json({ ok: false, message: 'Matchmaking queue is not configured.' });
     return;
   }
