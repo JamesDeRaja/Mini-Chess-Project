@@ -1,24 +1,13 @@
-import type { DragEvent } from 'react';
 import { pieceSymbols } from '../game/constants';
 import type { Piece as ChessPiece } from '../game/types';
 
 type PieceProps = {
   piece: ChessPiece;
-  isDraggable?: boolean;
-  isSelected?: boolean;
-  onDragStart?: (event: DragEvent<HTMLSpanElement>) => void;
-  onDragEnd?: () => void;
 };
 
-export function Piece({ piece, isDraggable = false, isSelected = false, onDragStart, onDragEnd }: PieceProps) {
+export function Piece({ piece }: PieceProps) {
   return (
-    <span
-      className={`piece piece-${piece.color} ${isSelected ? 'piece-selected' : ''}`}
-      draggable={isDraggable}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      aria-label={`${piece.color} ${piece.type}`}
-    >
+    <span className={`piece piece-${piece.color}`} aria-label={`${piece.color} ${piece.type}`}>
       {pieceSymbols[piece.color][piece.type]}
     </span>
   );
