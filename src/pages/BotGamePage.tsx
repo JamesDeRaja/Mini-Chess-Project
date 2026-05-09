@@ -9,7 +9,7 @@ import { createInitialBoard } from '../game/createInitialBoard.js';
 import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
-import { backRankCodeFromSeed, getDailySeed, getUtcDateKey } from '../game/seed.js';
+import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, normalizeSeed, resolveBackRankCode } from '../game/seed.js';
 import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types.js';
 
@@ -18,6 +18,7 @@ export type MatchMode = 'single' | 'best-of-3' | 'best-of-5';
 type BotGamePageProps = {
   matchMode: MatchMode;
   dateKey?: string;
+  customSeed?: string;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onHome: () => void;
@@ -62,13 +63,17 @@ function cloneBoard(board: ChessBoard): ChessBoard {
   return board.map((square) => ({ ...square, piece: square.piece ? { ...square.piece } : null }));
 }
 
-export function BotGamePage({ matchMode, dateKey: requestedDateKey, theme, onToggleTheme, onHome }: BotGamePageProps) {
+export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, theme, onToggleTheme, onHome }: BotGamePageProps) {
   const dailySeedInfo = useMemo(() => {
+    if (customSeed) {
+      const seed = normalizeSeed(customSeed);
+      return { dateKey: 'Custom', seed, backRankCode: resolveBackRankCode(seed) };
+    }
     const todayKey = getUtcDateKey();
     const dateKey = requestedDateKey && requestedDateKey <= todayKey ? requestedDateKey : todayKey;
     const seed = getDailySeed(dateKey);
     return { dateKey, seed, backRankCode: backRankCodeFromSeed(seed) };
-  }, [requestedDateKey]);
+  }, [customSeed, requestedDateKey]);
   const initialBoardForMount = useMemo(() => createInitialBoard({ backRankCode: dailySeedInfo.backRankCode }), [dailySeedInfo.backRankCode]);
   const [board, setBoard] = useState<ChessBoard>(() => initialBoardForMount);
   const [boardTimeline, setBoardTimeline] = useState<ChessBoard[]>(() => [cloneBoard(initialBoardForMount)]);

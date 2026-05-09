@@ -11,7 +11,7 @@ type Theme = 'light' | 'dark';
 
 type Route =
   | { name: 'home' }
-  | { name: 'bot'; dateKey?: string }
+  | { name: 'bot'; dateKey?: string; seed?: string }
   | { name: 'online'; gameId: string; matchMode: MatchMode };
 
 function isMatchMode(value: string | null): value is MatchMode {
@@ -23,7 +23,7 @@ function routeFromLocation(): Route {
   const search = new URLSearchParams(window.location.search);
   const mode = search.get('mode');
   if (gameMatch) return { name: 'online', gameId: gameMatch[1], matchMode: isMatchMode(mode) ? mode : 'single' };
-  if (window.location.pathname === '/bot') return { name: 'bot', dateKey: search.get('date') ?? undefined };
+  if (window.location.pathname === '/bot') return { name: 'bot', dateKey: search.get('date') ?? undefined, seed: search.get('seed') ?? undefined };
   return { name: 'home' };
 }
 
@@ -59,6 +59,10 @@ export function App() {
 
   function startBot(dateKey?: string) {
     navigate(dateKey ? `/bot?date=${encodeURIComponent(dateKey)}` : '/bot');
+  }
+
+  function startSeededBot(seed: string) {
+    navigate(`/bot?seed=${encodeURIComponent(seed)}`);
   }
 
   async function handleInvite() {
@@ -103,7 +107,7 @@ export function App() {
   }
 
   if (route.name === 'bot') {
-    return <BotGamePage key={`single-${route.dateKey ?? 'today'}`} matchMode="single" dateKey={route.dateKey} theme={theme} onToggleTheme={toggleTheme} onHome={() => navigate('/')} />;
+    return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} theme={theme} onToggleTheme={toggleTheme} onHome={() => navigate('/')} />;
   }
   if (route.name === 'online') {
     return (
@@ -123,6 +127,7 @@ export function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onStartBot={startBot}
+        onStartSeededBot={startSeededBot}
         onInvite={handleInvite}
         onDaily={handleDaily}
         onSeeded={handleSeeded}
