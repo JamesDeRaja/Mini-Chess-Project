@@ -34,7 +34,7 @@ function navigate(path: string) {
 
 function getStoredTheme(): Theme {
   const storedTheme = localStorage.getItem('mini_chess_theme');
-  return storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
+  return storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'light';
 }
 
 export function App() {
