@@ -1,5 +1,6 @@
 import { BACK_RANK_PIECES, BOARD_FILES, BOARD_RANKS } from './constants';
 import { index } from './coordinates';
+import { codeToBackRank, seedToBackRank } from './seedUtils';
 import type { Board, Color, Piece, PieceType } from './types';
 
 function shufflePieces(pieces: PieceType[]): PieceType[] {
@@ -28,7 +29,24 @@ export function createEmptyBoard(): Board {
   }));
 }
 
-export function createInitialBoard(whiteOrder = shufflePieces(BACK_RANK_PIECES)): Board {
+type BoardOptions = {
+  /** Direct back-rank code like "KQRBN". Takes priority over seed. */
+  backRankCode?: string;
+  /** Any string seed → deterministic back-rank. */
+  seed?: string;
+};
+
+export function createInitialBoard(options?: BoardOptions): Board {
+  let whiteOrder: PieceType[];
+
+  if (options?.backRankCode) {
+    whiteOrder = codeToBackRank(options.backRankCode) ?? shufflePieces(BACK_RANK_PIECES);
+  } else if (options?.seed) {
+    whiteOrder = seedToBackRank(options.seed);
+  } else {
+    whiteOrder = shufflePieces(BACK_RANK_PIECES);
+  }
+
   const board = createEmptyBoard();
   const blackOrder = [...whiteOrder].reverse();
 

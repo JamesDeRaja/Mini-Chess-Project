@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">
+  <defs>
+    <radialGradient id="wg" cx="38%" cy="28%" r="68%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#d0cab8"/>
+    </radialGradient>
+  </defs>
+  <!-- base -->
+  <rect x="9" y="36" width="27" height="5" rx="2.5" fill="url(#wg)" stroke="#3d3020" stroke-width="1.5"/>
+  <!-- lower body -->
+  <path d="M12 36 Q11 28 14 22 L31 22 Q34 28 33 36 Z" fill="url(#wg)" stroke="#3d3020" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- waist -->
+  <ellipse cx="22.5" cy="22" rx="9.5" ry="3" fill="url(#wg)" stroke="#3d3020" stroke-width="1.5"/>
+  <!-- crown points -->
+  <path d="M13 22 L9 10 L16 17 L22.5 7 L29 17 L36 10 L32 22 Z"
+    fill="url(#wg)" stroke="#3d3020" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- crown balls -->
+  <circle cx="9"    cy="10" r="2.5" fill="url(#wg)" stroke="#3d3020" stroke-width="1.2"/>
+  <circle cx="22.5" cy="7"  r="2.5" fill="url(#wg)" stroke="#3d3020" stroke-width="1.2"/>
+  <circle cx="36"   cy="10" r="2.5" fill="url(#wg)" stroke="#3d3020" stroke-width="1.2"/>
+</svg>
