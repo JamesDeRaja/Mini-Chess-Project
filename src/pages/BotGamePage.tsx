@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Flag, Handshake, Moon, RotateCcw, SunMedium, Trophy } from 'lucide-react';
+import { Flag, Moon, RotateCcw, SunMedium, Trophy } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
@@ -267,6 +267,17 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   }, [board, botLevel, completeMove, isPreviewing, status, turn]);
 
   const activeLegalMoves = isPreviewing ? [] : legalMoves;
+  const isBotThinking = status === 'active' && turn === 'black' && !isPreviewing;
+  const boardHint = isBotThinking
+    ? 'Bot is thinking...'
+    : checkedKingIndex !== null && turn === 'white'
+      ? 'White is in check.'
+      : selectedSquare !== null
+        ? 'Choose a highlighted square to move.'
+        : isPreviewing
+          ? 'Reviewing move history.'
+          : 'Select a piece to move.';
+  const botLevelLabel = botLevel.charAt(0).toUpperCase() + botLevel.slice(1);
 
   return (
     <main className="game-page">
@@ -275,24 +286,41 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
         turn={turn}
         status={status}
         playerRole="You are White"
-        details={`${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
+        details={matchMode === 'single' ? config.label : `${config.label} · Game ${roundNumber}/${config.maxGames}`}
+        statusItems={[`${turn === 'white' ? 'White' : 'Black'} to move`, 'You are White', `Bot: ${botLevelLabel}`, `Seed: ${dailySeedInfo.backRankCode}`]}
         onTitleClick={onHome}
       />
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel">
-          <p className="eyebrow">Match</p>
-          <h2>{config.label}</h2>
-          <div className="score-stack">
+          <div className="match-summary">
+            <p className="eyebrow">Match</p>
+            <h2>{config.label}</h2>
+          </div>
+          <div className="score-stack compact-score-stack" aria-label="Match score">
             <span>White <strong>{score.white}</strong></span>
             <span>Black <strong>{score.black}</strong></span>
           </div>
-          <p>Game {roundNumber}/{config.maxGames}</p>
-          <p>Bot level: <strong>{botLevel}</strong></p>
-          <p>Daily seed: <strong>{dailySeedInfo.seed}</strong></p>
-          <p>Date: {dailySeedInfo.dateKey}</p>
-          <p>Back rank: {dailySeedInfo.backRankCode}</p>
-          <button type="button" className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-          <button type="button" className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
+          <div className="match-meta-list">
+            <div>
+              <span>Seed</span>
+              <strong>{dailySeedInfo.seed}</strong>
+              <strong className="back-rank-code">{dailySeedInfo.backRankCode}</strong>
+            </div>
+            <div>
+              <span>Bot</span>
+              <strong>{botLevelLabel}</strong>
+            </div>
+            {matchMode !== 'single' && (
+              <div>
+                <span>Round</span>
+                <strong>{roundNumber}/{config.maxGames}</strong>
+              </div>
+            )}
+          </div>
+          <div className="match-panel-actions">
+            <button type="button" className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
+            <button type="button" className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
+          </div>
         </aside>
 
         <section className="board-column">
@@ -308,26 +336,34 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
             onDragStart={handleDragStart}
             onDrop={handleDrop}
           />
+          <p className={isBotThinking ? 'board-hint bot-thinking-hint' : 'board-hint'}>{boardHint}</p>
         </section>
 
         <aside className="side-panel review-panel">
           <div className="panel-topbar">
             <h2>Move history</h2>
           </div>
-          <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
-          <ol className="move-history move-list">
-            {moveHistory.map((record, moveIndex) => (
-              <li key={`${record.timestamp}-${moveIndex}`}>
-                <button type="button" className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'} onClick={() => setPreviewPly(moveIndex + 1 >= latestPly ? null : moveIndex + 1)}>
-                  <span>{moveIndex + 1}.</span>
-                  <strong>{record.color}</strong>
-                  <span>{record.piece}</span>
-                  <span>{squareLabel(record.to % 5, Math.floor(record.to / 5))}</span>
-                </button>
-              </li>
-            ))}
-          </ol>
-          <div className="review-footer">
+          <div className="move-review-area">
+            {moveHistory.length === 0 ? (
+              <div className="empty-move-state">
+                <strong>No moves yet.</strong>
+                <span>Select a white piece to see legal moves.</span>
+              </div>
+            ) : (
+              <ol className="move-history move-list">
+                {moveHistory.map((record, moveIndex) => (
+                  <li key={`${record.timestamp}-${moveIndex}`}>
+                    <button type="button" className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'} onClick={() => setPreviewPly(moveIndex + 1 >= latestPly ? null : moveIndex + 1)}>
+                      <span>{moveIndex + 1}.</span>
+                      <strong>{record.color}</strong>
+                      <span>{record.piece}</span>
+                      <span>{squareLabel(record.to % 5, Math.floor(record.to / 5))}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            )}
+            <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
             <div className="review-controls">
               <button type="button" onClick={() => setPreviewPly(0)} disabled={moveHistory.length === 0}>⏮</button>
               <button type="button" onClick={() => setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0))} disabled={moveHistory.length === 0}>‹</button>
@@ -335,11 +371,10 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
               <button type="button" onClick={() => setPreviewPly((ply) => { const nextPly = Math.min((ply ?? 0) + 1, latestPly); return nextPly >= latestPly ? null : nextPly; })} disabled={moveHistory.length === 0}>›</button>
               <button type="button" onClick={() => setPreviewPly(null)} disabled={moveHistory.length === 0}>⏭</button>
             </div>
-            <div className="panel-actions stacked-actions">
-              <button type="button" onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
-              <button type="button" onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
-              <button type="button" onClick={requestRestart}>Restart Match</button>
-            </div>
+          </div>
+          <div className="panel-actions stacked-actions">
+            <button type="button" onClick={requestRestart}>Restart Match</button>
+            <button type="button" onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
           </div>
         </aside>
       </div>

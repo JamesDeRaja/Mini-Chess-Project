@@ -6,6 +6,7 @@ type GameHeaderProps = {
   status: GameStatus;
   playerRole?: string;
   details?: string;
+  statusItems?: string[];
   onTitleClick?: () => void;
 };
 
@@ -24,20 +25,24 @@ function statusLabel(status: GameStatus): string {
   }
 }
 
-export function GameHeader({ title, turn, status, playerRole, details, onTitleClick }: GameHeaderProps) {
+export function GameHeader({ title, turn, status, playerRole, details, statusItems, onTitleClick }: GameHeaderProps) {
+  const defaultStatusItems = [
+    `${turn === 'white' ? 'White' : 'Black'} to move`,
+    ...(playerRole ? [playerRole] : []),
+    statusLabel(status),
+  ];
+
   return (
     <header className="game-header">
-      <div>
+      <div className="game-header-copy">
         <button className="title-link eyebrow" onClick={onTitleClick} disabled={!onTitleClick} aria-label="Go to home">
           Pocket Shuffle Chess
         </button>
         <h1>{title}</h1>
         {details && <p className="game-details">{details}</p>}
-      </div>
-      <div className="status-card">
-        {playerRole && <span>{playerRole}</span>}
-        <strong>{statusLabel(status)}</strong>
-        <span>{turn === 'white' ? 'White' : 'Black'} to move</span>
+        <div className="game-status-row" role="status" aria-label="Game status">
+          {(statusItems ?? defaultStatusItems).map((item) => <span key={item}>{item}</span>)}
+        </div>
       </div>
     </header>
   );

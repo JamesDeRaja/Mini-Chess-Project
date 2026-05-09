@@ -9,8 +9,8 @@
   padding: 10px;
   border: 0;
   border-radius: 30px;
-  background: rgba(9, 17, 35, 0.52);
-  box-shadow: 0 34px 80px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: rgba(9, 17, 35, 0.56);
+  box-shadow: 0 38px 90px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .square {
@@ -50,18 +50,18 @@
   top: 6px;
   left: 8px;
   z-index: 1;
-  color: rgba(37, 72, 105, 0.58);
-  font-size: clamp(0.66rem, 1.5vw, 0.95rem);
+  color: rgba(37, 72, 105, 0.42);
+  font-size: clamp(0.58rem, 0.9vw, 0.78rem);
   font-weight: 900;
   pointer-events: none;
 }
-.square-dark .coordinate-label { color: rgba(222, 238, 249, 0.66); }
+.square-dark .coordinate-label { color: rgba(222, 238, 249, 0.46); }
 
 .selected-square {
-  outline: 4px solid rgba(255, 255, 255, 0.92);
+  outline: 4px solid rgba(255, 255, 255, 0.96);
   outline-offset: -4px;
   z-index: 2;
-  box-shadow: inset 0 0 0 999px rgba(128, 164, 83, 0.26);
+  box-shadow: inset 0 0 0 999px rgba(128, 164, 83, 0.34), 0 0 0 2px rgba(128, 164, 83, 0.45);
 }
 
 .legal-target-square::after,
@@ -70,8 +70,8 @@
   inset: 0;
   content: '';
 }
-.last-move-square::before { background: rgba(245, 222, 119, 0.38); }
-.legal-target-square::after { background: rgba(132, 183, 84, 0.16); }
+.last-move-square::before { background: rgba(245, 222, 119, 0.44); }
+.legal-target-square::after { background: rgba(132, 183, 84, 0.22); box-shadow: inset 0 0 0 3px rgba(132, 183, 84, 0.28); }
 
 .king-in-check {
   box-shadow: inset 0 0 0 999px rgba(239, 68, 68, 0.26), inset 0 0 28px rgba(239, 68, 68, 0.92);
@@ -87,7 +87,7 @@
   height: 82%;
   cursor: grab;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(3.5rem, 8.4vw, 6rem);
+  font-size: clamp(3.8rem, 8.8vw, 6.4rem);
   line-height: 0.86;
   user-select: none;
   transform: translateZ(0);
@@ -119,14 +119,14 @@
   -webkit-text-stroke: 1.4px #6f6b64;
 }
 .piece-black {
-  color: #5f5d58;
+  color: #171b23;
   text-shadow:
-    -2px -2px 0 #34322f,
-    2px -2px 0 #34322f,
-    -2px 2px 0 #34322f,
-    2px 2px 0 #34322f,
-    0 7px 12px rgba(0, 0, 0, 0.35);
-  -webkit-text-stroke: 1.4px #34322f;
+    -2px -2px 0 rgba(238, 246, 255, 0.7),
+    2px -2px 0 rgba(238, 246, 255, 0.7),
+    -2px 2px 0 rgba(238, 246, 255, 0.7),
+    2px 2px 0 rgba(238, 246, 255, 0.7),
+    0 8px 13px rgba(0, 0, 0, 0.42);
+  -webkit-text-stroke: 1.2px rgba(238, 246, 255, 0.72);
 }
 
 .move-dot,
@@ -140,15 +140,15 @@
 .move-dot {
   width: 16px;
   height: 16px;
-  background: rgba(120, 169, 208, 0.72);
-  box-shadow: 0 0 0 8px rgba(120, 169, 208, 0.12);
+  background: rgba(80, 220, 140, 0.9);
+  box-shadow: 0 0 0 8px rgba(80, 220, 140, 0.18), 0 0 18px rgba(80, 220, 140, 0.34);
 }
 
 .capture-dot {
   width: 18px;
   height: 18px;
-  background: rgba(255, 60, 60, 0.88);
-  box-shadow: 0 0 0 10px rgba(255, 60, 60, 0.18), 0 0 16px rgba(255, 60, 60, 0.42);
+  background: rgba(255, 68, 68, 0.94);
+  box-shadow: 0 0 0 10px rgba(255, 68, 68, 0.22), 0 0 18px rgba(255, 68, 68, 0.52);
 }
 
 @keyframes piece-land {
