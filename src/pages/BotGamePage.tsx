@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Flag, Handshake, Moon, RotateCcw, SunMedium, Trophy } from 'lucide-react';
+import { Flag, Moon, RotateCcw, SunMedium, Trophy } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
@@ -291,23 +291,25 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
           <p>Daily seed: <strong>{dailySeedInfo.seed}</strong></p>
           <p>Date: {dailySeedInfo.dateKey}</p>
           <p>Back rank: {dailySeedInfo.backRankCode}</p>
-          <button type="button" className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
           <button type="button" className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
         </aside>
 
         <section className="board-column">
-          <Board
-            board={displayBoard}
-            selectedSquare={isPreviewing ? null : selectedSquare}
-            legalMoves={activeLegalMoves}
-            lastMove={displayMove}
-            checkedKingIndex={checkedKingIndex}
-            isFlipped={isFlipped}
-            isInteractive={!isPreviewing && status === 'active'}
-            onSquareClick={handleSquareClick}
-            onDragStart={handleDragStart}
-            onDrop={handleDrop}
-          />
+          <div className="board-shell" aria-label="Chess board">
+            <Board
+              board={displayBoard}
+              selectedSquare={isPreviewing ? null : selectedSquare}
+              legalMoves={activeLegalMoves}
+              lastMove={displayMove}
+              checkedKingIndex={checkedKingIndex}
+              isFlipped={isFlipped}
+              isInteractive={!isPreviewing && status === 'active'}
+              onSquareClick={handleSquareClick}
+              onDragStart={handleDragStart}
+              onDrop={handleDrop}
+            />
+          </div>
+          <p className="board-hint">{isPreviewing ? 'Reviewing move history.' : selectedSquare === null ? 'Select a piece to see legal moves.' : 'Choose a highlighted square to move.'}</p>
         </section>
 
         <aside className="side-panel review-panel">
@@ -316,7 +318,12 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
           </div>
           <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
           <ol className="move-history move-list">
-            {moveHistory.map((record, moveIndex) => (
+            {moveHistory.length === 0 ? (
+              <li className="empty-history-state">
+                <strong>No moves yet.</strong>
+                <span>Select a piece to see legal moves.</span>
+              </li>
+            ) : moveHistory.map((record, moveIndex) => (
               <li key={`${record.timestamp}-${moveIndex}`}>
                 <button type="button" className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'} onClick={() => setPreviewPly(moveIndex + 1 >= latestPly ? null : moveIndex + 1)}>
                   <span>{moveIndex + 1}.</span>
@@ -335,10 +342,10 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
               <button type="button" onClick={() => setPreviewPly((ply) => { const nextPly = Math.min((ply ?? 0) + 1, latestPly); return nextPly >= latestPly ? null : nextPly; })} disabled={moveHistory.length === 0}>›</button>
               <button type="button" onClick={() => setPreviewPly(null)} disabled={moveHistory.length === 0}>⏭</button>
             </div>
-            <div className="panel-actions stacked-actions">
-              <button type="button" onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
-              <button type="button" onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
+            <div className="panel-actions stacked-actions game-action-row">
               <button type="button" onClick={requestRestart}>Restart Match</button>
+              <button type="button" onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
+              <button type="button" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
             </div>
           </div>
         </aside>
