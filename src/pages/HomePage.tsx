@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Bot, CalendarDays, Link as LinkIcon, Moon, Search, Shuffle, SunMedium, Users, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Link as LinkIcon, Moon, Search, Shuffle, SunMedium, Users, X } from 'lucide-react';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, resolveBackRankCode } from '../game/seed.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 
@@ -37,6 +37,39 @@ function spacedCode(backRankCode: string): string {
   return backRankCode.split('').join(' ');
 }
 
+function monthKeyFromDateKey(dateKey: string): string {
+  return dateKey.slice(0, 7);
+}
+
+function getMonthLabel(monthKey: string): string {
+  const date = new Date(`${monthKey}-01T00:00:00.000Z`);
+  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date);
+}
+
+function getDisplayDate(dateKey: string): string {
+  const date = new Date(`${dateKey}T00:00:00.000Z`);
+  return new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(date);
+}
+
+function shiftMonth(monthKey: string, offset: number): string {
+  const date = new Date(`${monthKey}-01T00:00:00.000Z`);
+  date.setUTCMonth(date.getUTCMonth() + offset);
+  return date.toISOString().slice(0, 7);
+}
+
+function getCalendarCells(monthKey: string): Array<{ dateKey: string; day: number } | null> {
+  const firstDay = new Date(`${monthKey}-01T00:00:00.000Z`);
+  const daysInMonth = new Date(Date.UTC(firstDay.getUTCFullYear(), firstDay.getUTCMonth() + 1, 0)).getUTCDate();
+  const leadingBlanks = firstDay.getUTCDay();
+  return [
+    ...Array.from({ length: leadingBlanks }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, dayIndex) => {
+      const day = dayIndex + 1;
+      return { dateKey: `${monthKey}-${String(day).padStart(2, '0')}`, day };
+    }),
+  ];
+}
+
 export function HomePage({
   theme,
   onToggleTheme,
@@ -49,10 +82,10 @@ export function HomePage({
   onCancelFindMatch,
 }: HomePageProps) {
   const seedInputId = 'custom-seed-input';
-  const dateInputRef = useRef<HTMLInputElement | null>(null);
   const todayKey = useMemo(() => getUtcDateKey(), []);
   const yesterdayKey = useMemo(() => addUtcDays(todayKey, -1), [todayKey]);
   const [calendarDateKey, setCalendarDateKey] = useState(todayKey);
+  const [calendarMonthKey, setCalendarMonthKey] = useState(monthKeyFromDateKey(todayKey));
   const [dateError, setDateError] = useState<string | null>(null);
   const [customSeed, setCustomSeed] = useState('');
   const [modal, setModal] = useState<ModalName>(null);
@@ -62,6 +95,8 @@ export function HomePage({
   const dailyBackRankCode = backRankCodeFromSeed(dailySeed);
   const selectedDailySeed = getDailySeed(calendarDateKey);
   const selectedDailyBackRankCode = backRankCodeFromSeed(selectedDailySeed);
+  const calendarCells = getCalendarCells(calendarMonthKey);
+  const canGoNextMonth = shiftMonth(calendarMonthKey, 1) <= monthKeyFromDateKey(todayKey);
   const blackBackRankCode = [...dailyBackRankCode].reverse().join('');
   const customSeedValue = customSeed.trim();
   const customSeedLooksLikeCode = /^[BRKNQ]+$/i.test(customSeedValue);
@@ -70,21 +105,26 @@ export function HomePage({
     : null;
   const customBackRankCode = customSeedValue && !customSeedError ? resolveBackRankCode(customSeedValue) : null;
 
-  function openDatePicker() {
-    const input = dateInputRef.current;
-    if (!input) return;
-    if (typeof input.showPicker === 'function') input.showPicker();
-    else input.focus();
-  }
-
   function handleDateChange(nextDateKey: string) {
     if (nextDateKey > todayKey) {
       setDateError('Future daily seeds are locked.');
-      setCalendarDateKey(todayKey);
       return;
     }
+    const safeDateKey = nextDateKey || todayKey;
     setDateError(null);
-    setCalendarDateKey(nextDateKey || todayKey);
+    setCalendarDateKey(safeDateKey);
+    setCalendarMonthKey(monthKeyFromDateKey(safeDateKey));
+  }
+
+  function goToPreviousMonth() {
+    setCalendarMonthKey((currentMonthKey) => shiftMonth(currentMonthKey, -1));
+  }
+
+  function goToNextMonth() {
+    setCalendarMonthKey((currentMonthKey) => {
+      const nextMonthKey = shiftMonth(currentMonthKey, 1);
+      return nextMonthKey <= monthKeyFromDateKey(todayKey) ? nextMonthKey : currentMonthKey;
+    });
   }
 
   async function requestMatchFor(seed: string, backRankCode: string) {
@@ -209,22 +249,47 @@ export function HomePage({
               <button type="button" onClick={() => handleDateChange(yesterdayKey)}>Yesterday</button>
               <button type="button" onClick={() => handleDateChange(randomPastDate(todayKey))}>Random Past Daily</button>
             </div>
-            <div className="date-input-wrap">
-              <input
-                ref={dateInputRef}
-                type="date"
-                value={calendarDateKey}
-                max={todayKey}
-                onChange={(event) => handleDateChange(event.target.value || todayKey)}
-                className="date-input"
-                aria-label="Daily seed date"
-              />
-              <button type="button" className="date-picker-button" onClick={openDatePicker} aria-label="Open daily seed calendar">
-                <CalendarDays size={19} />
-              </button>
+            <div className="selected-daily-panel">
+              <span>Selected Daily</span>
+              <strong>{getDisplayDate(calendarDateKey)}</strong>
+              <p>{selectedDailySeed} · {selectedDailyBackRankCode}</p>
             </div>
-            {dateError && <p className="error-message inline-message">{dateError}</p>}
-            <p className="seed-readout"><span>{selectedDailySeed}</span><span>Back rank: {selectedDailyBackRankCode}</span></p>
+            <div className="daily-calendar-panel" aria-label="Daily seed calendar">
+              <div className="daily-calendar-header">
+                <button type="button" onClick={goToPreviousMonth} aria-label="Previous month"><ChevronLeft size={18} /></button>
+                <strong>{getMonthLabel(calendarMonthKey)}</strong>
+                <button type="button" onClick={goToNextMonth} disabled={!canGoNextMonth} aria-label="Next month"><ChevronRight size={18} /></button>
+              </div>
+              <div className="daily-calendar-weekdays" aria-hidden="true">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((weekday, index) => <span key={`${weekday}-${index}`}>{weekday}</span>)}
+              </div>
+              <div className="daily-calendar-grid">
+                {calendarCells.map((cell, index) => {
+                  if (!cell) return <span key={`blank-${index}`} className="daily-calendar-blank" />;
+                  const isFuture = cell.dateKey > todayKey;
+                  const isSelected = cell.dateKey === calendarDateKey;
+                  const isToday = cell.dateKey === todayKey;
+                  return (
+                    <button
+                      type="button"
+                      key={cell.dateKey}
+                      className={[
+                        'daily-calendar-day',
+                        isSelected ? 'selected-day' : '',
+                        isToday ? 'today-day' : '',
+                      ].filter(Boolean).join(' ')}
+                      onClick={() => handleDateChange(cell.dateKey)}
+                      disabled={isFuture}
+                      aria-pressed={isSelected}
+                      aria-label={`${getDisplayDate(cell.dateKey)}${isFuture ? ' locked' : ''}`}
+                    >
+                      {cell.day}
+                    </button>
+                  );
+                })}
+              </div>
+              {dateError && <p className="error-message inline-message">{dateError}</p>}
+            </div>
             <div className="panel-actions centered-actions">
               <button type="button" onClick={() => onStartBot(calendarDateKey)}>Play AI</button>
               <button type="button" onClick={() => requestMatchFor(selectedDailySeed, selectedDailyBackRankCode)}>Find Match</button>
