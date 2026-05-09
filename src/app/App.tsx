@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { createDailyGame, createOnlineGame, createSeededGame } from '../multiplayer/gameApi';
-import { getPlayerId } from '../multiplayer/playerSession';
-import { BotGamePage, type MatchMode } from '../pages/BotGamePage';
-import { HomePage } from '../pages/HomePage';
-import { OnlineGamePage } from '../pages/OnlineGamePage';
+import { createDailyGame, createOnlineGame, createSeededGame } from '../multiplayer/gameApi.js';
+import { getPlayerId } from '../multiplayer/playerSession.js';
+import { BotGamePage, type MatchMode } from '../pages/BotGamePage.js';
+import { HomePage } from '../pages/HomePage.js';
+import { OnlineGamePage } from '../pages/OnlineGamePage.js';
 
 type Theme = 'light' | 'dark';
 

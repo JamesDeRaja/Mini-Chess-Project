@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { applyMove, createMoveRecord } from '../../src/game/applyMove';
-import { getOpponent, getStatusForTurn } from '../../src/game/gameStatus';
-import { getLegalMoves } from '../../src/game/legalMoves';
-import { estimateMaterialScores } from '../../src/game/seed';
-import type { Color, GameStatus, Move } from '../../src/game/types';
-import { safeSupabaseUpdate } from '../../src/multiplayer/safeSupabaseUpdate';
-import { getServerSupabase } from './serverSupabase';
+import { applyMove, createMoveRecord } from '../../src/game/applyMove.js';
+import { getOpponent, getStatusForTurn } from '../../src/game/gameStatus.js';
+import { getLegalMoves } from '../../src/game/legalMoves.js';
+import { estimateMaterialScores } from '../../src/game/seed.js';
+import type { Color, GameStatus, Move } from '../../src/game/types.js';
+import { safeSupabaseUpdate } from '../../src/multiplayer/safeSupabaseUpdate.js';
+import { getServerSupabase } from './serverSupabase.js';
 
 function getWinner(status: GameStatus): Color | null {
   if (status === 'white_won') return 'white';

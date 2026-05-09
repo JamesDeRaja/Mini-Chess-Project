@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Moon, SunMedium } from 'lucide-react';
-import { Board } from '../components/Board';
-import { GameHeader } from '../components/GameHeader';
-import { InvitePanel } from '../components/InvitePanel';
-import { findKingIndex, isKingInCheck } from '../game/check';
-import { getLegalMoves } from '../game/legalMoves';
-import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../game/seed';
-import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types';
-import { joinOnlineGame, submitOnlineMove } from '../multiplayer/gameApi';
-import { getPlayerId } from '../multiplayer/playerSession';
-import { subscribeToGame, unsubscribeFromGame } from '../multiplayer/realtime';
-import { isSupabaseConfigured } from '../multiplayer/supabaseClient';
-import type { MatchMode } from './BotGamePage';
+import { Board } from '../components/Board.js';
+import { GameHeader } from '../components/GameHeader.js';
+import { InvitePanel } from '../components/InvitePanel.js';
+import { findKingIndex, isKingInCheck } from '../game/check.js';
+import { getLegalMoves } from '../game/legalMoves.js';
+import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../game/seed.js';
+import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types.js';
+import { joinOnlineGame, submitOnlineMove } from '../multiplayer/gameApi.js';
+import { getPlayerId } from '../multiplayer/playerSession.js';
+import { subscribeToGame, unsubscribeFromGame } from '../multiplayer/realtime.js';
+import { isSupabaseConfigured } from '../multiplayer/supabaseClient.js';
+import type { MatchMode } from './BotGamePage.js';
 
 type OnlineGamePageProps = {
   gameId: string;

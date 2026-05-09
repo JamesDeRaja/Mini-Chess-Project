@@ -1,7 +1,7 @@
-import { BACK_RANK_PIECES, BOARD_FILES, BOARD_RANKS } from './constants';
-import { pieceOrderFromBackRankCode } from './seed';
-import { index } from './coordinates';
-import type { Board, Color, Piece, PieceType } from './types';
+import { BACK_RANK_PIECES, BOARD_FILES, BOARD_RANKS } from './constants.js';
+import { pieceOrderFromBackRankCode } from './seed.js';
+import { index } from './coordinates.js';
+import type { Board, Color, Piece, PieceType } from './types.js';
 
 function shufflePieces(pieces: PieceType[]): PieceType[] {
   const shuffled = [...pieces];

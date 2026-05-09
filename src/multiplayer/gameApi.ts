@@ -1,4 +1,4 @@
-import type { Board, Color, GameStatus, Move, MoveRecord } from '../game/types';
+import type { Board, Color, GameStatus, Move, MoveRecord } from '../game/types.js';
 
 export type OnlineGameRecord = {
   id: string;

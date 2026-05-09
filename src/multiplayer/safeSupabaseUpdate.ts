@@ -1,4 +1,4 @@
-import { pickBaseGameFields } from './safeSupabaseInsert';
+import { pickBaseGameFields } from './safeSupabaseInsert.js';
 
 type QueryResult<T> = { data: T | null; error: { message: string } | null };
 type UpdateQuery<T> = {

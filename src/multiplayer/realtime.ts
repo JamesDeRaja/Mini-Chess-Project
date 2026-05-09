@@ -1,6 +1,6 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import type { OnlineGameRecord } from './gameApi';
-import { supabase } from './supabaseClient';
+import type { OnlineGameRecord } from './gameApi.js';
+import { supabase } from './supabaseClient.js';
 
 export function subscribeToGame(gameId: string, onUpdate: (game: OnlineGameRecord) => void): RealtimeChannel | null {
   if (!supabase) return null;

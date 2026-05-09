@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flag, Handshake, Moon, RotateCcw, SunMedium, Trophy } from 'lucide-react';
-import { Board } from '../components/Board';
-import { GameHeader } from '../components/GameHeader';
-import { applyMove, createMoveRecord } from '../game/applyMove';
-import { type BotLevel, getBotMoveByLevel } from '../game/bot';
-import { findKingIndex, isKingInCheck } from '../game/check';
-import { createInitialBoard } from '../game/createInitialBoard';
-import { squareLabel } from '../game/coordinates';
-import { getOpponent, getStatusForTurn } from '../game/gameStatus';
-import { getLegalMoves } from '../game/legalMoves';
-import { backRankCodeFromSeed, getDailySeed, getUtcDateKey } from '../game/seed';
-import { playCheckSound, playMoveSound, playResultSound } from '../game/sound';
-import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types';
+import { Board } from '../components/Board.js';
+import { GameHeader } from '../components/GameHeader.js';
+import { applyMove, createMoveRecord } from '../game/applyMove.js';
+import { type BotLevel, getBotMoveByLevel } from '../game/bot.js';
+import { findKingIndex, isKingInCheck } from '../game/check.js';
+import { createInitialBoard } from '../game/createInitialBoard.js';
+import { squareLabel } from '../game/coordinates.js';
+import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
+import { getLegalMoves } from '../game/legalMoves.js';
+import { backRankCodeFromSeed, getDailySeed, getUtcDateKey } from '../game/seed.js';
+import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
+import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types.js';
 
 export type MatchMode = 'single' | 'best-of-3' | 'best-of-5';
 

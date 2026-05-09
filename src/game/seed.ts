@@ -1,5 +1,5 @@
-import { BACK_RANK_PIECES, BOARD_FILES } from './constants';
-import type { Board, MoveRecord, PieceType } from './types';
+import { BACK_RANK_PIECES, BOARD_FILES } from './constants.js';
+import type { Board, MoveRecord, PieceType } from './types.js';
 
 export const DIRECT_BACK_RANK_CODE_PATTERN = /^[KQRBN]{5}$/i;
 

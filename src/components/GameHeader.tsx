@@ -1,4 +1,4 @@
-import type { Color, GameStatus } from '../game/types';
+import type { Color, GameStatus } from '../game/types.js';
 
 type GameHeaderProps = {
   title: string;

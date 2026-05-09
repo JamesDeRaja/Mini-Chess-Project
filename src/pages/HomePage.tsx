@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Bot, CalendarDays, Link as LinkIcon, Moon, Sparkles, SunMedium } from 'lucide-react';
-import { backRankCodeFromSeed, getDailySeed, getUtcDateKey } from '../game/seed';
-import type { MatchMode } from './BotGamePage';
+import { backRankCodeFromSeed, getDailySeed, getUtcDateKey } from '../game/seed.js';
+import type { MatchMode } from './BotGamePage.js';
 
 type HomePageProps = {
   theme: 'light' | 'dark';

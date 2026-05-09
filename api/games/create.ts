@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createInitialBoard } from '../../src/game/createInitialBoard';
-import { backRankCodeFromSeed, getDailySeed, getUtcDateKey } from '../../src/game/seed';
-import { safeSupabaseInsert } from '../../src/multiplayer/safeSupabaseInsert';
-import { getServerSupabase } from './serverSupabase';
+import { createInitialBoard } from '../../src/game/createInitialBoard.js';
+import { backRankCodeFromSeed, getDailySeed, getUtcDateKey } from '../../src/game/seed.js';
+import { safeSupabaseInsert } from '../../src/multiplayer/safeSupabaseInsert.js';
+import { getServerSupabase } from './serverSupabase.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== 'POST') {

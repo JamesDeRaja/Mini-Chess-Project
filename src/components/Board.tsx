@@ -1,7 +1,7 @@
-import { BOARD_FILES, BOARD_RANKS } from '../game/constants';
-import { fileLabel, index } from '../game/coordinates';
-import type { Board as ChessBoard, Move } from '../game/types';
-import { Square } from './Square';
+import { BOARD_FILES, BOARD_RANKS } from '../game/constants.js';
+import { fileLabel, index } from '../game/coordinates.js';
+import type { Board as ChessBoard, Move } from '../game/types.js';
+import { Square } from './Square.js';
 
 type LastMove = Pick<Move, 'from' | 'to'> | null;
 
