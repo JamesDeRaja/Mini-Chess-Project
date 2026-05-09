@@ -184,10 +184,11 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   overflow: hidden;
 }
 
-/* ── Left panel ── */
+/* ── Left panel: grows to fill space beside the board ── */
 .side-panel.match-panel {
-  flex: 0 0 clamp(160px, 15vw, 220px);
-  width: clamp(160px, 15vw, 220px);
+  flex: 1 1 0;
+  min-width: 160px;
+  max-width: 300px;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -229,11 +230,11 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   overflow: hidden;
 }
 
-/* ── Right panel ── */
+/* ── Right panel: grows 2× as fast as left panel to fill remaining space ── */
 .side-panel.review-panel {
-  flex: 1 1 0;
-  min-width: 190px;
-  max-width: 370px;
+  flex: 2 1 0;
+  min-width: 200px;
+  max-width: 460px;
   overflow-y: hidden;
   display: flex;
   flex-direction: column;

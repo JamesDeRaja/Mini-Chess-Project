@@ -87,22 +87,15 @@
 .piece {
   position: relative;
   z-index: 2;
-  /* Flex centering — vertically & horizontally centered like chess.com */
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 85%;
-  height: 85%;
+  width: 88%;
+  height: 88%;
   cursor: grab;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.8rem, 5.5vh, 4.2rem);
-  /* line-height: 1 prevents baseline-offset causing vertical shift */
-  line-height: 1;
   user-select: none;
   transform: translateZ(0);
-  /* piece-land plays on initial placement, piece-slide-land on moves */
   animation: piece-land 250ms cubic-bezier(.2, 1.35, .35, 1);
-  /* smooth transitions for hover/select states — NOT for movement (managed by animation) */
   transition: filter 250ms ease;
 }
 
@@ -126,26 +119,6 @@
   animation: piece-slide-land 250ms cubic-bezier(.18, 1.25, .4, 1);
 }
 
-.piece-white {
-  color: #f7f7f3;
-  text-shadow:
-    -2px -2px 0 #6f6b64,
-    2px -2px 0 #6f6b64,
-    -2px 2px 0 #6f6b64,
-    2px 2px 0 #6f6b64,
-    0 6px 10px rgba(8, 16, 30, 0.32);
-  -webkit-text-stroke: 1.2px #6f6b64;
-}
-.piece-black {
-  color: #3a3836;
-  text-shadow:
-    -2px -2px 0 #1a1916,
-    2px -2px 0 #1a1916,
-    -2px 2px 0 #1a1916,
-    2px 2px 0 #1a1916,
-    0 6px 10px rgba(0, 0, 0, 0.38);
-  -webkit-text-stroke: 1.2px #1a1916;
-}
 
 .move-dot,
 .capture-dot {
@@ -196,5 +169,4 @@
 
 @media (max-width: 760px) {
   .board { width: min(94vw, 420px); max-width: min(94vw, 420px); }
-  .piece { font-size: clamp(1.4rem, 11vw, 3rem); }
 }

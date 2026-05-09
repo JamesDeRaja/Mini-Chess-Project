@@ -43,7 +43,7 @@ export function Square({
     .filter(Boolean)
     .join(' ');
 
-  function handlePieceDragStart(event: DragEvent<HTMLSpanElement>) {
+  function handlePieceDragStart(event: DragEvent<HTMLDivElement>) {
     if (!isInteractive || !onDragStart || !onDragStart()) {
       event.preventDefault();
       return;
