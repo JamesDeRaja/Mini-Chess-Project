@@ -17,48 +17,52 @@ function createNoiseBuffer(ctx: AudioContext, durationSec: number): AudioBuffer 
   return buf;
 }
 
-/** Woody "thud" — filtered noise burst + short resonant sine, mimics chess.com piece sound */
+/** Woody "thud" — multi-layer impact sound with click transient, noise burst, and body resonance */
 function playWoodThud(isCapture: boolean) {
   const ctx = getAudioContext();
   if (!ctx) return;
   const now = ctx.currentTime;
 
-  // --- Noise burst (the impact "click") ---
-  const noise = ctx.createBufferSource();
-  noise.buffer = createNoiseBuffer(ctx, 0.12);
+  const out = ctx.createGain();
+  out.gain.value = isCapture ? 0.72 : 0.52;
+  out.connect(ctx.destination);
 
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'bandpass';
-  filter.frequency.value = isCapture ? 280 : 520;
-  filter.Q.value = isCapture ? 0.8 : 1.1;
+  // ── High click (initial contact) ──
+  const clickNoise = ctx.createBufferSource();
+  clickNoise.buffer = createNoiseBuffer(ctx, 0.025);
+  const hpf = ctx.createBiquadFilter();
+  hpf.type = 'highpass'; hpf.frequency.value = 1800;
+  const clickGain = ctx.createGain();
+  clickGain.gain.setValueAtTime(0.55, now);
+  clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.022);
+  clickNoise.connect(hpf); hpf.connect(clickGain); clickGain.connect(out);
+  clickNoise.start(now); clickNoise.stop(now + 0.028);
 
-  const noiseGain = ctx.createGain();
-  const peakGain = isCapture ? 0.55 : 0.38;
-  noiseGain.gain.setValueAtTime(peakGain, now);
-  noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + (isCapture ? 0.11 : 0.08));
+  // ── Mid impact (bandpass noise) ──
+  const impNoise = ctx.createBufferSource();
+  impNoise.buffer = createNoiseBuffer(ctx, 0.1);
+  const bpf = ctx.createBiquadFilter();
+  bpf.type = 'bandpass';
+  bpf.frequency.value = isCapture ? 310 : 550;
+  bpf.Q.value = isCapture ? 0.7 : 1.0;
+  const impGain = ctx.createGain();
+  impGain.gain.setValueAtTime(isCapture ? 0.9 : 0.65, now);
+  impGain.gain.exponentialRampToValueAtTime(0.001, now + (isCapture ? 0.1 : 0.07));
+  impNoise.connect(bpf); bpf.connect(impGain); impGain.connect(out);
+  impNoise.start(now); impNoise.stop(now + 0.11);
 
-  noise.connect(filter);
-  filter.connect(noiseGain);
-  noiseGain.connect(ctx.destination);
-  noise.start(now);
-  noise.stop(now + 0.13);
-
-  // --- Resonant body tone (short sine decay) ---
+  // ── Body resonance (falling sine) ──
   const osc = ctx.createOscillator();
   osc.type = 'sine';
-  const startFreq = isCapture ? 180 : 380;
-  const endFreq = isCapture ? 100 : 220;
-  osc.frequency.setValueAtTime(startFreq, now);
-  osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.06);
-
+  const f0 = isCapture ? 155 : 260;
+  osc.frequency.setValueAtTime(f0, now);
+  osc.frequency.exponentialRampToValueAtTime(f0 * 0.65, now + 0.09);
   const oscGain = ctx.createGain();
-  oscGain.gain.setValueAtTime(isCapture ? 0.18 : 0.12, now);
-  oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
-
-  osc.connect(oscGain);
-  oscGain.connect(ctx.destination);
-  osc.start(now);
-  osc.stop(now + 0.08);
+  oscGain.gain.setValueAtTime(0.001, now);
+  oscGain.gain.linearRampToValueAtTime(isCapture ? 0.32 : 0.22, now + 0.006);
+  oscGain.gain.exponentialRampToValueAtTime(0.001, now + (isCapture ? 0.2 : 0.14));
+  osc.connect(oscGain); oscGain.connect(out);
+  osc.start(now); osc.stop(now + 0.22);
 }
 
 export function playMoveSound(isCapture = false) {
@@ -69,27 +73,21 @@ export function playCheckSound() {
   const ctx = getAudioContext();
   if (!ctx) return;
   const now = ctx.currentTime;
-
-  // Two sharp high-pitched tones — alert pattern like chess.com
   const tones = [
-    { freq: 880, delay: 0, dur: 0.07, gain: 0.028 },
-    { freq: 1100, delay: 0.08, dur: 0.09, gain: 0.024 },
+    { freq: 740,  delay: 0,    dur: 0.1,  gain: 0.034 },
+    { freq: 988,  delay: 0.1,  dur: 0.1,  gain: 0.028 },
+    { freq: 1318, delay: 0.2,  dur: 0.14, gain: 0.022 },
   ];
-
   for (const t of tones) {
     const osc = ctx.createOscillator();
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(t.freq, now + t.delay);
-
+    osc.frequency.value = t.freq;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, now + t.delay);
-    g.gain.exponentialRampToValueAtTime(t.gain, now + t.delay + 0.008);
+    g.gain.exponentialRampToValueAtTime(t.gain, now + t.delay + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, now + t.delay + t.dur);
-
-    osc.connect(g);
-    g.connect(ctx.destination);
-    osc.start(now + t.delay);
-    osc.stop(now + t.delay + t.dur + 0.02);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(now + t.delay); osc.stop(now + t.delay + t.dur + 0.02);
   }
 }
 
