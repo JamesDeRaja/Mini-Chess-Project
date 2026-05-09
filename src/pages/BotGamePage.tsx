@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flag, Handshake, Moon, RotateCcw, SunMedium } from 'lucide-react';
 import { Board } from '../components/Board';
+import { PieceSvg } from '../components/PieceSvg';
 import { applyMove, createMoveRecord } from '../game/applyMove';
 import { type BotLevel, getBotMoveByLevel } from '../game/bot';
 import { findKingIndex, isKingInCheck } from '../game/check';
@@ -133,7 +134,11 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
       }
       if (event.key === 'ArrowRight') {
         event.preventDefault();
-        setPreviewPly((ply) => Math.min((ply ?? boardTimeline.length - 1) + 1, boardTimeline.length - 1));
+        setPreviewPly((ply) => {
+          if (ply === null) return null;
+          const next = ply + 1;
+          return next >= boardTimeline.length - 1 ? null : next;
+        });
       }
       if (event.key === 'ArrowUp') {
         event.preventDefault();
@@ -315,6 +320,17 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
           </div>
           <button className="wide-action" onClick={() => setIsFlipped((f) => !f)}><RotateCcw size={15} /> Flip Board</button>
           <button className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={15} /> : <Moon size={15} />} Theme</button>
+          <details className="rules-disclosure">
+            <summary>Mini-Chess rules</summary>
+            <ul className="rules-list">
+              <li>5×6 board — standard chess rules apply except:</li>
+              <li>No double pawn push</li>
+              <li>Pawn promotes to queen only</li>
+              <li>No en passant</li>
+              <li>No castling</li>
+              <li>Draw by stalemate only (no 50-move rule)</li>
+            </ul>
+          </details>
         </aside>
 
         <section className="board-column">
@@ -326,6 +342,7 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
             checkedKingIndex={checkedKingIndex}
             isFlipped={isFlipped}
             isInteractive={!isPreviewing && status === 'active'}
+            gameStatus={status}
             onSquareClick={handleSquareClick}
             onDragStart={handleDragStart}
             onDrop={handleDrop}
@@ -354,10 +371,10 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
                   className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'}
                   onClick={() => setPreviewPly(moveIndex + 1)}
                 >
-                  <span>{moveIndex + 1}.</span>
-                  <strong>{record.color}</strong>
-                  <span>{record.piece}</span>
-                  <span>{squareLabel(record.to % 5, Math.floor(record.to / 5))}</span>
+                  <span className="hist-num">{moveIndex + 1}.</span>
+                  <span className="hist-icon"><PieceSvg color={record.color} type={record.piece} /></span>
+                  <span className="hist-sq">{squareLabel(record.to % 5, Math.floor(record.to / 5))}</span>
+                  {record.captured && <span className="hist-cap">×{record.captured[0]}</span>}
                 </button>
               </li>
             ))}
@@ -367,8 +384,12 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
               <button onClick={() => setPreviewPly(0)} disabled={moveHistory.length === 0}>⏮</button>
               <button onClick={() => setPreviewPly((ply) => Math.max((ply ?? boardTimeline.length - 1) - 1, 0))} disabled={moveHistory.length === 0}>‹</button>
               <button onClick={() => setPreviewPly(null)}>Live</button>
-              <button onClick={() => setPreviewPly((ply) => Math.min((ply ?? 0) + 1, boardTimeline.length - 1))} disabled={moveHistory.length === 0}>›</button>
-              <button onClick={() => setPreviewPly(boardTimeline.length - 1)} disabled={moveHistory.length === 0}>⏭</button>
+              <button onClick={() => setPreviewPly((ply) => {
+                if (ply === null) return null;
+                const next = ply + 1;
+                return next >= boardTimeline.length - 1 ? null : next;
+              })} disabled={moveHistory.length === 0}>›</button>
+              <button onClick={() => setPreviewPly(null)} disabled={moveHistory.length === 0}>⏭</button>
             </div>
             <div className="panel-actions stacked-actions">
               <button onClick={() => setPendingAction('draw')}><Handshake size={16} /> Request Draw</button>
