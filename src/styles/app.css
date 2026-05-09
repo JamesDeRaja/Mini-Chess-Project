@@ -234,19 +234,26 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .score-stack { display: grid; gap: 10px; margin: 14px 0; }
 .score-stack span { display: flex; justify-content: space-between; padding: 12px 14px; border-radius: 14px; background: rgba(139, 184, 232, 0.1); }
 .wide-action { width: 100%; justify-content: flex-start; }
-.review-panel { display: flex; min-height: 0; flex-direction: column; }
+.review-panel,
+.history-panel { display: flex; min-height: 0; flex-direction: column; }
+.online-game-panel { height: min(100%, calc(100vh - clamp(300px, 38vh, 460px))); max-height: min(100%, calc(100vh - clamp(300px, 38vh, 460px))); }
 .panel-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .panel-note { margin-top: 0; font-size: 0.92rem; }
+.history-header { flex: 0 0 auto; }
 
 .move-history {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
   padding-left: 0;
   color: var(--muted);
   list-style: none;
 }
+.history-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  overflow-y: auto;
+}
 .move-list li { margin-bottom: 8px; }
+.empty-history { display: grid; gap: 4px; }
 .history-move {
   width: 100%;
   justify-content: flex-start;
@@ -258,7 +265,8 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 }
 .history-move:hover,
 .active-history-move { background: rgba(139, 184, 232, 0.16); color: var(--text); }
-.review-footer { margin-top: auto; padding-top: 12px; }
+.review-footer { padding-top: 12px; }
+.history-actions { flex: 0 0 auto; margin-top: auto; }
 .review-controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 0 0 14px; }
 .review-controls button { padding: 10px; }
 .stacked-actions { display: grid; grid-template-columns: 1fr 1fr; }
@@ -371,16 +379,21 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   .match-panel,
   .review-panel {
     width: min(100%, 760px);
+    justify-self: center;
+  }
+  .match-panel {
     height: auto;
     max-height: none;
-    justify-self: center;
+  }
+  .history-panel {
+    height: clamp(220px, 28vh, 320px);
+    max-height: clamp(220px, 28vh, 320px);
   }
   .match-panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center; }
   .match-panel .eyebrow, .match-panel h2 { margin: 0; }
   .score-stack { grid-template-columns: 1fr 1fr; margin: 0; }
   .wide-action { justify-content: center; }
   .review-panel { min-height: 0; }
-  .move-history { max-height: 90px; }
 }
 
 @media (max-width: 760px) {
@@ -388,7 +401,8 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   .home-page, .game-page { height: auto; overflow: visible; }
   .game-header, .game-layout, .chess-shell { display: flex; flex-direction: column; }
   .status-card, .side-panel { width: 100%; }
-  .match-panel, .review-panel { height: auto; }
+  .match-panel { height: auto; }
+  .history-panel { height: clamp(260px, 42vh, 380px); max-height: clamp(260px, 42vh, 380px); }
   .match-mode-grid, .seed-tools-grid { grid-template-columns: 1fr; }
 }
 
