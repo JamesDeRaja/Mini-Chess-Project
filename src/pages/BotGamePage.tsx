@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Flag, Handshake, Moon, RotateCcw, SunMedium, Trophy } from 'lucide-react';
+import { Flag, Handshake, Moon, RotateCcw, SunMedium } from 'lucide-react';
 import { Board } from '../components/Board';
-import { GameHeader } from '../components/GameHeader';
+import { PieceSvg } from '../components/PieceSvg';
 import { applyMove, createMoveRecord } from '../game/applyMove';
 import { type BotLevel, getBotMoveByLevel } from '../game/bot';
 import { findKingIndex, isKingInCheck } from '../game/check';
@@ -43,9 +43,17 @@ function getWinner(status: GameStatus): Color | null {
 }
 
 function getRoundMessage(status: GameStatus): string {
-  if (status === 'white_won') return 'Checkmate — White wins this game!';
-  if (status === 'black_won') return 'Checkmate — Black wins this game!';
-  if (status === 'draw') return 'Draw agreed for this game.';
+  if (status === 'white_won') return 'White wins!';
+  if (status === 'black_won') return 'Black wins!';
+  if (status === 'draw') return 'Draw';
+  return '';
+}
+
+function getStatusLabel(status: GameStatus): string {
+  if (status === 'active') return 'Active';
+  if (status === 'white_won') return 'White won';
+  if (status === 'black_won') return 'Black won';
+  if (status === 'draw') return 'Draw';
   return '';
 }
 
@@ -58,6 +66,12 @@ function getBotLevel(matchMode: MatchMode, score: MatchScore, winsRequired: numb
 
 function cloneBoard(board: ChessBoard): ChessBoard {
   return board.map((square) => ({ ...square, piece: square.piece ? { ...square.piece } : null }));
+}
+
+function getBannerClass(result: RoundResult): string {
+  if (result.winner === 'white') return 'round-result-banner win';
+  if (result.winner === 'black') return 'round-result-banner loss';
+  return 'round-result-banner draw';
 }
 
 export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGamePageProps) {
@@ -120,7 +134,11 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
       }
       if (event.key === 'ArrowRight') {
         event.preventDefault();
-        setPreviewPly((ply) => Math.min((ply ?? boardTimeline.length - 1) + 1, boardTimeline.length - 1));
+        setPreviewPly((ply) => {
+          if (ply === null) return null;
+          const next = ply + 1;
+          return next >= boardTimeline.length - 1 ? null : next;
+        });
       }
       if (event.key === 'ArrowUp') {
         event.preventDefault();
@@ -190,7 +208,9 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
   }
 
   function requestRestart() {
-    if (status === 'active' && !roundResult) {
+    // Skip confirmation if the game or match is already finished
+    const gameOver = !!roundResult || !!matchWinner || status !== 'active';
+    if (!gameOver && moveHistory.length > 0) {
       setPendingAction('restart');
       return;
     }
@@ -270,28 +290,47 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
 
   const activeLegalMoves = isPreviewing ? [] : legalMoves;
 
+  // Banner label prefix
+  const matchLabel = matchWinner
+    ? `Match: ${matchWinner === 'white' ? 'White' : 'Black'} wins the match!`
+    : roundResult
+    ? `Game ${roundNumber}: ${roundResult.message}`
+    : '';
+
   return (
     <main className="game-page">
-      <GameHeader
-        title="Play Against Bot"
-        turn={turn}
-        status={status}
-        playerRole="You are White"
-        details={`${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
-        onTitleClick={onHome}
-      />
-      <div className="game-layout chess-shell">
+      <div className="chess-shell">
         <aside className="side-panel match-panel">
-          <p className="eyebrow">Match</p>
-          <h2>{config.label}</h2>
+          {/* Title area — replaces the top header so the board fills full height */}
+          <div className="panel-title-area">
+            <button className="title-link eyebrow" onClick={onHome}>← Mini Chess</button>
+            <h1>Play Against Bot</h1>
+            <p className="game-details">{config.label} · Game {roundNumber}/{config.maxGames} · {botLevel} bot</p>
+            <div className="status-inline">
+              <span>You are White</span>
+              <strong>{getStatusLabel(status)}</strong>
+              <span>{turn === 'white' ? 'White' : 'Black'} to move</span>
+            </div>
+          </div>
+          <p className="eyebrow" style={{ marginTop: 4 }}>Match</p>
+          <h2 style={{ fontSize: '1rem', marginBottom: 4 }}>{config.label}</h2>
           <div className="score-stack">
             <span>White <strong>{score.white}</strong></span>
             <span>Black <strong>{score.black}</strong></span>
           </div>
-          <p>Game {roundNumber}/{config.maxGames}</p>
-          <p>Bot level: <strong>{botLevel}</strong></p>
-          <button className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-          <button className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
+          <button className="wide-action" onClick={() => setIsFlipped((f) => !f)}><RotateCcw size={15} /> Flip Board</button>
+          <button className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={15} /> : <Moon size={15} />} Theme</button>
+          <details className="rules-disclosure">
+            <summary>Mini-Chess rules</summary>
+            <ul className="rules-list">
+              <li>5×6 board — standard chess rules apply except:</li>
+              <li>No double pawn push</li>
+              <li>Pawn promotes to queen only</li>
+              <li>No en passant</li>
+              <li>No castling</li>
+              <li>Draw by stalemate only (no 50-move rule)</li>
+            </ul>
+          </details>
         </aside>
 
         <section className="board-column">
@@ -303,6 +342,7 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
             checkedKingIndex={checkedKingIndex}
             isFlipped={isFlipped}
             isInteractive={!isPreviewing && status === 'active'}
+            gameStatus={status}
             onSquareClick={handleSquareClick}
             onDragStart={handleDragStart}
             onDrop={handleDrop}
@@ -310,18 +350,31 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
         </section>
 
         <aside className="side-panel review-panel">
+          {/* Inline result banner — never blocks the board */}
+          {roundResult && (
+            <div className={getBannerClass(roundResult)}>
+              <strong>{matchLabel}</strong>
+              <div className="banner-actions">
+                {!matchWinner && <button onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay' : 'Next'}</button>}
+                <button onClick={requestRestart}>Restart</button>
+              </div>
+            </div>
+          )}
           <div className="panel-topbar">
             <h2>Move history</h2>
           </div>
-          <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
+          <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start.</p>
           <ol className="move-history move-list">
             {moveHistory.map((record, moveIndex) => (
               <li key={`${record.timestamp}-${moveIndex}`}>
-                <button className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'} onClick={() => setPreviewPly(moveIndex + 1)}>
-                  <span>{moveIndex + 1}.</span>
-                  <strong>{record.color}</strong>
-                  <span>{record.piece}</span>
-                  <span>{squareLabel(record.to % 5, Math.floor(record.to / 5))}</span>
+                <button
+                  className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'}
+                  onClick={() => setPreviewPly(moveIndex + 1)}
+                >
+                  <span className="hist-num">{moveIndex + 1}.</span>
+                  <span className="hist-icon"><PieceSvg color={record.color} type={record.piece} /></span>
+                  <span className="hist-sq">{squareLabel(record.to % 5, Math.floor(record.to / 5))}</span>
+                  {record.captured && <span className="hist-cap">×{record.captured[0]}</span>}
                 </button>
               </li>
             ))}
@@ -331,35 +384,22 @@ export function BotGamePage({ matchMode, theme, onToggleTheme, onHome }: BotGame
               <button onClick={() => setPreviewPly(0)} disabled={moveHistory.length === 0}>⏮</button>
               <button onClick={() => setPreviewPly((ply) => Math.max((ply ?? boardTimeline.length - 1) - 1, 0))} disabled={moveHistory.length === 0}>‹</button>
               <button onClick={() => setPreviewPly(null)}>Live</button>
-              <button onClick={() => setPreviewPly((ply) => Math.min((ply ?? 0) + 1, boardTimeline.length - 1))} disabled={moveHistory.length === 0}>›</button>
-              <button onClick={() => setPreviewPly(boardTimeline.length - 1)} disabled={moveHistory.length === 0}>⏭</button>
+              <button onClick={() => setPreviewPly((ply) => {
+                if (ply === null) return null;
+                const next = ply + 1;
+                return next >= boardTimeline.length - 1 ? null : next;
+              })} disabled={moveHistory.length === 0}>›</button>
+              <button onClick={() => setPreviewPly(null)} disabled={moveHistory.length === 0}>⏭</button>
             </div>
             <div className="panel-actions stacked-actions">
-              <button onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
-              <button onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
-              <button onClick={requestRestart}>Restart Match</button>
+              <button onClick={() => setPendingAction('draw')}><Handshake size={16} /> Request Draw</button>
+              <button onClick={() => setPendingAction('resign')}><Flag size={16} /> Resign</button>
+              <button onClick={requestRestart} style={{ gridColumn: '1 / -1' }}>Restart Match</button>
             </div>
           </div>
         </aside>
       </div>
-      {roundResult && (
-        <div className="winner-overlay" role="status">
-          {roundResult.winner === 'white' && <div className="confetti" />}
-          <div className={roundResult.winner === 'white' ? 'winner-card player-winner-card' : 'winner-card calm-result-card'}>
-            {roundResult.winner === 'white' ? <Trophy size={48} /> : <span className="result-emoji">{roundResult.winner === 'black' ? '😅' : '🤝'}</span>}
-            <p className="eyebrow">{matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}</p>
-            <h2>{matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}</h2>
-            <p>
-              Score: White {score.white} — Black {score.black}. {matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}
-            </p>
-            <div className="panel-actions centered-actions">
-              {!matchWinner && roundResult.status !== 'draw' && <button onClick={nextRound}>Next Game</button>}
-              {!matchWinner && roundResult.status === 'draw' && <button onClick={nextRound}>Replay Game</button>}
-              <button onClick={requestRestart}>Restart Match</button>
-            </div>
-          </div>
-        </div>
-      )}
+
       {pendingAction && (
         <div className="confirm-overlay" role="dialog" aria-modal="true">
           <div className="confirm-card">

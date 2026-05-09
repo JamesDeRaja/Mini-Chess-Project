@@ -1,63 +1,146 @@
-type Tone = {
-  frequency: number;
-  duration: number;
-  delay?: number;
-  type?: OscillatorType;
-  gain?: number;
-};
-
 let audioContext: AudioContext | null = null;
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
-  const AudioContextConstructor = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioContextConstructor) return null;
-  audioContext ??= new AudioContextConstructor();
-  if (audioContext.state === 'suspended') {
-    audioContext.resume();
-  }
+  const Ctor = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctor) return null;
+  audioContext ??= new Ctor();
+  if (audioContext.state === 'suspended') audioContext.resume();
   return audioContext;
 }
 
-function playTone({ frequency, duration, delay = 0, type = 'sine', gain = 0.04 }: Tone) {
-  const context = getAudioContext();
-  if (!context) return;
+function createNoiseBuffer(ctx: AudioContext, durationSec: number): AudioBuffer {
+  const frameCount = Math.ceil(ctx.sampleRate * durationSec);
+  const buf = ctx.createBuffer(1, frameCount, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < frameCount; i++) data[i] = Math.random() * 2 - 1;
+  return buf;
+}
 
-  const oscillator = context.createOscillator();
-  const gainNode = context.createGain();
-  const startTime = context.currentTime + delay;
-  const endTime = startTime + duration;
+/** Woody "thud" — multi-layer impact sound with click transient, noise burst, and body resonance */
+function playWoodThud(isCapture: boolean) {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const now = ctx.currentTime;
 
-  oscillator.type = type;
-  oscillator.frequency.setValueAtTime(frequency, startTime);
-  gainNode.gain.setValueAtTime(0.0001, startTime);
-  gainNode.gain.exponentialRampToValueAtTime(gain, startTime + 0.01);
-  gainNode.gain.exponentialRampToValueAtTime(0.0001, endTime);
+  const out = ctx.createGain();
+  out.gain.value = isCapture ? 0.72 : 0.52;
+  out.connect(ctx.destination);
 
-  oscillator.connect(gainNode);
-  gainNode.connect(context.destination);
-  oscillator.start(startTime);
-  oscillator.stop(endTime + 0.02);
+  // ── High click (initial contact) ──
+  const clickNoise = ctx.createBufferSource();
+  clickNoise.buffer = createNoiseBuffer(ctx, 0.025);
+  const hpf = ctx.createBiquadFilter();
+  hpf.type = 'highpass'; hpf.frequency.value = 1800;
+  const clickGain = ctx.createGain();
+  clickGain.gain.setValueAtTime(0.55, now);
+  clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.022);
+  clickNoise.connect(hpf); hpf.connect(clickGain); clickGain.connect(out);
+  clickNoise.start(now); clickNoise.stop(now + 0.028);
+
+  // ── Mid impact (bandpass noise) ──
+  const impNoise = ctx.createBufferSource();
+  impNoise.buffer = createNoiseBuffer(ctx, 0.1);
+  const bpf = ctx.createBiquadFilter();
+  bpf.type = 'bandpass';
+  bpf.frequency.value = isCapture ? 310 : 550;
+  bpf.Q.value = isCapture ? 0.7 : 1.0;
+  const impGain = ctx.createGain();
+  impGain.gain.setValueAtTime(isCapture ? 0.9 : 0.65, now);
+  impGain.gain.exponentialRampToValueAtTime(0.001, now + (isCapture ? 0.1 : 0.07));
+  impNoise.connect(bpf); bpf.connect(impGain); impGain.connect(out);
+  impNoise.start(now); impNoise.stop(now + 0.11);
+
+  // ── Body resonance (falling sine) ──
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  const f0 = isCapture ? 155 : 260;
+  osc.frequency.setValueAtTime(f0, now);
+  osc.frequency.exponentialRampToValueAtTime(f0 * 0.65, now + 0.09);
+  const oscGain = ctx.createGain();
+  oscGain.gain.setValueAtTime(0.001, now);
+  oscGain.gain.linearRampToValueAtTime(isCapture ? 0.32 : 0.22, now + 0.006);
+  oscGain.gain.exponentialRampToValueAtTime(0.001, now + (isCapture ? 0.2 : 0.14));
+  osc.connect(oscGain); oscGain.connect(out);
+  osc.start(now); osc.stop(now + 0.22);
 }
 
 export function playMoveSound(isCapture = false) {
-  playTone({ frequency: isCapture ? 220 : 360, duration: 0.08, type: 'triangle', gain: 0.035 });
-  playTone({ frequency: isCapture ? 170 : 540, duration: 0.08, delay: 0.055, type: 'triangle', gain: 0.03 });
+  playWoodThud(isCapture);
 }
 
 export function playCheckSound() {
-  playTone({ frequency: 680, duration: 0.08, type: 'square', gain: 0.025 });
-  playTone({ frequency: 510, duration: 0.12, delay: 0.07, type: 'square', gain: 0.02 });
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  const tones = [
+    { freq: 740,  delay: 0,    dur: 0.1,  gain: 0.034 },
+    { freq: 988,  delay: 0.1,  dur: 0.1,  gain: 0.028 },
+    { freq: 1318, delay: 0.2,  dur: 0.14, gain: 0.022 },
+  ];
+  for (const t of tones) {
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = t.freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, now + t.delay);
+    g.gain.exponentialRampToValueAtTime(t.gain, now + t.delay + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + t.delay + t.dur);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(now + t.delay); osc.stop(now + t.delay + t.dur + 0.02);
+  }
 }
 
 export function playResultSound(playerWon: boolean) {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+
   if (playerWon) {
-    playTone({ frequency: 523, duration: 0.1, type: 'triangle', gain: 0.035 });
-    playTone({ frequency: 659, duration: 0.12, delay: 0.09, type: 'triangle', gain: 0.035 });
-    playTone({ frequency: 784, duration: 0.18, delay: 0.2, type: 'triangle', gain: 0.035 });
+    // Rising fanfare: C5 → E5 → G5 → C6
+    const melody = [
+      { freq: 523.25, delay: 0,    dur: 0.14 },
+      { freq: 659.25, delay: 0.13, dur: 0.14 },
+      { freq: 783.99, delay: 0.26, dur: 0.14 },
+      { freq: 1046.5, delay: 0.38, dur: 0.22 },
+    ];
+    for (const note of melody) {
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(note.freq, now + note.delay);
+
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, now + note.delay);
+      g.gain.exponentialRampToValueAtTime(0.038, now + note.delay + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + note.delay + note.dur);
+
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(now + note.delay);
+      osc.stop(now + note.delay + note.dur + 0.02);
+    }
     return;
   }
 
-  playTone({ frequency: 260, duration: 0.12, type: 'sine', gain: 0.025 });
-  playTone({ frequency: 196, duration: 0.16, delay: 0.1, type: 'sine', gain: 0.022 });
+  // Descending defeat tones: E4 → C4 → A3
+  const defeat = [
+    { freq: 329.63, delay: 0,    dur: 0.18 },
+    { freq: 261.63, delay: 0.17, dur: 0.2  },
+    { freq: 220.0,  delay: 0.33, dur: 0.28 },
+  ];
+  for (const note of defeat) {
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(note.freq, now + note.delay);
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, now + note.delay);
+    g.gain.exponentialRampToValueAtTime(0.028, now + note.delay + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + note.delay + note.dur);
+
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start(now + note.delay);
+    osc.stop(now + note.delay + note.dur + 0.02);
+  }
 }

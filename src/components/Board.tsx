@@ -1,6 +1,6 @@
 import { BOARD_FILES, BOARD_RANKS } from '../game/constants';
 import { fileLabel, index } from '../game/coordinates';
-import type { Board as ChessBoard, Move } from '../game/types';
+import type { Board as ChessBoard, GameStatus, Move } from '../game/types';
 import { Square } from './Square';
 
 type LastMove = Pick<Move, 'from' | 'to'> | null;
@@ -13,10 +13,21 @@ type BoardProps = {
   checkedKingIndex: number | null;
   isFlipped?: boolean;
   isInteractive?: boolean;
+  gameStatus?: GameStatus;
   onSquareClick: (squareIndex: number) => void;
   onDragStart?: (squareIndex: number) => boolean;
   onDrop?: (squareIndex: number) => void;
 };
+
+function computeSlideOffset(from: number, to: number, isFlipped: boolean) {
+  const fromFile = from % BOARD_FILES;
+  const fromRank = Math.floor(from / BOARD_FILES);
+  const toFile = to % BOARD_FILES;
+  const toRank = Math.floor(to / BOARD_FILES);
+  const dx = isFlipped ? toFile - fromFile : fromFile - toFile;
+  const dy = isFlipped ? fromRank - toRank : toRank - fromRank;
+  return { dx, dy };
+}
 
 export function Board({
   board,
@@ -26,6 +37,7 @@ export function Board({
   checkedKingIndex,
   isFlipped = false,
   isInteractive = true,
+  gameStatus,
   onSquareClick,
   onDragStart,
   onDrop,
@@ -51,6 +63,10 @@ export function Board({
           isKingInCheck={checkedKingIndex === squareIndex}
           isInteractive={isInteractive}
           coordinateLabel={`${fileLabel(file)}${rank + 1}`}
+          gameStatus={gameStatus}
+          slideOffset={lastMove?.to === squareIndex
+            ? computeSlideOffset(lastMove.from, lastMove.to, isFlipped)
+            : undefined}
           onClick={() => onSquareClick(squareIndex)}
           onDragStart={onDragStart ? () => onDragStart(squareIndex) : undefined}
           onDrop={onDrop ? () => onDrop(squareIndex) : undefined}
