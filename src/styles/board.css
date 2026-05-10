@@ -89,8 +89,9 @@
 
 .piece-img {
   display: block;
-  width: 156%;
-  height: 156%;
+  width: 202.8%;
+  height: 202.8%;
+  place-self: center;
   max-width: none;
   object-fit: contain;
   filter: drop-shadow(0 6px 6px rgba(40, 34, 24, 0.22));
@@ -101,8 +102,9 @@
 .piece-fallback {
   display: grid;
   place-items: center;
-  width: 156%;
-  height: 156%;
+  width: 202.8%;
+  height: 202.8%;
+  place-self: center;
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(4.4rem, 14vw, 9.5rem);
   line-height: 1;
