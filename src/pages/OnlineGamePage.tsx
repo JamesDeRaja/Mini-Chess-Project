@@ -108,7 +108,6 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [isRealtimeConnected, setIsRealtimeConnected] = useState(true);
   const [pendingClientMoveIds, setPendingClientMoveIds] = useState<Set<string>>(() => new Set());
   const historyListRef = useRef<HTMLOListElement | null>(null);
   const hasAppliedRoleFlipRef = useRef(false);
@@ -325,7 +324,6 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   useEffect(() => {
     if (!effectiveGameId) return undefined;
     const channel = subscribeToGame(effectiveGameId, (game) => {
-      setIsRealtimeConnected(true);
       const latestMove = getLatestMove(game);
       const serverMoveCount = game.move_count ?? game.total_moves ?? game.move_history?.length ?? 0;
       const localHistory = moveHistoryRef.current;
@@ -367,7 +365,6 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
       setLegalMoves([]);
     });
 
-    if (!channel) setIsRealtimeConnected(false);
     return () => unsubscribeFromGame(channel);
   // applyGameRecord intentionally reads refs while this subscription is keyed by game identity.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -383,9 +380,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
           applyGameRecord(game);
           setRole(refreshedRole);
         })
-        .catch(() => {
-          setIsRealtimeConnected(false);
-        });
+        .catch(() => undefined);
     }, 2000);
 
     return () => window.clearInterval(pollId);
@@ -405,9 +400,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
           if (nextVersion !== confirmedVersion) applyGameRecord(game);
           setRole(refreshedRole);
         })
-        .catch(() => {
-          setIsRealtimeConnected(false);
-        });
+        .catch(() => undefined);
     }, 2000);
 
     return () => window.clearInterval(pollId);
@@ -601,8 +594,6 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
             <p><span>🎮 Game</span><strong>{roundNumber}</strong></p>
           </div>
           <p className="panel-note">{isOnlineGameReady ? (drawOfferBy ? `${drawOfferBy === role ? 'You offered a draw.' : 'Opponent offered a draw.'}` : 'Share remains available.') : shareIsLoading ? 'Share the invite link. Your friend joins when they open it.' : 'Send this link to a friend. The game starts when they join.'}</p>
-          {hasPendingMove && <p className="subtle-inline-status">Sending move...</p>}
-          {isRealtimeConnected === false && <p className="subtle-inline-status reconnecting-badge">Reconnecting...</p>}
           <div className="match-actions">
             <button type="button" className="wide-action primary-action" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : isOnlineGameReady ? 'Share' : 'Share Invite'}</button>
             <button type="button" className="wide-action secondary-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
