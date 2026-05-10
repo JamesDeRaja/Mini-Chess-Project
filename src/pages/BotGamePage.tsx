@@ -370,7 +370,6 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
         </aside>
 
         <section className="board-column">
-          <div className="board-seed-badge"><span>Daily Seed</span><strong>{dailySeedInfo.seed}</strong></div>
           <Board
             board={displayBoard}
             selectedSquare={isPreviewing ? null : selectedSquare}
