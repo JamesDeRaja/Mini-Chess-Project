@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Moon, RotateCcw, SunMedium } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
-import { InvitePanel } from '../components/InvitePanel.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { findKingIndex, isKingInCheck } from '../game/check.js';
 import { squareLabel } from '../game/coordinates.js';
@@ -83,7 +82,6 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   const shouldShowWaitingOverlay = !isCompleted && inviteState !== 'error' && !isOnlineGameReady;
   const canInteractWithBoard = !shouldShowWaitingOverlay && !isCompleted && role === turn && !hasPendingMove;
   const displayStatus: GameStatus = isOnlineGameReady && status === 'waiting' ? 'active' : status;
-  const opponentStatus = isOnlineGameReady ? 'Opponent joined' : 'Waiting for opponent';
   const primaryStatus = useMemo(() => {
     if (inviteState === 'creating_game') return 'Creating game...';
     if (inviteState === 'waiting_for_link') return 'Creating invite link...';
@@ -342,59 +340,61 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   }
 
   const shareIsLoading = inviteState === 'creating_game' || inviteState === 'waiting_for_link';
+  const leftPanelStatus = shareIsLoading ? 'Creating invite link' : isOnlineGameReady ? 'Active' : 'Waiting for opponent';
   const playerRoleLabel = role === 'spectator' ? 'Spectating' : `You are ${role === 'white' ? 'White' : 'Black'}`;
 
   return (
-    <main className="game-page online-game-page">
+    <main className="game-page">
       <GameHeader title="Online Game" turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} />
-      {!isSupabaseConfigured && <p className="notice">Supabase environment variables are required for live multiplayer.</p>}
       {toast && <p className="sync-toast" role="status">{toast}</p>}
-      <div className="game-layout chess-shell online-chess-shell">
-        <aside className="side-panel match-panel online-match-panel">
+      <div className="game-layout chess-shell">
+        <aside className="side-panel match-panel">
           <p className="eyebrow">Online</p>
-          <h2>{opponentStatus}</h2>
+          <h2>{isOnlineGameReady ? 'Online Match' : 'Invite Friend'}</h2>
           <div className="score-stack">
             <span>White <strong>{scores.whiteScore}</strong></span>
             <span>Black <strong>{scores.blackScore}</strong></span>
           </div>
-          <p>{playerRoleLabel}</p>
-          <p>Turn: <strong>{turn === 'white' ? 'White' : 'Black'}</strong></p>
-          <p>Status: <strong>{primaryStatus}</strong></p>
+          <p>You are: <strong>{role === 'spectator' ? 'Spectating' : role === 'white' ? 'White' : 'Black'}</strong></p>
+          <p>Opponent: <strong>{isOnlineGameReady ? 'Joined' : 'Waiting'}</strong></p>
+          <p>Status: <strong>{leftPanelStatus}</strong></p>
+          {isOnlineGameReady && <p>Turn: <strong>{turn === 'white' ? 'White' : 'Black'}</strong></p>}
+          <p>{isOnlineGameReady ? 'Share remains available for spectators or reconnecting players.' : shareIsLoading ? 'Share the invite link. Your friend joins as Black.' : 'Send this link to a friend. The game starts when they join.'}</p>
+          {!isOnlineGameReady && <p className="panel-note">Extra visitors can spectate.</p>}
           {hasPendingMove && <p className="subtle-inline-status">Sending move...</p>}
           {!isRealtimeConnected && <p className="subtle-inline-status reconnecting-badge">Reconnecting...</p>}
+          {!isSupabaseConfigured && <p className="panel-note">Supabase environment variables are required for live multiplayer.</p>}
           <p>Seed: <strong>{seedLabel}</strong></p>
           <p>Back rank: <strong>{backRankCode ?? 'Setup pending'}</strong></p>
           <p>Game: {roundNumber}</p>
           <p>Mode: {matchMode}</p>
-          <InvitePanel inviteLink={inviteLink} isLoading={shareIsLoading} isActive={isOnlineGameReady} copied={copied} canNativeShare={canNativeShare} compact={isOnlineGameReady} onShare={handleShareInvite} />
+          <button type="button" className="wide-action" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : isOnlineGameReady ? 'Share' : 'Share Invite'}</button>
           <button type="button" className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
           <button type="button" className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
         </aside>
 
         <section className="board-column online-board-column">
-          <div className="online-board-wrap">
-            {board.length > 0 && (
-              <Board
-                board={board}
-                selectedSquare={selectedSquare}
-                legalMoves={legalMoves}
-                lastMove={lastMove}
-                checkedKingIndex={checkedKingIndex}
-                isFlipped={isFlipped}
-                isInteractive={canInteractWithBoard}
-                onSquareClick={handleSquareClick}
-              />
-            )}
-            {shouldShowWaitingOverlay && (
-              <div className="waiting-board-overlay">
-                <strong>{shareIsLoading ? 'Creating invite...' : 'Waiting for opponent'}</strong>
-                <span>Share the invite link to start.</span>
-                <button type="button" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>
-                  {shareIsLoading ? 'Creating link...' : copied ? 'Copied' : canNativeShare ? 'Share Invite' : 'Copy Invite Link'}
-                </button>
-              </div>
-            )}
-          </div>
+          {board.length > 0 && (
+            <Board
+              board={board}
+              selectedSquare={selectedSquare}
+              legalMoves={legalMoves}
+              lastMove={lastMove}
+              checkedKingIndex={checkedKingIndex}
+              isFlipped={isFlipped}
+              isInteractive={canInteractWithBoard}
+              onSquareClick={handleSquareClick}
+            />
+          )}
+          {shouldShowWaitingOverlay && (
+            <div className="waiting-board-overlay">
+              <strong>{shareIsLoading ? 'Creating invite...' : 'Waiting for opponent'}</strong>
+              <span>Share the invite link to start.</span>
+              <button type="button" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>
+                {shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : canNativeShare ? 'Share Invite' : 'Copy Invite Link'}
+              </button>
+            </div>
+          )}
           {inviteState === 'error' && (
             <section className="error-card">
               <strong>Could not create invite link.</strong>
@@ -407,7 +407,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
           )}
         </section>
 
-        <aside className="side-panel review-panel history-panel online-history-panel">
+        <aside className="side-panel review-panel history-panel">
           <div className="history-header">
             <div className="panel-topbar">
               <h2>Move history</h2>
@@ -431,8 +431,15 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
             )}
           </ol>
           <div className="review-footer history-actions">
+            <div className="review-controls">
+              <button type="button" disabled>⏮</button>
+              <button type="button" disabled>‹</button>
+              <button type="button" disabled>Live</button>
+              <button type="button" disabled>›</button>
+              <button type="button" disabled>⏭</button>
+            </div>
             <div className="panel-actions stacked-actions">
-              <InvitePanel inviteLink={inviteLink} isLoading={shareIsLoading} isActive copied={copied} canNativeShare={canNativeShare} compact onShare={handleShareInvite} />
+              <button type="button" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : 'Share Invite'}</button>
             </div>
           </div>
         </aside>
