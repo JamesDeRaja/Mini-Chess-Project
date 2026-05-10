@@ -20,7 +20,13 @@ export const optionalGameMetadataFields = [
   'black_score',
 ] as const;
 
-type QueryResult<T> = { data: T | null; error: { message: string } | null };
+type SupabaseErrorLike = {
+  message: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+};
+type QueryResult<T> = { data: T | null; error: SupabaseErrorLike | null };
 type InsertQuery<T> = {
   select: (columns?: string) => {
     single: () => PromiseLike<QueryResult<T>>;
@@ -40,14 +46,31 @@ export function pickBaseGameFields(payload: Record<string, unknown>): Record<str
   }, {});
 }
 
+export function getMissingOptionalGameMetadataColumn(error: SupabaseErrorLike | null): string | null {
+  if (!error) return null;
+
+  const errorText = [error.message, error.details, error.hint, error.code].filter(Boolean).join(' ').toLowerCase();
+  return optionalGameMetadataFields.find((field) => errorText.includes(field.toLowerCase())) ?? null;
+}
+
+export function logOptionalMetadataRetry(operation: 'insert' | 'update', column: string, error: SupabaseErrorLike): void {
+  console.warn(
+    `Supabase games ${operation} failed because optional metadata column "${column}" is unavailable. ` +
+      'Retrying with base gameplay fields only.',
+    error,
+  );
+}
+
 export async function safeSupabaseInsert<T>(
   supabase: SupabaseClientLike<T>,
   payload: Record<string, unknown>,
   selectColumns = '*',
 ): Promise<QueryResult<T>> {
   const firstAttempt = await supabase.from('games').insert(payload).select(selectColumns).single();
-  if (!firstAttempt.error) return firstAttempt;
+  const missingOptionalColumn = getMissingOptionalGameMetadataColumn(firstAttempt.error);
+  if (!missingOptionalColumn) return firstAttempt;
 
+  logOptionalMetadataRetry('insert', missingOptionalColumn, firstAttempt.error as SupabaseErrorLike);
   const basePayload = pickBaseGameFields(payload);
   const retryAttempt = await supabase.from('games').insert(basePayload).select(selectColumns).single();
   return retryAttempt.error ? firstAttempt : retryAttempt;
