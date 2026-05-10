@@ -83,7 +83,7 @@
   line-height: 1;
   user-select: none;
   transform-origin: center center;
-  --piece-size: 228%;
+  --piece-size: 152%;
   animation: piece-land 250ms cubic-bezier(.2, 1.35, .35, 1);
   transition: transform 250ms ease, filter 250ms ease;
 }
