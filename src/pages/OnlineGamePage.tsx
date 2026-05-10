@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Moon, RotateCcw, SunMedium } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
+import { GameResultPanel } from '../components/GameResultPanel.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { findKingIndex, isKingInCheck } from '../game/check.js';
 import { squareLabel } from '../game/coordinates.js';
@@ -24,6 +25,7 @@ type OnlineGamePageProps = {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onHome: () => void;
+  onNewOnlineGame: () => void;
 };
 
 type InviteState = 'creating_game' | 'waiting_for_link' | 'waiting_for_opponent' | 'active' | 'completed' | 'error';
@@ -42,7 +44,7 @@ function getLatestMove(game: OnlineGameRecord): MoveRecord | null {
   return history.at(-1) ?? null;
 }
 
-export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome }: OnlineGamePageProps) {
+export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome, onNewOnlineGame }: OnlineGamePageProps) {
   const playerId = useMemo(() => getPlayerId(), []);
   const isCreatingInvite = gameId === 'new';
   const [effectiveGameId, setEffectiveGameId] = useState(isCreatingInvite ? '' : gameId);
@@ -90,6 +92,26 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
     if (role === 'spectator') return `${turn === 'white' ? 'White' : 'Black'} to move`;
     return role === turn ? 'Your turn' : "Opponent's turn";
   }, [inviteState, isCompleted, isOnlineGameReady, role, status, turn]);
+  const winner: Color | null = status === 'white_won' ? 'white' : status === 'black_won' ? 'black' : null;
+  const onlineResult: 'win' | 'loss' | 'draw' | 'spectator' = status === 'draw' ? 'draw' : role === 'spectator' ? 'spectator' : winner === role ? 'win' : 'loss';
+  const onlineResultTitle = status === 'draw'
+    ? 'Draw'
+    : role === 'spectator'
+      ? `${winner === 'white' ? 'White' : 'Black'} won`
+      : winner === role
+        ? 'You won!'
+        : 'You lost';
+  const onlineResultSummary = `${winner ? `${winner === 'white' ? 'White' : 'Black'} wins by checkmate.` : 'The game ended in a draw.'} ${moveHistory.length} moves. Seed: ${seedLabel}.`;
+  const headerStatusLabel = isCompleted ? 'Game Over' : undefined;
+  const headerTurnLabel = isCompleted
+    ? status === 'draw'
+      ? 'Draw'
+      : role === 'spectator'
+        ? `${winner === 'white' ? 'White' : 'Black'} won`
+        : winner === role
+          ? 'You won'
+          : 'You lost'
+    : undefined;
 
   function setPendingIds(updater: (ids: Set<string>) => Set<string>) {
     setPendingClientMoveIds((currentIds) => {
@@ -305,6 +327,28 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
     window.setTimeout(() => setCopied(false), 1600);
   }
 
+  async function handleShareResult() {
+    const resultText = `Pocket Shuffle Chess result: ${onlineResultTitle}. ${onlineResultSummary}`;
+    const shareData = {
+      title: 'Pocket Shuffle Chess result',
+      text: resultText,
+      url: inviteLink ?? window.location.href,
+    };
+
+    if (canNativeShare) {
+      try {
+        await navigator.share(shareData);
+        setCopied(true);
+      } catch {
+        return;
+      }
+    } else {
+      await navigator.clipboard.writeText(`${resultText} ${shareData.url}`);
+      setCopied(true);
+    }
+    window.setTimeout(() => setCopied(false), 1600);
+  }
+
   async function retryCreateInvite() {
     setError(null);
     setInviteState('creating_game');
@@ -382,12 +426,12 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   }
 
   const shareIsLoading = inviteState === 'creating_game' || inviteState === 'waiting_for_link';
-  const leftPanelStatus = shareIsLoading ? 'Creating invite link' : isOnlineGameReady ? 'Active' : 'Waiting for opponent';
+  const leftPanelStatus = isCompleted ? onlineResultTitle : shareIsLoading ? 'Creating invite link' : isOnlineGameReady ? 'Active' : 'Waiting for opponent';
   const playerRoleLabel = role === 'spectator' ? 'Spectating' : `You are ${role === 'white' ? 'White' : 'Black'}`;
 
   return (
     <main className="game-page">
-      <GameHeader title="Online Game" turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} />
+      <GameHeader title="Online Game" turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} statusLabelOverride={headerStatusLabel} turnLabelOverride={headerTurnLabel} />
       {toast && <p className="sync-toast" role="status">{toast}</p>}
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel">
@@ -400,7 +444,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
           <p>You are: <strong>{role === 'spectator' ? 'Spectating' : role === 'white' ? 'White' : 'Black'}</strong></p>
           <p>Opponent: <strong>{isOnlineGameReady ? 'Joined' : 'Waiting'}</strong></p>
           <p>Status: <strong>{leftPanelStatus}</strong></p>
-          {isOnlineGameReady && <p>Turn: <strong>{turn === 'white' ? 'White' : 'Black'}</strong></p>}
+          {isOnlineGameReady && !isCompleted && <p>Turn: <strong>{turn === 'white' ? 'White' : 'Black'}</strong></p>}
           <p>{isOnlineGameReady ? 'Share remains available for spectators or reconnecting players.' : shareIsLoading ? 'Share the invite link. Your friend joins as Black.' : 'Send this link to a friend. The game starts when they join.'}</p>
           {!isOnlineGameReady && <p className="panel-note">Extra visitors can spectate.</p>}
           {hasPendingMove && <p className="subtle-inline-status">Sending move...</p>}
@@ -486,6 +530,22 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
           </div>
         </aside>
       </div>
+      {isCompleted && (
+        <GameResultPanel
+          result={onlineResult}
+          winner={winner}
+          eyebrow="Game complete"
+          title={onlineResultTitle}
+          summary={onlineResultSummary}
+          actions={(
+            <>
+              <button type="button" onClick={onNewOnlineGame}>New Online Game</button>
+              <button type="button" onClick={onHome}>Back Home</button>
+              <button type="button" onClick={handleShareResult}>Share Result</button>
+            </>
+          )}
+        />
+      )}
     </main>
   );
 }

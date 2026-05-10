@@ -112,6 +112,7 @@ export function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onHome={() => navigate('/')}
+        onNewOnlineGame={() => navigate('/game/new?mode=single&create=invite')}
       />
     );
   }
