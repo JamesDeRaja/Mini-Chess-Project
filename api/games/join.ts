@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { randomInt } from 'node:crypto';
 import { safeSupabaseUpdate } from '../../src/multiplayer/safeSupabaseUpdate.js';
 import { assessGameLifecycle, getActivityResetFields } from './lifecycle.js';
 import { getServerSupabase } from './serverSupabase.js';
@@ -44,8 +45,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
     role = 'white';
     updates = { white_player_id: playerId };
   } else if (!lifecycleGame.black_player_id) {
-    role = 'black';
-    updates = { black_player_id: playerId, status: 'active', ...getActivityResetFields() };
+    const existingPlayerId = typeof lifecycleGame.white_player_id === 'string' ? lifecycleGame.white_player_id : null;
+    const joiningPlayerIsWhite = randomInt(2) === 0;
+    role = joiningPlayerIsWhite ? 'white' : 'black';
+    updates = joiningPlayerIsWhite && existingPlayerId
+      ? { white_player_id: playerId, black_player_id: existingPlayerId, status: 'active', ...getActivityResetFields() }
+      : { black_player_id: playerId, status: 'active', ...getActivityResetFields() };
   }
 
   const nextWhitePlayerId = updates.white_player_id ?? lifecycleGame.white_player_id;

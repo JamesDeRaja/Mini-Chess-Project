@@ -103,6 +103,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(true);
   const [pendingClientMoveIds, setPendingClientMoveIds] = useState<Set<string>>(() => new Set());
   const historyListRef = useRef<HTMLOListElement | null>(null);
+  const hasAppliedRoleFlipRef = useRef(false);
   const confirmedGameRef = useRef<OnlineGameRecord | null>(null);
   const pendingClientMoveIdsRef = useRef(pendingClientMoveIds);
   const boardRef = useRef(board);
@@ -230,6 +231,18 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
       })
       .catch((syncError: Error) => setError(syncError.message));
   }
+
+  useEffect(() => {
+    hasAppliedRoleFlipRef.current = false;
+  }, [effectiveGameId]);
+
+  useEffect(() => {
+    if (!isOnlineGameReady) return;
+    if (role !== 'white' && role !== 'black') return;
+    if (hasAppliedRoleFlipRef.current) return;
+    setIsFlipped(role === 'black');
+    hasAppliedRoleFlipRef.current = true;
+  }, [isOnlineGameReady, role]);
 
   useEffect(() => {
     pendingClientMoveIdsRef.current = pendingClientMoveIds;
