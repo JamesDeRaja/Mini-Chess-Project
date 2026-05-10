@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, Shuffle, Users, X, Zap } from 'lucide-react';
+import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, Shuffle, Users, X, Zap } from 'lucide-react';
 import { BOARD_FILES, BOARD_RANKS } from '../game/constants.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded } from '../game/dailyAIProgress.js';
@@ -18,7 +18,7 @@ type HomePageProps = {
   onCancelFindMatch: (queueId?: string) => Promise<void>;
 };
 
-type ModalName = 'date' | 'custom' | 'rules' | 'matchmaking' | null;
+type ModalName = 'date' | 'custom' | 'rules' | 'more' | 'matchmaking' | null;
 type MatchmakingState =
   | { status: 'idle' }
   | { status: 'finding'; queueId?: string }
@@ -306,6 +306,13 @@ export function HomePage({
               <span className="action-card-copy"><strong>Invite Friend</strong><small>Share a challenge link</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
+            <button type="button" className="home-action-card home-action-more" onClick={() => setModal('more')}>
+              <span className="action-badge more-badge"><MoreHorizontal size={14} aria-hidden="true" /> More</span>
+              <span className="card-sparkle card-sparkle-four" aria-hidden="true" />
+              <span className="action-more-glyph" aria-hidden="true"><CalendarDays size={30} /><Shuffle size={30} /><BookOpen size={30} /></span>
+              <span className="action-card-copy"><strong>More Options</strong><small>Date, seed, and rules</small></span>
+              <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
+            </button>
           </div>
 
           <div className="secondary-home-actions" aria-label="More options">
@@ -346,6 +353,31 @@ export function HomePage({
           <img className="decorative-white-bishop" src="/pieces/white-bishop.png" alt="" draggable={false} />
         </div>
       </section>
+
+
+      {modal === 'more' && (
+        <div className="modal-backdrop" role="presentation" onClick={closeModal}>
+          <div className="confirm-card utility-modal more-options-modal" role="dialog" aria-modal="true" aria-labelledby="more-options-modal-title" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Close more options"><X size={18} /></button>
+            <p className="eyebrow">More Options</p>
+            <h2 id="more-options-modal-title">Pick a setup tool</h2>
+            <div className="more-options-list">
+              <button type="button" className="more-option-item" onClick={() => setModal('date')}>
+                <CalendarDays size={20} aria-hidden="true" />
+                <span><strong>Choose Date</strong><small>Replay any unlocked daily setup.</small></span>
+              </button>
+              <button type="button" className="more-option-item" onClick={() => setModal('custom')}>
+                <Shuffle size={20} aria-hidden="true" />
+                <span><strong>Custom Seed</strong><small>Create or share your own shuffle.</small></span>
+              </button>
+              <button type="button" className="more-option-item" onClick={() => setModal('rules')}>
+                <BookOpen size={20} aria-hidden="true" />
+                <span><strong>Rule Book / How It Works</strong><small>Learn captures, drops, and scoring.</small></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {modal === 'date' && (
         <div className="modal-backdrop" role="presentation" onClick={closeModal}>
