@@ -314,7 +314,6 @@ export function HomePage({
             backRankCode={dailyBackRankCode}
             dailySeed={dailySeed}
             blackBackRankCode={blackBackRankCode}
-            onTryDaily={() => onStartBot(todayKey)}
           />
           <div className="setup-summary-panel">
             <div className="setup-summary-copy">

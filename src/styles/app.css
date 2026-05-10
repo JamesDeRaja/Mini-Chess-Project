@@ -2956,28 +2956,35 @@ body.home-modal-open { overflow: hidden; }
 }
 
 .meet-piece-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
+  position: relative;
+  display: block;
+  width: 54px;
+  height: 54px;
   flex: 0 0 auto;
   overflow: visible;
-  border-radius: 15px;
+  border-radius: 18px;
   background: #edf2e9;
   box-shadow: inset 0 0 0 1px rgba(146, 176, 151, 0.26);
 }
 
 .meet-piece-icon img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   display: block;
-  width: 72px;
-  height: 72px;
+  width: 88px;
+  height: 88px;
   object-fit: contain;
   object-position: center center;
-  transform: translateY(-7%);
+  transform: translate(-50%, -54%);
   transform-origin: center center;
   filter: drop-shadow(0 5px 4px rgba(40, 34, 24, 0.18));
 }
+
+.meet-piece-icon-pawn img { transform: translate(-50%, -57%); }
+.meet-piece-icon-knight img { transform: translate(-50%, -53%); }
+.meet-piece-icon-king img,
+.meet-piece-icon-queen img { transform: translate(-50%, -55%); }
 
 .meet-piece-card-header span,
 .meet-piece-moves span {
@@ -3021,38 +3028,21 @@ body.home-modal-open { overflow: hidden; }
   line-height: 1.25;
 }
 
-.meet-piece-cta {
-  justify-self: start;
-  padding: 8px 11px;
-  border: 0;
-  border-radius: 999px;
-  color: #244b3e;
-  background: #c8ead9;
-  font-size: 0.76rem;
-  font-weight: 950;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 8px 16px rgba(32, 124, 91, 0.12);
-}
-
-.meet-piece-cta:hover {
-  transform: translateY(-1px);
-}
-
-.meet-board-legend {
+.meet-piece-preview-tags {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px 12px;
-  margin: -11px 0 0;
+  justify-content: flex-start;
+  gap: 7px;
   color: #708077;
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 950;
 }
 
-.meet-board-legend span {
+.meet-piece-preview-tags span {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 6px 10px;
+  padding: 7px 10px;
   border-radius: 999px;
   background: rgba(253, 247, 231, 0.72);
   box-shadow: inset 0 0 0 1px rgba(222, 217, 203, 0.58);
@@ -3120,7 +3110,7 @@ body.home-modal-open { overflow: hidden; }
 
 @media (max-width: 420px) {
   .meet-piece-card { width: min(230px, calc(100% - 16px)); }
-  .meet-piece-icon img { width: 66px; height: 66px; }
-  .meet-board-legend { margin-top: -3px; font-size: 0.7rem; }
+  .meet-piece-icon img { width: 80px; height: 80px; }
+  .meet-piece-preview-tags { margin-top: -3px; font-size: 0.7rem; }
   .meet-board-hint { margin-top: -3px; font-size: 0.78rem; }
 }

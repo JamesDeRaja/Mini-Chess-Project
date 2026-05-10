@@ -11,7 +11,6 @@ type HomepageInteractiveBoardProps = {
   backRankCode: string;
   dailySeed: string;
   blackBackRankCode: string;
-  onTryDaily: () => void;
 };
 
 function spacedCode(backRankCode: string): string {
@@ -64,7 +63,7 @@ function getOverlapArea(first: { left: number; top: number; right: number; botto
   return width * height;
 }
 
-export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRankCode, onTryDaily }: HomepageInteractiveBoardProps) {
+export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRankCode }: HomepageInteractiveBoardProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [dialogueStep, setDialogueStep] = useState(0);
   const [cardPosition, setCardPosition] = useState<MeetPieceCardPosition | null>(null);
@@ -279,7 +278,7 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
           >
             <button type="button" className="meet-piece-close" onClick={closePieceCard} aria-label="Close piece tip">×</button>
             <div className="meet-piece-card-header">
-              <span className="meet-piece-icon" aria-hidden="true"><img src={getPieceImageSrc(selectedPiece)} alt="" draggable={false} /></span>
+              <span className={`meet-piece-icon meet-piece-icon-${selectedPiece.type}`} aria-hidden="true"><img src={getPieceImageSrc(selectedPiece)} alt="" draggable={false} /></span>
               <div>
                 <span>Meet the</span>
                 <strong>{pieceDialogues[selectedPiece.type].name}</strong>
@@ -290,13 +289,12 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
               <span>Moves</span>
               {pieceDialogues[selectedPiece.type].moves.map((moveText) => <p key={moveText}>{moveText}</p>)}
             </div>
-            <button type="button" className="meet-piece-cta" onClick={onTryDaily}>Try Today&apos;s Daily</button>
+            <div className="meet-piece-preview-tags" aria-label="Movement preview legend">
+              <span><i className="meet-legend-orb" aria-hidden="true" />Yellow orb = move</span>
+              <span><i className="meet-legend-capture" aria-hidden="true" />Red orb = capture</span>
+            </div>
           </aside>
         )}
-      </div>
-      <div className="meet-board-legend" aria-label="Movement preview legend">
-        <span><i className="meet-legend-orb" aria-hidden="true" />Orb = can move there</span>
-        <span><i className="meet-legend-capture" aria-hidden="true" />Red = can capture there</span>
       </div>
       <p className="meet-board-hint">Tap a piece. It will explain itself with only a little attitude.</p>
     </>
