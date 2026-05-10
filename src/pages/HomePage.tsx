@@ -211,7 +211,7 @@ export function HomePage({
 
       <section className="hero-card shuffle-hero-card">
         <div className="hero-copy">
-          <div className="brand-badge" aria-hidden="true"><span>♔</span></div>
+          <div className="brand-badge" aria-hidden="true"><img src="/Icon.png" alt="" draggable={false} /></div>
           <p className="eyebrow">Pocket Shuffle Chess</p>
           <h1 className="home-title"><span>Pocket</span><span>Shuffle</span><span>Chess</span></h1>
           <p className="hero-subtitle">Fast chess. New opening every time.</p>

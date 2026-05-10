@@ -1,4 +1,4 @@
-import type { Color, PieceType } from './types.js';
+import type { PieceType } from './types.js';
 
 export const BOARD_FILES = 5;
 export const BOARD_RANKS = 6;
@@ -14,23 +14,4 @@ export const pieceValues: Record<PieceType, number> = {
   bishop: 3,
   knight: 3,
   pawn: 1,
-};
-
-export const pieceSymbols: Record<Color, Record<PieceType, string>> = {
-  white: {
-    king: '♚',
-    queen: '♛',
-    rook: '♜',
-    bishop: '♝',
-    knight: '♞',
-    pawn: '♟',
-  },
-  black: {
-    king: '♚',
-    queen: '♛',
-    rook: '♜',
-    bishop: '♝',
-    knight: '♞',
-    pawn: '♟',
-  },
 };

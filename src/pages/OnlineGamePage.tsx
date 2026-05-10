@@ -308,8 +308,10 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   async function handleShareInvite() {
     if (!inviteLink) return;
     const shareData = {
-      title: 'Pocket Shuffle Chess invite',
-      text: `Join my Pocket Shuffle Chess game (${seedLabel}).`,
+      title: 'Pocket Shuffle Chess',
+      text: `Pocket Shuffle Chess
+Fast chess without memorized openings.
+Play today's daily shuffle: ${inviteLink}`,
       url: inviteLink,
     };
 
@@ -328,7 +330,9 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   }
 
   async function handleShareResult() {
-    const resultText = `Pocket Shuffle Chess result: ${onlineResultTitle}. ${onlineResultSummary}`;
+    const resultText = `Pocket Shuffle Chess
+Fast chess without memorized openings.
+${onlineResultTitle}. ${onlineResultSummary}`;
     const shareData = {
       title: 'Pocket Shuffle Chess result',
       text: resultText,
@@ -443,16 +447,16 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
             <span className="mode-badge">Online</span>
           </div>
           <div className="score-stack">
-            <span className={turn === 'white' && isOnlineGameReady && !isCompleted ? 'active-score-row' : ''}><i className="score-dot white-dot" />White <strong>{scores.whiteScore}</strong></span>
-            <span className={turn === 'black' && isOnlineGameReady && !isCompleted ? 'active-score-row' : ''}><i className="score-dot black-dot" />Black <strong>{scores.blackScore}</strong></span>
+            <span className={turn === 'white' && isOnlineGameReady && !isCompleted ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/white-pawn.png" alt="" draggable={false} />White <strong>{scores.whiteScore}</strong></span>
+            <span className={turn === 'black' && isOnlineGameReady && !isCompleted ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/black-pawn.png" alt="" draggable={false} />Black <strong>{scores.blackScore}</strong></span>
           </div>
           <div className="info-stack">
-            <p><span>♙ You are</span><strong>{role === 'spectator' ? 'Spectating' : role === 'white' ? 'White' : 'Black'}</strong></p>
+            <p><span className="info-label-with-piece"><img className="inline-pawn-icon" src={role === 'black' ? '/pieces/black-pawn.png' : '/pieces/white-pawn.png'} alt="" draggable={false} />You are</span><strong>{role === 'spectator' ? 'Spectating' : role === 'white' ? 'White' : 'Black'}</strong></p>
             <p><span>☌ Opponent</span><strong>{isOnlineGameReady ? 'Joined' : 'Waiting'}</strong></p>
             <p><span>● Status</span><strong>{leftPanelStatus}</strong></p>
             {isOnlineGameReady && !isCompleted && <p><span>↻ Turn</span><strong>{turn === 'white' ? 'White' : 'Black'}</strong></p>}
             <p><span>🌱 Seed</span><strong>{seedLabel}</strong></p>
-            <p><span>♜ Back rank</span><strong>{backRankCode ?? 'Setup pending'}</strong></p>
+            <p><span>Back rank</span><strong>{backRankCode ?? 'Setup pending'}</strong></p>
             <p><span>🎮 Game</span><strong>{roundNumber}</strong></p>
           </div>
           <p className="panel-note">{isOnlineGameReady ? 'Share remains available.' : shareIsLoading ? 'Share the invite link. Your friend joins as Black.' : 'Send this link to a friend. The game starts when they join.'}</p>

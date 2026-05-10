@@ -353,15 +353,15 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
             <span className="mode-badge">{isDailyAI ? 'Daily' : '1v1'}</span>
           </div>
           <div className="score-stack">
-            <span className={turn === 'white' && status === 'active' ? 'active-score-row' : ''}><i className="score-dot white-dot" />White <strong>{score.white}</strong></span>
-            <span className={turn === 'black' && status === 'active' ? 'active-score-row' : ''}><i className="score-dot black-dot" />Black <strong>{score.black}</strong></span>
+            <span className={turn === 'white' && status === 'active' ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/white-pawn.png" alt="" draggable={false} />White <strong>{score.white}</strong></span>
+            <span className={turn === 'black' && status === 'active' ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/black-pawn.png" alt="" draggable={false} />Black <strong>{score.black}</strong></span>
           </div>
           <div className="info-stack">
             <p><span>🎮 Game</span><strong>{roundNumber}/{config.maxGames}</strong></p>
             <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
             <p><span>🌱 Daily seed</span><strong>{dailySeedInfo.seed}</strong></p>
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>
-            <p><span>♜ Back rank</span><strong>{dailySeedInfo.backRankCode}</strong></p>
+            <p><span>Back rank</span><strong>{dailySeedInfo.backRankCode}</strong></p>
           </div>
           <div className="match-actions">
             <button type="button" className="wide-action secondary-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>

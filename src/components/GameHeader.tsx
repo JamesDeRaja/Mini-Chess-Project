@@ -28,18 +28,29 @@ function statusLabel(status: GameStatus, isOwnTurn: boolean): string {
   return isOwnTurn ? 'Active' : 'Waiting';
 }
 
+function getStatusAvatarColor(status: GameStatus, turn: Color, playerColor: Color | null): Color {
+  if (status === 'white_won') return 'white';
+  if (status === 'black_won') return 'black';
+  if (status === 'draw') return playerColor ?? 'white';
+  return turn;
+}
+
 export function GameHeader({ title, turn, status, playerRole, details, onTitleClick, statusLabelOverride, turnLabelOverride }: GameHeaderProps) {
   const playerColor = roleColor(playerRole);
   const isOwnTurn = status === 'active' && playerColor === turn;
   const dotState = isGameOver(status) || !playerColor ? 'neutral' : isOwnTurn ? 'active' : 'waiting';
-  const avatarColor = turn;
-  const avatarLabel = avatarColor === 'black' ? 'Black to move avatar' : 'White to move avatar';
+  const avatarColor = getStatusAvatarColor(status, turn, playerColor);
+  const avatarLabel = status === 'draw'
+    ? 'Draw status avatar'
+    : status === 'white_won' || status === 'black_won'
+      ? `${avatarColor === 'white' ? 'White' : 'Black'} winner avatar`
+      : `${avatarColor === 'white' ? 'White' : 'Black'} to move avatar`;
 
   return (
     <header className="game-header">
       <div className="game-title-block">
         <button className="title-link brand-lockup" onClick={onTitleClick} disabled={!onTitleClick} aria-label="Go to home">
-          <span className="brand-crown" aria-hidden="true">♛</span>
+          <img className="brand-icon" src="/Icon.png" alt="" draggable={false} />
           <span>Pocket Shuffle Chess</span>
         </button>
         <h1>{title}</h1>
@@ -48,8 +59,7 @@ export function GameHeader({ title, turn, status, playerRole, details, onTitleCl
       <div className="status-card" aria-live="polite">
         <span className={`status-corner-dot status-dot-${dotState}`} aria-label={`${dotState} status`} />
         <div className={`status-avatar ${avatarColor === 'black' ? 'black-avatar' : 'white-avatar'}`} role="img" aria-label={avatarLabel}>
-          <span className="status-piece status-piece-white">♙</span>
-          <span className="status-piece status-piece-black">♟</span>
+          <img className="status-piece-img" src={`/pieces/${avatarColor}-pawn.png`} alt="" draggable={false} />
         </div>
         <div className="status-copy">
           {playerRole && <span>{playerRole}</span>}

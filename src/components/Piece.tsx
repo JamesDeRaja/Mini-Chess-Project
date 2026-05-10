@@ -1,5 +1,5 @@
-import type { DragEvent } from 'react';
-import { pieceSymbols } from '../game/constants.js';
+import { useState, type DragEvent } from 'react';
+import { getPieceFallbackSymbol, getPieceImageSrc } from '../game/pieceAssets.js';
 import type { Piece as ChessPiece } from '../game/types.js';
 
 type PieceProps = {
@@ -11,15 +11,32 @@ type PieceProps = {
 };
 
 export function Piece({ piece, isDraggable = false, isSelected = false, onDragStart, onDragEnd }: PieceProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const pieceImageSrc = getPieceImageSrc(piece);
+  const ariaLabel = `${piece.color} ${piece.type}`;
+
   return (
     <span
       className={`piece piece-${piece.color} ${isSelected ? 'piece-selected' : ''}`}
       draggable={isDraggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      aria-label={`${piece.color} ${piece.type}`}
+      aria-label={ariaLabel}
     >
-      {pieceSymbols[piece.color][piece.type]}
+      {imageFailed ? (
+        <span className="piece-fallback" aria-hidden="true">{getPieceFallbackSymbol(piece)}</span>
+      ) : (
+        <img
+          className="piece-img"
+          src={pieceImageSrc}
+          alt=""
+          draggable={false}
+          onError={() => {
+            setImageFailed(true);
+            if (import.meta.env.DEV) console.warn(`Could not load piece image: ${pieceImageSrc}`);
+          }}
+        />
+      )}
     </span>
   );
 }
