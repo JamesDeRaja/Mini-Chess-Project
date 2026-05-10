@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Moon, RotateCcw, SunMedium } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
+import { MoveHistory } from '../components/MoveHistory.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { findKingIndex, isKingInCheck } from '../game/check.js';
-import { squareLabel } from '../game/coordinates.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
@@ -22,8 +22,6 @@ import type { MatchMode } from './BotGamePage.js';
 type OnlineGamePageProps = {
   gameId: string;
   matchMode: MatchMode;
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
   onHome: () => void;
   onNewOnlineGame: () => void;
 };
@@ -45,10 +43,6 @@ function getLatestMove(game: OnlineGameRecord): MoveDelta | MoveRecord | null {
 
 function moveToIndex(move: MoveDelta | MoveRecord): number {
   return isMoveDelta(move) ? move.to.file + move.to.rank * 5 : move.to;
-}
-
-function moveKey(move: MoveDelta | MoveRecord, index: number): string {
-  return isMoveDelta(move) ? `${move.id}-${index}` : `${move.timestamp}-${index}`;
 }
 
 function moveFromIndex(move: MoveDelta | MoveRecord): number {
@@ -82,7 +76,7 @@ function getDrawOfferBy(game: OnlineGameRecord): Color | null {
   return offeredBy === 'white' || offeredBy === 'black' ? offeredBy : null;
 }
 
-export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome, onNewOnlineGame }: OnlineGamePageProps) {
+export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: OnlineGamePageProps) {
   const playerId = useMemo(() => getPlayerId(), []);
   const isCreatingInvite = gameId === 'new';
   const [effectiveGameId, setEffectiveGameId] = useState(isCreatingInvite ? '' : gameId);
@@ -597,7 +591,6 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
           <div className="match-actions">
             <button type="button" className="wide-action primary-action" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : isOnlineGameReady ? 'Share' : 'Share Invite'}</button>
             <button type="button" className="wide-action secondary-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-            <button type="button" className="wide-action theme-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
           </div>
         </aside>
 
@@ -644,20 +637,11 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
             <p className="panel-note">{isOnlineGameReady ? 'Select a piece to see legal moves.' : 'The game starts when both players are in.'}</p>
           </div>
           <ol className="move-history move-list history-list" ref={historyListRef}>
-            {moveHistory.length === 0 ? (
-              <li className="empty-history"><span>No moves yet.</span><span>{isCompleted ? 'Game over.' : isOnlineGameReady ? 'White can make the first move.' : 'Waiting for opponent.'}</span></li>
-            ) : (
-              moveHistory.map((move, index) => (
-                <li key={moveKey(move, index)}>
-                  <button type="button" className="history-move" aria-disabled="true">
-                    <span>{index + 1}.</span>
-                    <strong>{move.color}</strong>
-                    <span>{move.piece}</span>
-                    <span>{squareLabel(moveToIndex(move) % 5, Math.floor(moveToIndex(move) / 5))}</span>
-                  </button>
-                </li>
-              ))
-            )}
+            <MoveHistory
+              moves={moveHistory}
+              emptyPrimary="No moves yet."
+              emptySecondary={isCompleted ? 'Game over.' : isOnlineGameReady ? 'White can make the first move.' : 'Waiting for opponent.'}
+            />
           </ol>
           <div className="review-footer history-actions">
             <div className="review-controls">

@@ -1,9 +1,10 @@
 /* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Flag, Handshake, Moon, RotateCcw, SunMedium } from 'lucide-react';
+import { Flag, Handshake, RotateCcw } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
+import { MoveHistory } from '../components/MoveHistory.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
 import { type BotLevel, getBotMoveByLevel } from '../game/bot.js';
@@ -17,7 +18,6 @@ import {
 } from '../game/dailyAIProgress.js';
 import { findKingIndex, isKingInCheck } from '../game/check.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
-import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, normalizeSeed, resolveBackRankCode } from '../game/seed.js';
@@ -30,8 +30,6 @@ type BotGamePageProps = {
   matchMode: MatchMode;
   dateKey?: string;
   customSeed?: string;
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
   onHome: () => void;
 };
 
@@ -98,7 +96,7 @@ function cloneBoard(board: ChessBoard): ChessBoard {
   return board.map((square) => ({ ...square, piece: square.piece ? { ...square.piece } : null }));
 }
 
-export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, theme, onToggleTheme, onHome }: BotGamePageProps) {
+export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, onHome }: BotGamePageProps) {
   const dailySeedInfo = useMemo(() => {
     if (customSeed) {
       const seed = normalizeSeed(customSeed);
@@ -378,7 +376,6 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
           </div>
           <div className="match-actions">
             <button type="button" className="wide-action secondary-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-            <button type="button" className="wide-action theme-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
           </div>
         </aside>
 
@@ -406,23 +403,13 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
             <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
           </div>
           <ol ref={historyListRef} className="move-history move-list history-list">
-            {moveHistory.length === 0 ? (
-              <li className="empty-history">
-                <span>No moves yet.</span>
-                <span>Select a piece to see legal moves.</span>
-              </li>
-            ) : (
-              moveHistory.map((record, moveIndex) => (
-                <li key={`${record.timestamp}-${moveIndex}`}>
-                  <button type="button" className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'} onClick={() => setPreviewPly(moveIndex + 1 >= latestPly ? null : moveIndex + 1)}>
-                    <span>{moveIndex + 1}.</span>
-                    <strong>{record.color}</strong>
-                    <span>{record.piece}</span>
-                    <span>{squareLabel(record.to % 5, Math.floor(record.to / 5))}</span>
-                  </button>
-                </li>
-              ))
-            )}
+            <MoveHistory
+              moves={moveHistory}
+              emptyPrimary="No moves yet."
+              emptySecondary="Select a piece to see legal moves."
+              activePly={previewPly}
+              onSelectPly={(ply) => setPreviewPly(ply >= latestPly ? null : ply)}
+            />
           </ol>
           <div className="review-footer history-actions">
             <div className="review-controls">
