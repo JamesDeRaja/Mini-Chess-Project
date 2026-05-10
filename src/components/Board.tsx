@@ -59,5 +59,10 @@ export function Board({
     }
   }
 
-  return <div className="board">{squares}</div>;
+  return (
+    <div className="board-shell">
+      <div className="board">{squares}</div>
+      <div className="board-label" aria-hidden="true"><span>✣</span> 5x6 Board</div>
+    </div>
+  );
 }

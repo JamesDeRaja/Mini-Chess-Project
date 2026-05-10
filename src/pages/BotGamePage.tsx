@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Flag, Handshake, Moon, RotateCcw, SunMedium } from 'lucide-react';
 import { Board } from '../components/Board.js';
@@ -344,22 +345,32 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
       />
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel">
-          <p className="eyebrow">Match</p>
-          <h2>{config.label}</h2>
-          <div className="score-stack">
-            <span>White <strong>{score.white}</strong></span>
-            <span>Black <strong>{score.black}</strong></span>
+          <div className="panel-title-row">
+            <div>
+              <p className="eyebrow">Match</p>
+              <h2>{config.label}</h2>
+            </div>
+            <span className="mode-badge">{isDailyAI ? 'Daily' : '1v1'}</span>
           </div>
-          <p>Game {roundNumber}/{config.maxGames}</p>
-          <p>Bot level: <strong>{dailyAIDifficulty ?? botLevel}</strong></p>
-          <p>Daily seed: <strong>{dailySeedInfo.seed}</strong></p>
-          <p>Date: {dailySeedInfo.dateKey}</p>
-          <p>Back rank: {dailySeedInfo.backRankCode}</p>
-          <button type="button" className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-          <button type="button" className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
+          <div className="score-stack">
+            <span className={turn === 'white' && status === 'active' ? 'active-score-row' : ''}><i className="score-dot white-dot" />White <strong>{score.white}</strong></span>
+            <span className={turn === 'black' && status === 'active' ? 'active-score-row' : ''}><i className="score-dot black-dot" />Black <strong>{score.black}</strong></span>
+          </div>
+          <div className="info-stack">
+            <p><span>🎮 Game</span><strong>{roundNumber}/{config.maxGames}</strong></p>
+            <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
+            <p><span>🌱 Daily seed</span><strong>{dailySeedInfo.seed}</strong></p>
+            <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>
+            <p><span>♜ Back rank</span><strong>{dailySeedInfo.backRankCode}</strong></p>
+          </div>
+          <div className="match-actions">
+            <button type="button" className="wide-action secondary-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
+            <button type="button" className="wide-action theme-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
+          </div>
         </aside>
 
         <section className="board-column">
+          <div className="board-seed-badge"><span>Daily Seed</span><strong>{dailySeedInfo.seed}</strong></div>
           <Board
             board={displayBoard}
             selectedSquare={isPreviewing ? null : selectedSquare}
@@ -377,6 +388,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
         <aside className="side-panel review-panel history-panel">
           <div className="history-header">
             <div className="panel-topbar">
+              <p className="eyebrow">Move History</p>
               <h2>Move history</h2>
             </div>
             <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
@@ -409,9 +421,9 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
               <button type="button" onClick={() => setPreviewPly(null)} disabled={moveHistory.length === 0}>⏭</button>
             </div>
             <div className="panel-actions stacked-actions">
-              <button type="button" onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
-              <button type="button" onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
-              <button type="button" onClick={requestRestart}>Restart Match</button>
+              <button type="button" className="secondary-action" onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
+              <button type="button" className="danger-action" onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
+              <button type="button" className="gold-action" onClick={requestRestart}>Restart Match</button>
             </div>
           </div>
         </aside>

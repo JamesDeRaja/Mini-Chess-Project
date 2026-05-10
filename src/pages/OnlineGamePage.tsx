@@ -435,26 +435,35 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
       {toast && <p className="sync-toast" role="status">{toast}</p>}
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel online-match-panel">
-          <p className="eyebrow">Online</p>
-          <h2>{isOnlineGameReady ? 'Online Match' : 'Invite Friend'}</h2>
-          <div className="score-stack">
-            <span>White <strong>{scores.whiteScore}</strong></span>
-            <span>Black <strong>{scores.blackScore}</strong></span>
+          <div className="panel-title-row">
+            <div>
+              <p className="eyebrow">Online</p>
+              <h2>{isOnlineGameReady ? 'Online Match' : 'Invite Friend'}</h2>
+            </div>
+            <span className="mode-badge">Online</span>
           </div>
-          <p>You are: <strong>{role === 'spectator' ? 'Spectating' : role === 'white' ? 'White' : 'Black'}</strong></p>
-          <p>Opponent: <strong>{isOnlineGameReady ? 'Joined' : 'Waiting'}</strong></p>
-          <p>Status: <strong>{leftPanelStatus}</strong></p>
-          {isOnlineGameReady && !isCompleted && <p>Turn: <strong>{turn === 'white' ? 'White' : 'Black'}</strong></p>}
+          <div className="score-stack">
+            <span className={turn === 'white' && isOnlineGameReady && !isCompleted ? 'active-score-row' : ''}><i className="score-dot white-dot" />White <strong>{scores.whiteScore}</strong></span>
+            <span className={turn === 'black' && isOnlineGameReady && !isCompleted ? 'active-score-row' : ''}><i className="score-dot black-dot" />Black <strong>{scores.blackScore}</strong></span>
+          </div>
+          <div className="info-stack">
+            <p><span>♙ You are</span><strong>{role === 'spectator' ? 'Spectating' : role === 'white' ? 'White' : 'Black'}</strong></p>
+            <p><span>☌ Opponent</span><strong>{isOnlineGameReady ? 'Joined' : 'Waiting'}</strong></p>
+            <p><span>● Status</span><strong>{leftPanelStatus}</strong></p>
+            {isOnlineGameReady && !isCompleted && <p><span>↻ Turn</span><strong>{turn === 'white' ? 'White' : 'Black'}</strong></p>}
+            <p><span>🌱 Seed</span><strong>{seedLabel}</strong></p>
+            <p><span>♜ Back rank</span><strong>{backRankCode ?? 'Setup pending'}</strong></p>
+            <p><span>🎮 Game</span><strong>{roundNumber}</strong></p>
+          </div>
           <p className="panel-note">{isOnlineGameReady ? 'Share remains available.' : shareIsLoading ? 'Share the invite link. Your friend joins as Black.' : 'Send this link to a friend. The game starts when they join.'}</p>
           {hasPendingMove && <p className="subtle-inline-status">Sending move...</p>}
           {isSupabaseConfigured && !isRealtimeConnected && <p className="subtle-inline-status reconnecting-badge">Reconnecting...</p>}
           {!isSupabaseConfigured && <p className="panel-note">Supabase environment variables are required for live multiplayer.</p>}
-          <p>Seed: <strong>{seedLabel}</strong></p>
-          <p>Back rank: <strong>{backRankCode ?? 'Setup pending'}</strong></p>
-          <p>Game: {roundNumber}</p>
-          <button type="button" className="wide-action" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : isOnlineGameReady ? 'Share' : 'Share Invite'}</button>
-          <button type="button" className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-          <button type="button" className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
+          <div className="match-actions">
+            <button type="button" className="wide-action primary-action" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : isOnlineGameReady ? 'Share' : 'Share Invite'}</button>
+            <button type="button" className="wide-action secondary-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
+            <button type="button" className="wide-action theme-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
+          </div>
         </aside>
 
         <section className="board-column online-board-column">
@@ -494,6 +503,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
         <aside className="side-panel review-panel history-panel">
           <div className="history-header">
             <div className="panel-topbar">
+              <p className="eyebrow">Move History</p>
               <h2>Move history</h2>
             </div>
             <p className="panel-note">{isOnlineGameReady ? 'Select a piece to see legal moves.' : 'The game starts when both players are in.'}</p>
