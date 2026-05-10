@@ -17,8 +17,8 @@ function ResultAvatar({ winner }: { winner: Color | null }) {
   if (!winner) {
     return (
       <div className="result-piece-pair" role="img" aria-label="Draw result">
-        <img className="result-piece-img" src="/pieces/white-pawn.png" alt="" draggable={false} />
-        <img className="result-piece-img" src="/pieces/black-pawn.png" alt="" draggable={false} />
+        <img className="result-piece-img" data-piece="pawn" src="/pieces/white-pawn.png" alt="" draggable={false} />
+        <img className="result-piece-img" data-piece="pawn" src="/pieces/black-pawn.png" alt="" draggable={false} />
       </div>
     );
   }
@@ -26,6 +26,7 @@ function ResultAvatar({ winner }: { winner: Color | null }) {
   return (
     <img
       className="result-piece-img result-king-img"
+      data-piece="king"
       src={`/pieces/${winner}-king.png`}
       alt=""
       draggable={false}
