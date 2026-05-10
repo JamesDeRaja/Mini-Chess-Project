@@ -23,6 +23,11 @@ export type GameMode = 'bot' | 'online';
 
 export type GameStatus = 'waiting' | 'active' | 'white_won' | 'black_won' | 'draw';
 
+export type SquareCoord = {
+  file: number;
+  rank: number;
+};
+
 export type Move = {
   from: number;
   to: number;
@@ -41,6 +46,20 @@ export type MoveRecord = {
   captured?: PieceType;
   timestamp: number;
   clientMoveId?: string;
+  playerId?: string;
+};
+
+export type MoveDelta = {
+  id: string;
+  moveNumber: number;
+  from: SquareCoord;
+  to: SquareCoord;
+  piece: PieceType;
+  color: Color;
+  captured?: PieceType | null;
+  promotion?: PromotionPieceType | null;
+  san?: string;
+  createdAt: string;
   playerId?: string;
 };
 

@@ -1,4 +1,5 @@
-import type { Board, Color, GameStatus, Move, MoveRecord } from '../game/types.js';
+import { indexToCoord } from '../game/moveDelta.js';
+import type { Board, Color, GameStatus, Move, MoveDelta, MoveRecord, PromotionPieceType } from '../game/types.js';
 
 
 export type MatchmakingResponse =
@@ -13,7 +14,9 @@ export type OnlineGameRecord = {
   status: GameStatus;
   white_player_id: string | null;
   black_player_id: string | null;
-  move_history?: MoveRecord[] | null;
+  move_history?: Array<MoveDelta | MoveRecord> | null;
+  last_move?: MoveDelta | null;
+  move_count?: number | null;
   seed?: string | null;
   seed_source?: string | null;
   back_rank_code?: string | null;
@@ -84,14 +87,18 @@ export function joinOnlineGame(gameId: string, playerId: string): Promise<{ game
 }
 
 export type SubmitMoveOptions = {
-  clientMoveId?: string;
-  moveNumber?: number;
-  previousStateVersion?: number;
+  promotion?: PromotionPieceType;
 };
 
 export function submitOnlineMove(gameId: string, playerId: string, move: Move, options: SubmitMoveOptions = {}): Promise<{ game: OnlineGameRecord }> {
   return requestJson('/api/games/move', {
     method: 'POST',
-    body: JSON.stringify({ gameId, playerId, move, ...options }),
+    body: JSON.stringify({
+      gameId,
+      playerId,
+      from: indexToCoord(move.from),
+      to: indexToCoord(move.to),
+      promotion: options.promotion ?? move.promotionPiece,
+    }),
   });
 }

@@ -1,9 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { applyMove, createMoveRecord } from '../../src/game/applyMove.js';
+import { randomUUID } from 'node:crypto';
+import { applyMove } from '../../src/game/applyMove.js';
+import { BOARD_FILES, BOARD_RANKS } from '../../src/game/constants.js';
+import { index } from '../../src/game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../../src/game/gameStatus.js';
 import { getLegalMoves } from '../../src/game/legalMoves.js';
-import { estimateMaterialScores } from '../../src/game/seed.js';
-import type { Color, GameStatus, Move } from '../../src/game/types.js';
+import { rebuildBoardFromHistory } from '../../src/game/moveDelta.js';
+import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../../src/game/seed.js';
+import type { Board, Color, GameStatus, MoveDelta, PromotionPieceType, SquareCoord } from '../../src/game/types.js';
 import { safeSupabaseUpdate } from '../../src/multiplayer/safeSupabaseUpdate.js';
 import { getServerSupabase } from './serverSupabase.js';
 
@@ -19,6 +23,18 @@ function getResultType(status: GameStatus): string | null {
   return null;
 }
 
+function parseCoord(value: unknown): SquareCoord | null {
+  const coord = value as Partial<SquareCoord> | null;
+  if (!coord || typeof coord.file !== 'number' || typeof coord.rank !== 'number') return null;
+  if (!Number.isInteger(coord.file) || !Number.isInteger(coord.rank)) return null;
+  if (coord.file < 0 || coord.file >= BOARD_FILES || coord.rank < 0 || coord.rank >= BOARD_RANKS) return null;
+  return { file: coord.file, rank: coord.rank };
+}
+
+function parsePromotion(value: unknown): PromotionPieceType | undefined {
+  return value === 'queen' || value === 'rook' || value === 'bishop' || value === 'knight' ? value : undefined;
+}
+
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== 'POST') {
     response.status(405).send('Method not allowed');
@@ -27,12 +43,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   const gameId = typeof request.body?.gameId === 'string' ? request.body.gameId : null;
   const playerId = typeof request.body?.playerId === 'string' ? request.body.playerId : null;
-  const requestedMove = request.body?.move as Move | undefined;
-  const clientMoveId = typeof request.body?.clientMoveId === 'string' ? request.body.clientMoveId : undefined;
-  const moveNumber = typeof request.body?.moveNumber === 'number' ? request.body.moveNumber : undefined;
-  const previousStateVersion = typeof request.body?.previousStateVersion === 'number' ? request.body.previousStateVersion : undefined;
-  if (!gameId || !playerId || !requestedMove) {
-    response.status(400).send('Missing gameId, playerId, or move');
+  const from = parseCoord(request.body?.from);
+  const to = parseCoord(request.body?.to);
+  const promotion = parsePromotion(request.body?.promotion);
+  if (!gameId || !playerId || !from || !to) {
+    response.status(400).send('Missing gameId, playerId, from, or to');
     return;
   }
 
@@ -43,56 +58,87 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return;
   }
 
-  const currentPlayerId = game.turn === 'white' ? game.white_player_id : game.black_player_id;
-  if (game.status !== 'active' || currentPlayerId !== playerId) {
+  if (game.status !== 'active') {
+    response.status(403).send('Game is not active');
+    return;
+  }
+
+  const playerColor: Color | null = game.white_player_id === playerId ? 'white' : game.black_player_id === playerId ? 'black' : null;
+  if (!playerColor) {
+    response.status(403).send('Player is not in this game');
+    return;
+  }
+
+  if (game.turn !== playerColor) {
     response.status(403).send('It is not your turn');
     return;
   }
 
   const currentMoveHistory = game.move_history ?? [];
-  if (typeof previousStateVersion === 'number' && previousStateVersion !== currentMoveHistory.length) {
-    response.status(409).send('Board state changed');
-    return;
-  }
-
-  if (typeof moveNumber === 'number' && moveNumber !== currentMoveHistory.length + 1) {
-    response.status(409).send('Move number mismatch');
-    return;
-  }
-
-  const legalMove = getLegalMoves(game.board, requestedMove.from).find((move) => move.to === requestedMove.to);
-  if (!legalMove) {
+  const fallbackBoard = Array.isArray(game.board) ? (game.board as Board) : null;
+  const backRankCode = game.back_rank_code ?? deriveBackRankCodeFromBoard(fallbackBoard ?? []);
+  const currentBoard = rebuildBoardFromHistory(currentMoveHistory, { backRankCode, fallbackBoard });
+  const fromIndex = index(from.file, from.rank);
+  const toIndex = index(to.file, to.rank);
+  const movingPiece = currentBoard[fromIndex]?.piece;
+  if (!movingPiece || movingPiece.color !== playerColor) {
     response.status(400).send('Illegal move');
     return;
   }
 
-  const nextBoard = applyMove(game.board, legalMove);
+  const legalMove = getLegalMoves(currentBoard, fromIndex).find((move) => move.to === toIndex);
+  if (!legalMove) {
+    response.status(400).send('Illegal move');
+    return;
+  }
+  if (promotion && legalMove.isPromotion) legalMove.promotionPiece = promotion;
+
+  const nextBoard = applyMove(currentBoard, legalMove);
   const nextTurn = getOpponent(game.turn);
   const nextStatus = getStatusForTurn(nextBoard, nextTurn);
-  const moveHistory = [...currentMoveHistory, createMoveRecord(legalMove, { clientMoveId, playerId })];
+  const createdAt = new Date().toISOString();
+  const moveDelta: MoveDelta = {
+    id: randomUUID(),
+    moveNumber: currentMoveHistory.length + 1,
+    from,
+    to,
+    piece: legalMove.piece.type,
+    color: legalMove.piece.color,
+    captured: legalMove.capturedPiece?.type ?? null,
+    promotion: legalMove.promotionPiece ?? null,
+    createdAt,
+    playerId,
+  };
+  const moveHistory = [...currentMoveHistory, moveDelta];
   const materialScores = estimateMaterialScores(moveHistory);
+  const moveCount = moveHistory.length;
+
+  const updatePayload: Record<string, unknown> = {
+    turn: nextTurn,
+    status: nextStatus,
+    move_history: moveHistory,
+    last_move: moveDelta,
+    move_count: moveCount,
+    winner: getWinner(nextStatus),
+    result_type: getResultType(nextStatus),
+    total_moves: moveCount,
+    white_score: materialScores.whiteScore,
+    black_score: materialScores.blackScore,
+    updated_at: createdAt,
+  };
+
+  if (!backRankCode) updatePayload.board = nextBoard;
 
   const { data: updatedGame, error: updateError } = await safeSupabaseUpdate(
     supabase,
     gameId,
-    {
-      board: nextBoard,
-      turn: nextTurn,
-      status: nextStatus,
-      move_history: moveHistory,
-      winner: getWinner(nextStatus),
-      result_type: getResultType(nextStatus),
-      total_moves: moveHistory.length,
-      white_score: materialScores.whiteScore,
-      black_score: materialScores.blackScore,
-      updated_at: new Date().toISOString(),
-    },
+    updatePayload,
   );
 
-  if (updateError) {
-    response.status(500).send(updateError.message);
+  if (updateError || !updatedGame) {
+    response.status(500).send(updateError?.message ?? 'Unable to update game');
     return;
   }
 
-  response.status(200).json({ game: updatedGame });
+  response.status(200).json({ game: { ...updatedGame, last_move: moveDelta, move_count: moveCount } });
 }
