@@ -2785,3 +2785,243 @@ body.home-modal-open { overflow: hidden; }
     line-height: 1.18;
   }
 }
+
+/* Homepage-only "Meet the Pieces" onboarding board */
+.meet-board-frame {
+  position: relative;
+  overflow: visible;
+}
+
+.meet-board-grid {
+  position: relative;
+}
+
+.meet-square {
+  position: relative;
+  padding: 0;
+  border: 0;
+  appearance: none;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.meet-square:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.meet-square:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.65), 0 10px 16px rgba(69, 61, 54, 0.12);
+}
+
+.meet-square.is-selected {
+  z-index: 4;
+  box-shadow: inset 0 0 0 3px rgba(242, 208, 99, 0.95), 0 0 0 4px rgba(242, 208, 99, 0.24), 0 12px 18px rgba(69, 61, 54, 0.14);
+  animation: meet-selected-bounce 360ms cubic-bezier(0.2, 1.4, 0.35, 1);
+}
+
+.meet-square.is-selected img {
+  transform: scale(1.14) rotate(-2deg);
+  filter: drop-shadow(0 10px 7px rgba(40, 34, 24, 0.24));
+}
+
+.meet-square.is-move-preview::after,
+.meet-square.is-capture-preview::after {
+  position: absolute;
+  inset: 18%;
+  border-radius: 999px;
+  content: '';
+  pointer-events: none;
+}
+
+.meet-square.is-move-preview::after {
+  background: radial-gradient(circle, rgba(32, 224, 163, 0.34), rgba(32, 224, 163, 0.1) 62%, transparent 66%);
+  box-shadow: 0 0 18px rgba(32, 224, 163, 0.42);
+  animation: meet-move-glow 1.55s ease-in-out infinite alternate;
+}
+
+.meet-square.is-capture-preview::after {
+  inset: 11%;
+  border: 3px solid rgba(211, 82, 82, 0.88);
+  background: radial-gradient(circle, rgba(211, 82, 82, 0.24), rgba(211, 82, 82, 0.07) 56%, transparent 62%);
+  box-shadow: 0 0 20px rgba(211, 82, 82, 0.42);
+  animation: meet-capture-glow 1.25s ease-in-out infinite alternate;
+}
+
+.meet-square img {
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.meet-piece-card {
+  position: absolute;
+  left: clamp(132px, var(--meet-piece-left), calc(100% - 132px));
+  top: clamp(126px, var(--meet-piece-top), calc(100% - 126px));
+  z-index: 8;
+  display: grid;
+  gap: 8px;
+  width: min(248px, calc(100% - 20px));
+  padding: 12px;
+  border: 1px solid rgba(146, 176, 151, 0.48);
+  border-radius: 22px;
+  color: #31332f;
+  background: rgba(255, 252, 241, 0.96);
+  box-shadow: 0 18px 38px rgba(69, 61, 54, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transform: translate(-50%, -50%);
+  backdrop-filter: blur(12px);
+  animation: meet-card-pop 220ms cubic-bezier(0.2, 1.18, 0.34, 1);
+}
+
+.meet-piece-card::after {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  border-right: 1px solid rgba(146, 176, 151, 0.48);
+  border-bottom: 1px solid rgba(146, 176, 151, 0.48);
+  content: '';
+  background: rgba(255, 252, 241, 0.96);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.meet-piece-card-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.meet-piece-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 15px;
+  background: #edf2e9;
+  box-shadow: inset 0 0 0 1px rgba(146, 176, 151, 0.26);
+}
+
+.meet-piece-icon img {
+  width: 130%;
+  height: 130%;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 4px rgba(40, 34, 24, 0.18));
+}
+
+.meet-piece-card-header span,
+.meet-piece-moves span {
+  display: block;
+  color: #7f9f86;
+  font-size: 0.64rem;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.meet-piece-card-header strong {
+  display: block;
+  color: #222428;
+  font-size: 1.04rem;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.meet-piece-quote {
+  margin: 0;
+  color: #3f463f;
+  font-size: 0.9rem;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.meet-piece-moves {
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border-radius: 16px;
+  background: rgba(237, 242, 233, 0.72);
+}
+
+.meet-piece-moves p {
+  margin: 0;
+  color: #59675c;
+  font-size: 0.79rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.meet-piece-cta {
+  justify-self: start;
+  padding: 8px 11px;
+  border: 0;
+  border-radius: 999px;
+  color: #244b3e;
+  background: #c8ead9;
+  font-size: 0.76rem;
+  font-weight: 950;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 8px 16px rgba(32, 124, 91, 0.12);
+}
+
+.meet-piece-cta:hover {
+  transform: translateY(-1px);
+}
+
+.meet-board-hint {
+  margin: -10px 0 0;
+  color: #708077;
+  font-size: 0.85rem;
+  font-weight: 850;
+  text-align: center;
+}
+
+@keyframes meet-selected-bounce {
+  0% { transform: scale(1); }
+  55% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes meet-card-pop {
+  from { opacity: 0; transform: translate(-50%, -46%) scale(0.94); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes meet-move-glow {
+  from { opacity: 0.68; transform: scale(0.88); }
+  to { opacity: 1; transform: scale(1.04); }
+}
+
+@keyframes meet-capture-glow {
+  from { opacity: 0.74; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1.04); }
+}
+
+@media (max-width: 760px) {
+  .meet-piece-card {
+    width: min(230px, calc(100% - 16px));
+    padding: 10px;
+    border-radius: 19px;
+  }
+
+  .meet-piece-quote { font-size: 0.84rem; }
+  .meet-piece-moves p { font-size: 0.74rem; }
+}
+
+@media (max-width: 420px) {
+  .meet-board-frame {
+    display: grid;
+    gap: 9px;
+  }
+
+  .meet-piece-card {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: 100%;
+    transform: none;
+    animation: none;
+  }
+
+  .meet-piece-card::after { display: none; }
+  .meet-board-hint { margin-top: -3px; font-size: 0.78rem; }
+}
