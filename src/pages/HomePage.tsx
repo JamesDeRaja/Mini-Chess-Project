@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, Moon, Shuffle, SunMedium, Users, X, Zap } from 'lucide-react';
+import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, Shuffle, Users, X, Zap } from 'lucide-react';
 import { BOARD_FILES, BOARD_RANKS } from '../game/constants.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded } from '../game/dailyAIProgress.js';
@@ -9,8 +9,6 @@ import type { Piece, PieceType } from '../game/types.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 
 type HomePageProps = {
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
   onStartBot: (dateKey?: string) => void;
   onStartSeededBot: (seed: string) => void;
   onInvite: () => void;
@@ -88,8 +86,6 @@ function getCalendarCells(monthKey: string): Array<{ dateKey: string; day: numbe
 }
 
 export function HomePage({
-  theme,
-  onToggleTheme,
   onStartBot,
   onStartSeededBot,
   onInvite,
@@ -264,11 +260,6 @@ export function HomePage({
 
   return (
     <main className="home-page">
-      <button type="button" className="theme-toggle floating-theme-toggle" onClick={onToggleTheme} aria-label="Toggle theme">
-        {theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />}
-        {theme === 'dark' ? 'Light' : 'Dark'} mode
-      </button>
-
       <section className="home-hero-shell" aria-labelledby="home-title">
         <div className="hero-copy">
           <div className="brand-row">

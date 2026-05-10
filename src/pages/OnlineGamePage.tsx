@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Moon, RotateCcw, SunMedium } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
@@ -22,8 +22,6 @@ import type { MatchMode } from './BotGamePage.js';
 type OnlineGamePageProps = {
   gameId: string;
   matchMode: MatchMode;
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
   onHome: () => void;
   onNewOnlineGame: () => void;
 };
@@ -78,7 +76,7 @@ function getDrawOfferBy(game: OnlineGameRecord): Color | null {
   return offeredBy === 'white' || offeredBy === 'black' ? offeredBy : null;
 }
 
-export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome, onNewOnlineGame }: OnlineGamePageProps) {
+export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: OnlineGamePageProps) {
   const playerId = useMemo(() => getPlayerId(), []);
   const isCreatingInvite = gameId === 'new';
   const [effectiveGameId, setEffectiveGameId] = useState(isCreatingInvite ? '' : gameId);
@@ -593,7 +591,6 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
           <div className="match-actions">
             <button type="button" className="wide-action primary-action" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : isOnlineGameReady ? 'Share' : 'Share Invite'}</button>
             <button type="button" className="wide-action secondary-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-            <button type="button" className="wide-action theme-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
           </div>
         </aside>
 

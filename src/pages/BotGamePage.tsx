@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Flag, Handshake, Moon, RotateCcw, SunMedium } from 'lucide-react';
+import { Flag, Handshake, RotateCcw } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
@@ -30,8 +30,6 @@ type BotGamePageProps = {
   matchMode: MatchMode;
   dateKey?: string;
   customSeed?: string;
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
   onHome: () => void;
 };
 
@@ -98,7 +96,7 @@ function cloneBoard(board: ChessBoard): ChessBoard {
   return board.map((square) => ({ ...square, piece: square.piece ? { ...square.piece } : null }));
 }
 
-export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, theme, onToggleTheme, onHome }: BotGamePageProps) {
+export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, onHome }: BotGamePageProps) {
   const dailySeedInfo = useMemo(() => {
     if (customSeed) {
       const seed = normalizeSeed(customSeed);
@@ -378,7 +376,6 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
           </div>
           <div className="match-actions">
             <button type="button" className="wide-action secondary-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-            <button type="button" className="wide-action theme-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
           </div>
         </aside>
 
