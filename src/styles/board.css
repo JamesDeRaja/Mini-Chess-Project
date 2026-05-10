@@ -85,7 +85,7 @@
   transform-origin: center;
   --piece-offset-x: 0%;
   --piece-offset-y: 0%;
-  --piece-bottom-seat-offset-y: 7.5%;
+  --piece-bottom-seat-offset-y: 10%;
   animation: piece-land 250ms cubic-bezier(.2, 1.35, .35, 1);
   transition: transform 250ms ease, filter 250ms ease;
 }
