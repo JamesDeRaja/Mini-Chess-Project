@@ -7,6 +7,8 @@ type GameHeaderProps = {
   playerRole?: string;
   details?: string;
   onTitleClick?: () => void;
+  statusLabelOverride?: string;
+  turnLabelOverride?: string;
 };
 
 function statusLabel(status: GameStatus): string {
@@ -24,7 +26,7 @@ function statusLabel(status: GameStatus): string {
   }
 }
 
-export function GameHeader({ title, turn, status, playerRole, details, onTitleClick }: GameHeaderProps) {
+export function GameHeader({ title, turn, status, playerRole, details, onTitleClick, statusLabelOverride, turnLabelOverride }: GameHeaderProps) {
   return (
     <header className="game-header">
       <div>
@@ -36,8 +38,8 @@ export function GameHeader({ title, turn, status, playerRole, details, onTitleCl
       </div>
       <div className="status-card">
         {playerRole && <span>{playerRole}</span>}
-        <strong>{statusLabel(status)}</strong>
-        <span>{turn === 'white' ? 'White' : 'Black'} to move</span>
+        <strong>{statusLabelOverride ?? statusLabel(status)}</strong>
+        <span>{turnLabelOverride ?? `${turn === 'white' ? 'White' : 'Black'} to move`}</span>
       </div>
     </header>
   );

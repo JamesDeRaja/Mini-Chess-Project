@@ -17,7 +17,12 @@ export function applyMove(board: Board, move: Move): Board {
   return nextBoard;
 }
 
-export function createMoveRecord(move: Move): MoveRecord {
+type MoveRecordMetadata = {
+  clientMoveId?: string;
+  playerId?: string;
+};
+
+export function createMoveRecord(move: Move, metadata: MoveRecordMetadata = {}): MoveRecord {
   return {
     from: move.from,
     to: move.to,
@@ -25,5 +30,7 @@ export function createMoveRecord(move: Move): MoveRecord {
     color: move.piece.color,
     captured: move.capturedPiece?.type,
     timestamp: Date.now(),
+    clientMoveId: metadata.clientMoveId,
+    playerId: metadata.playerId,
   };
 }
