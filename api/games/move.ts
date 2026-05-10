@@ -128,6 +128,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     move_count: moveCount,
     winner: getWinner(nextStatus),
     result_type: getResultType(nextStatus),
+    draw_offer_by: null,
     total_moves: moveCount,
     white_score: materialScores.whiteScore,
     black_score: materialScores.blackScore,

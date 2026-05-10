@@ -23,6 +23,7 @@ export const optionalGameMetadataFields = [
   'expires_at',
   'last_activity_at',
   'timeout_at',
+  'draw_offer_by',
 ] as const;
 
 type SupabaseError = { message: string };
