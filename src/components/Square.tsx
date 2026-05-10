@@ -73,7 +73,6 @@ export function Square({
       onDrop={handleDrop}
       aria-label={`Square ${coordinateLabel}`}
     >
-      <span className="coordinate-label">{coordinateLabel}</span>
       {square.piece && (
         <Piece
           piece={square.piece}
