@@ -3029,21 +3029,23 @@ body.home-modal-open { overflow: hidden; }
 }
 
 .meet-piece-preview-tags {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 7px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
   color: #708077;
-  font-size: 0.72rem;
+  font-size: 0.64rem;
   font-weight: 950;
 }
 
 .meet-piece-preview-tags span {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 10px;
+  justify-content: center;
+  min-width: 0;
+  gap: 5px;
+  padding: 6px 7px;
   border-radius: 999px;
+  white-space: nowrap;
   background: rgba(253, 247, 231, 0.72);
   box-shadow: inset 0 0 0 1px rgba(222, 217, 203, 0.58);
 }
@@ -3111,6 +3113,7 @@ body.home-modal-open { overflow: hidden; }
 @media (max-width: 420px) {
   .meet-piece-card { width: min(230px, calc(100% - 16px)); }
   .meet-piece-icon img { width: 80px; height: 80px; }
-  .meet-piece-preview-tags { margin-top: -3px; font-size: 0.7rem; }
+  .meet-piece-preview-tags { margin-top: -3px; font-size: 0.6rem; gap: 5px; }
+  .meet-piece-preview-tags span { padding-inline: 6px; }
   .meet-board-hint { margin-top: -3px; font-size: 0.78rem; }
 }
