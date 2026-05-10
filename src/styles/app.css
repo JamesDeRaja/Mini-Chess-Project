@@ -1742,8 +1742,9 @@ button:active:not(:disabled) {
 .result-piece-img[data-piece='pawn'] { --piece-scale: 1.08; --piece-y: -2px; }
 
 .piece-score-icon {
-  width: 104px;
-  height: 104px;
+  --piece-scale: 2;
+  width: 52px;
+  height: 52px;
   padding: 2px;
   border-radius: 0;
   background: transparent;
