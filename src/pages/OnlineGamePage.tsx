@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Moon, RotateCcw, SunMedium } from 'lucide-react';
+import { CalendarDays, Globe, Grid3x3, Layout, Moon, RotateCcw, Sprout, SunMedium, Users } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
@@ -44,6 +44,10 @@ function getLatestMove(game: OnlineGameRecord): MoveRecord | null {
   return history.at(-1) ?? null;
 }
 
+function moveSquareLabel(index: number): string {
+  return squareLabel(index % 5, Math.floor(index / 5));
+}
+
 export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome, onNewOnlineGame }: OnlineGamePageProps) {
   const playerId = useMemo(() => getPlayerId(), []);
   const isCreatingInvite = gameId === 'new';
@@ -84,6 +88,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   const shouldShowWaitingOverlay = !isCompleted && inviteState !== 'error' && !isOnlineGameReady;
   const canInteractWithBoard = !shouldShowWaitingOverlay && !isCompleted && role === turn && !hasPendingMove;
   const displayStatus: GameStatus = isOnlineGameReady && status === 'waiting' ? 'active' : status;
+
   const primaryStatus = useMemo(() => {
     if (inviteState === 'creating_game') return 'Creating game...';
     if (inviteState === 'waiting_for_link') return 'Creating invite link...';
@@ -92,6 +97,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
     if (role === 'spectator') return `${turn === 'white' ? 'White' : 'Black'} to move`;
     return role === turn ? 'Your turn' : "Opponent's turn";
   }, [inviteState, isCompleted, isOnlineGameReady, role, status, turn]);
+
   const winner: Color | null = status === 'white_won' ? 'white' : status === 'black_won' ? 'black' : null;
   const onlineResult: 'win' | 'loss' | 'draw' | 'spectator' = status === 'draw' ? 'draw' : role === 'spectator' ? 'spectator' : winner === role ? 'win' : 'loss';
   const onlineResultTitle = status === 'draw'
@@ -190,7 +196,6 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   useEffect(() => {
     const historyList = historyListRef.current;
     if (!historyList) return;
-
     historyList.scrollTop = historyList.scrollHeight;
   }, [moveHistory.length]);
 
@@ -215,10 +220,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
         setInviteState('error');
         setError(createError.message || 'Could not create invite link.');
       });
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [isCreatingInvite, matchMode, playerId]);
 
   useEffect(() => {
@@ -232,7 +234,6 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
         setInviteState('error');
         setError(joinError.message);
       });
-  // applyGameRecord intentionally reads the latest local state while this effect is keyed by game identity.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveGameId, playerId]);
 
@@ -251,41 +252,31 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
         setLegalMoves([]);
         return;
       }
-
       applyGameRecord(game);
       setSelectedSquare(null);
       setLegalMoves([]);
     });
-
     if (!channel) setIsRealtimeConnected(false);
     return () => unsubscribeFromGame(channel);
-  // applyGameRecord intentionally reads pending move refs while this subscription is keyed by game identity.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveGameId]);
 
-
   useEffect(() => {
     if (!effectiveGameId || isOnlineGameReady || isCompleted || inviteState === 'error') return undefined;
-
     const pollId = window.setInterval(() => {
       joinOnlineGame(effectiveGameId, playerId)
         .then(({ game, role: refreshedRole }) => {
           applyGameRecord(game);
           setRole(refreshedRole);
         })
-        .catch(() => {
-          setIsRealtimeConnected(false);
-        });
+        .catch(() => { setIsRealtimeConnected(false); });
     }, 2000);
-
     return () => window.clearInterval(pollId);
-  // applyGameRecord intentionally merges the latest server row while this fallback is keyed by readiness.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveGameId, inviteState, isCompleted, isOnlineGameReady, playerId]);
 
   useEffect(() => {
     if (!effectiveGameId || !isOnlineGameReady || isCompleted || hasPendingMove) return undefined;
-
     const pollId = window.setInterval(() => {
       joinOnlineGame(effectiveGameId, playerId)
         .then(({ game, role: refreshedRole }) => {
@@ -295,13 +286,9 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
           if (nextVersion !== confirmedVersion) applyGameRecord(game);
           setRole(refreshedRole);
         })
-        .catch(() => {
-          setIsRealtimeConnected(false);
-        });
+        .catch(() => { setIsRealtimeConnected(false); });
     }, 2000);
-
     return () => window.clearInterval(pollId);
-  // applyGameRecord intentionally merges changed server rows while this fallback is keyed by active sync state.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveGameId, hasPendingMove, isCompleted, isOnlineGameReady, playerId]);
 
@@ -312,14 +299,8 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
       text: `Join my Pocket Shuffle Chess game (${seedLabel}).`,
       url: inviteLink,
     };
-
     if (canNativeShare) {
-      try {
-        await navigator.share(shareData);
-        setCopied(true);
-      } catch {
-        return;
-      }
+      try { await navigator.share(shareData); setCopied(true); } catch { return; }
     } else {
       await navigator.clipboard.writeText(inviteLink);
       setCopied(true);
@@ -329,19 +310,9 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
 
   async function handleShareResult() {
     const resultText = `Pocket Shuffle Chess result: ${onlineResultTitle}. ${onlineResultSummary}`;
-    const shareData = {
-      title: 'Pocket Shuffle Chess result',
-      text: resultText,
-      url: inviteLink ?? window.location.href,
-    };
-
+    const shareData = { title: 'Pocket Shuffle Chess result', text: resultText, url: inviteLink ?? window.location.href };
     if (canNativeShare) {
-      try {
-        await navigator.share(shareData);
-        setCopied(true);
-      } catch {
-        return;
-      }
+      try { await navigator.share(shareData); setCopied(true); } catch { return; }
     } else {
       await navigator.clipboard.writeText(`${resultText} ${shareData.url}`);
       setCopied(true);
@@ -395,20 +366,14 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
         .then(({ game }) => {
           const latestMove = getLatestMove(game);
           if (latestMove?.clientMoveId === clientMoveId || (!latestMove?.clientMoveId && latestMove?.from === selectedMove.from && latestMove?.to === selectedMove.to && latestMove?.color === role && (game.move_history?.length ?? 0) === previousStateVersion + 1)) {
-            setPendingIds((ids) => {
-              ids.delete(clientMoveId);
-              return ids;
-            });
+            setPendingIds((ids) => { ids.delete(clientMoveId); return ids; });
             applyGameRecord(game, { preserveLocalMove: true });
             return;
           }
           applyGameRecord(game);
         })
         .catch(() => {
-          setPendingIds((ids) => {
-            ids.delete(clientMoveId);
-            return ids;
-          });
+          setPendingIds((ids) => { ids.delete(clientMoveId); return ids; });
           rollbackToConfirmedGame();
         });
       return;
@@ -420,7 +385,6 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
       setLegalMoves(getLegalMoves(board, squareIndex));
       return;
     }
-
     setSelectedSquare(null);
     setLegalMoves([]);
   }
@@ -431,33 +395,112 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
 
   return (
     <main className="game-page">
-      <GameHeader title="Online Game" turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} statusLabelOverride={headerStatusLabel} turnLabelOverride={headerTurnLabel} />
+      <GameHeader
+        title="Online Game"
+        turn={turn}
+        status={displayStatus}
+        playerRole={playerRoleLabel}
+        details={primaryStatus}
+        onTitleClick={onHome}
+        statusLabelOverride={headerStatusLabel}
+        turnLabelOverride={headerTurnLabel}
+      />
+
       {toast && <p className="sync-toast" role="status">{toast}</p>}
+
       <div className="game-layout chess-shell">
+        {/* ── Left panel ─────────────────────────────────────── */}
         <aside className="side-panel match-panel online-match-panel">
-          <p className="eyebrow">Online</p>
-          <h2>{isOnlineGameReady ? 'Online Match' : 'Invite Friend'}</h2>
-          <div className="score-stack">
-            <span>White <strong>{scores.whiteScore}</strong></span>
-            <span>Black <strong>{scores.blackScore}</strong></span>
+          <div className="panel-header">
+            <p className="eyebrow">
+              <Globe size={11} />
+              Online
+            </p>
+            <div className="panel-title-row">
+              <h2>{isOnlineGameReady ? 'Online Match' : 'Invite Friend'}</h2>
+              <span className="mode-badge">1v1</span>
+            </div>
           </div>
-          <p>You are: <strong>{role === 'spectator' ? 'Spectating' : role === 'white' ? 'White' : 'Black'}</strong></p>
-          <p>Opponent: <strong>{isOnlineGameReady ? 'Joined' : 'Waiting'}</strong></p>
-          <p>Status: <strong>{leftPanelStatus}</strong></p>
-          {isOnlineGameReady && !isCompleted && <p>Turn: <strong>{turn === 'white' ? 'White' : 'Black'}</strong></p>}
-          <p className="panel-note">{isOnlineGameReady ? 'Share remains available.' : shareIsLoading ? 'Share the invite link. Your friend joins as Black.' : 'Send this link to a friend. The game starts when they join.'}</p>
-          {hasPendingMove && <p className="subtle-inline-status">Sending move...</p>}
-          {isSupabaseConfigured && !isRealtimeConnected && <p className="subtle-inline-status reconnecting-badge">Reconnecting...</p>}
-          {!isSupabaseConfigured && <p className="panel-note">Supabase environment variables are required for live multiplayer.</p>}
-          <p>Seed: <strong>{seedLabel}</strong></p>
-          <p>Back rank: <strong>{backRankCode ?? 'Setup pending'}</strong></p>
-          <p>Game: {roundNumber}</p>
-          <button type="button" className="wide-action" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : isOnlineGameReady ? 'Share' : 'Share Invite'}</button>
-          <button type="button" className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-          <button type="button" className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
+
+          <div className="score-stack">
+            <div className="score-row">
+              <span className="score-circle score-circle-white" />
+              <span className="score-label">White</span>
+              <strong className="score-value">{scores.whiteScore}</strong>
+            </div>
+            <div className="score-row">
+              <span className="score-circle score-circle-black" />
+              <span className="score-label">Black</span>
+              <strong className="score-value">{scores.blackScore}</strong>
+            </div>
+          </div>
+
+          <div className="info-rows">
+            <div className="info-row">
+              <Users size={14} className="info-icon" />
+              <span className="info-label">You are</span>
+              <span className="info-value">{role === 'spectator' ? 'Spectating' : role === 'white' ? 'White' : 'Black'}</span>
+            </div>
+            <div className="info-row">
+              <Users size={14} className="info-icon" />
+              <span className="info-label">Opponent</span>
+              <span className="info-value info-value-accent">{isOnlineGameReady ? 'Joined' : 'Waiting'}</span>
+            </div>
+            <div className="info-row">
+              <Globe size={14} className="info-icon" />
+              <span className="info-label">Status</span>
+              <span className="info-value info-value-accent">{leftPanelStatus}</span>
+            </div>
+            {isOnlineGameReady && !isCompleted && (
+              <div className="info-row">
+                <CalendarDays size={14} className="info-icon" />
+                <span className="info-label">Turn</span>
+                <span className="info-value">{turn === 'white' ? 'White' : 'Black'}</span>
+              </div>
+            )}
+            <div className="info-row">
+              <Sprout size={14} className="info-icon" />
+              <span className="info-label">Seed</span>
+              <span className="info-value info-value-accent">{seedLabel}</span>
+            </div>
+            <div className="info-row">
+              <Layout size={14} className="info-icon" />
+              <span className="info-label">Back rank</span>
+              <span className="info-value">{backRankCode ?? 'Pending'}</span>
+            </div>
+            <div className="info-row">
+              <CalendarDays size={14} className="info-icon" />
+              <span className="info-label">Game</span>
+              <span className="info-value">{roundNumber}</span>
+            </div>
+          </div>
+
+          {hasPendingMove && <p className="subtle-inline-status">Sending move…</p>}
+          {isSupabaseConfigured && !isRealtimeConnected && <p className="subtle-inline-status">Reconnecting…</p>}
+          {!isSupabaseConfigured && <p className="panel-note">Supabase env vars required for live multiplayer.</p>}
+
+          <div className="panel-buttons">
+            <button type="button" className="wide-action primary-action" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>
+              {shareIsLoading ? 'Creating Link…' : copied ? 'Copied!' : isOnlineGameReady ? 'Share' : 'Share Invite'}
+            </button>
+            <button type="button" className="wide-action" onClick={() => setIsFlipped((f) => !f)}>
+              <RotateCcw size={16} /> Flip Board
+            </button>
+            <button type="button" className="wide-action" onClick={onToggleTheme}>
+              {theme === 'dark' ? <SunMedium size={16} /> : <Moon size={16} />} Theme
+            </button>
+          </div>
         </aside>
 
+        {/* ── Board column ───────────────────────────────────── */}
         <section className="board-column online-board-column">
+          {seedLabel !== 'Random' && (
+            <div className="board-badge">
+              <Sprout size={13} />
+              <span>Seed</span>
+              <strong>{seedLabel}</strong>
+            </div>
+          )}
           {board.length > 0 && (
             <Board
               board={board}
@@ -470,12 +513,21 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
               onSquareClick={handleSquareClick}
             />
           )}
+          <div className="board-size-label">
+            <Grid3x3 size={12} />
+            5x6 Board
+          </div>
           {shouldShowWaitingOverlay && (
             <div className="waiting-board-overlay">
-              <strong>{shareIsLoading ? 'Creating invite...' : 'Waiting for opponent'}</strong>
+              <strong>{shareIsLoading ? 'Creating invite…' : 'Waiting for opponent'}</strong>
               <span>Share the invite link to start.</span>
-              <button type="button" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>
-                {shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : canNativeShare ? 'Share Invite' : 'Copy Invite Link'}
+              <button
+                type="button"
+                className="primary-action"
+                onClick={handleShareInvite}
+                disabled={!inviteLink || shareIsLoading}
+              >
+                {shareIsLoading ? 'Creating Link…' : copied ? 'Copied!' : canNativeShare ? 'Share Invite' : 'Copy Invite Link'}
               </button>
             </div>
           )}
@@ -491,43 +543,71 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
           )}
         </section>
 
+        {/* ── Right panel — move history ─────────────────────── */}
         <aside className="side-panel review-panel history-panel">
           <div className="history-header">
-            <div className="panel-topbar">
-              <h2>Move history</h2>
-            </div>
-            <p className="panel-note">{isOnlineGameReady ? 'Select a piece to see legal moves.' : 'The game starts when both players are in.'}</p>
+            <h2>
+              <CalendarDays size={15} />
+              Move History
+            </h2>
+            <p className="panel-note">
+              {isOnlineGameReady
+                ? 'Click a move to review. Use ←/→ to step.'
+                : 'The game starts when both players join.'}
+            </p>
           </div>
+
           <ol className="move-history move-list history-list" ref={historyListRef}>
             {moveHistory.length === 0 ? (
-              <li className="empty-history"><span>No moves yet.</span><span>{isCompleted ? 'Game over.' : isOnlineGameReady ? 'White can make the first move.' : 'Waiting for opponent.'}</span></li>
+              <li className="empty-history">
+                <span>No moves yet.</span>
+                <span>
+                  {isCompleted
+                    ? 'Game over.'
+                    : isOnlineGameReady
+                      ? 'White can make the first move.'
+                      : 'Waiting for opponent.'}
+                </span>
+              </li>
             ) : (
               moveHistory.map((move, index) => (
                 <li key={`${move.timestamp}-${index}`}>
                   <button type="button" className="history-move" aria-disabled="true">
-                    <span>{index + 1}.</span>
-                    <strong>{move.color}</strong>
-                    <span>{move.piece}</span>
-                    <span>{squareLabel(move.to % 5, Math.floor(move.to / 5))}</span>
+                    <span className="history-move-num">{index + 1}.</span>
+                    <span className={`history-move-dot history-move-dot-${move.color}`} />
+                    <span className="history-move-color">{move.color}</span>
+                    <span className="history-move-piece">{move.piece}</span>
+                    <span className="history-move-squares">
+                      {moveSquareLabel(move.from)}–{moveSquareLabel(move.to)}
+                    </span>
                   </button>
                 </li>
               ))
             )}
           </ol>
-          <div className="review-footer history-actions">
+
+          <div className="history-actions">
             <div className="review-controls">
-              <button type="button" disabled>⏮</button>
-              <button type="button" disabled>‹</button>
-              <button type="button" disabled>Live</button>
-              <button type="button" disabled>›</button>
-              <button type="button" disabled>⏭</button>
+              <button type="button" disabled title="Start">⏮</button>
+              <button type="button" disabled title="Previous">‹</button>
+              <button type="button" disabled title="Live">Live</button>
+              <button type="button" disabled title="Next">›</button>
+              <button type="button" disabled title="End">⏭</button>
             </div>
-            <div className="panel-actions stacked-actions">
-              <button type="button" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : 'Share Invite'}</button>
+            <div className="stacked-actions">
+              <button
+                type="button"
+                className="primary-action restart-action"
+                onClick={handleShareInvite}
+                disabled={!inviteLink || shareIsLoading}
+              >
+                {shareIsLoading ? 'Creating Link…' : copied ? 'Copied!' : 'Share Invite'}
+              </button>
             </div>
           </div>
         </aside>
       </div>
+
       {isCompleted && (
         <GameResultPanel
           result={onlineResult}

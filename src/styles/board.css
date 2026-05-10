@@ -7,10 +7,21 @@
   aspect-ratio: 5 / 6;
   overflow: hidden;
   padding: 12px;
-  border: 5px solid var(--ink, #2d2b28);
+  border: 5px solid var(--board-frame, #3A352D);
   border-radius: 34px;
-  background: rgba(255, 248, 233, 0.82);
-  box-shadow: 0 22px 0 rgba(45, 43, 40, 0.08), 0 34px 60px rgba(80, 122, 108, 0.2);
+  background: var(--board-bg, rgba(255, 248, 233, 0.82));
+  box-shadow: var(--board-shadow, 0 22px 0 rgba(45, 43, 40, 0.08), 0 34px 60px rgba(80, 122, 108, 0.2)),
+              var(--board-inner-glow, none);
+}
+
+/* Dark theme board frame with inner gold accent ring */
+:root[data-theme='dark'] .board {
+  border-width: 6px;
+  box-shadow:
+    0 22px 0 rgba(0, 0, 0, 0.28),
+    0 34px 80px rgba(0, 0, 0, 0.50),
+    0 0 30px rgba(20, 180, 120, 0.08),
+    inset 0 0 0 2px rgba(215, 169, 40, 0.45);
 }
 
 .square {
@@ -32,23 +43,21 @@
 .square:nth-last-child(1) { border-bottom-right-radius: 20px; }
 .square:hover { filter: brightness(1.03) saturate(1.03); }
 
-.square-light { background: #fff8e9; }
-.square-dark { background: #8dbfaf; }
-:root[data-theme='light'] .board { background: rgba(255, 248, 233, 0.86); }
-:root[data-theme='light'] .square-light { background: #fff8e9; }
-:root[data-theme='light'] .square-dark { background: #8dbfaf; }
+/* Square colors via CSS vars — both themes */
+.square-light { background: var(--square-light, #FFF2DC); }
+.square-dark  { background: var(--square-dark, #A9D6BA); }
 
 .coordinate-label {
   position: absolute;
   top: 7px;
   left: 9px;
   z-index: 1;
-  color: rgba(45, 43, 40, 0.34);
+  color: var(--coord-on-light, rgba(45, 43, 40, 0.34));
   font-size: clamp(0.66rem, 1.5vw, 0.95rem);
   font-weight: 950;
   pointer-events: none;
 }
-.square-dark .coordinate-label { color: rgba(255, 248, 233, 0.62); }
+.square-dark .coordinate-label { color: var(--coord-on-dark, rgba(255, 248, 233, 0.62)); }
 
 .selected-square {
   outline: 5px solid rgba(247, 207, 114, 0.96);
@@ -63,7 +72,7 @@
   inset: 0;
   content: '';
 }
-.last-move-square::before { background: rgba(247, 207, 114, 0.4); }
+.last-move-square::before { background: rgba(247, 207, 114, 0.40); }
 .legal-target-square::after { background: rgba(255, 169, 149, 0.16); }
 
 .king-in-check {
@@ -205,10 +214,9 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 700px) {
   .board { width: min(92vw, calc(var(--play-area-height, 62vh) * 5 / 6), 560px); }
-  .piece::before,
-  .piece::after { display: none; }
+  .piece::before, .piece::after { display: none; }
 }
 
 .square:active { transform: scale(0.98); }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Flag, Handshake, Moon, RotateCcw, SunMedium } from 'lucide-react';
+import { BarChart2, CalendarDays, Flag, Gamepad2, Grid3x3, Handshake, Layout, Moon, RotateCcw, Sprout, SunMedium } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
@@ -44,10 +44,10 @@ type RoundResult = {
 
 type PendingAction = 'resign' | 'draw' | 'restart' | null;
 
-const modeConfig: Record<MatchMode, { label: string; maxGames: number; winsRequired: number }> = {
-  single: { label: 'One Match', maxGames: 1, winsRequired: 1 },
-  'best-of-3': { label: 'Best 2 / 3', maxGames: 3, winsRequired: 2 },
-  'best-of-5': { label: 'Best 3 / 5', maxGames: 5, winsRequired: 3 },
+const modeConfig: Record<MatchMode, { label: string; badge: string; maxGames: number; winsRequired: number }> = {
+  single: { label: 'One Match', badge: '1v1', maxGames: 1, winsRequired: 1 },
+  'best-of-3': { label: 'Best 2 / 3', badge: 'Bo3', maxGames: 3, winsRequired: 2 },
+  'best-of-5': { label: 'Best 3 / 5', badge: 'Bo5', maxGames: 5, winsRequired: 3 },
 };
 
 function getWinner(status: GameStatus): Color | null {
@@ -70,7 +70,6 @@ function getBotLevel(matchMode: MatchMode, score: MatchScore, winsRequired: numb
   return 'weak';
 }
 
-
 function getBotLevelForDailyDifficulty(difficulty: DailyAIDifficulty): BotLevel {
   if (difficulty === 'easy') return 'weak';
   if (difficulty === 'medium') return 'medium';
@@ -89,6 +88,10 @@ function cloneBoard(board: ChessBoard): ChessBoard {
   return board.map((square) => ({ ...square, piece: square.piece ? { ...square.piece } : null }));
 }
 
+function moveSquareLabel(index: number): string {
+  return squareLabel(index % 5, Math.floor(index / 5));
+}
+
 export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, theme, onToggleTheme, onHome }: BotGamePageProps) {
   const dailySeedInfo = useMemo(() => {
     if (customSeed) {
@@ -100,6 +103,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
     const seed = getDailySeed(dateKey);
     return { dateKey, seed, backRankCode: backRankCodeFromSeed(seed) };
   }, [customSeed, requestedDateKey]);
+
   const isDailyAI = !customSeed;
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
@@ -141,7 +145,6 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   useEffect(() => {
     const historyList = historyListRef.current;
     if (!historyList) return;
-
     historyList.scrollTop = historyList.scrollHeight;
   }, [moveHistory.length]);
 
@@ -330,6 +333,11 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
         : 'You lost'
     : undefined;
 
+  const effectiveBotLevel = dailyAIDifficulty ?? botLevel;
+  const detailsLine = dailyAIDifficulty
+    ? `Daily ladder • ${dailyAIDifficulty} bot • ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars`
+    : `${config.label} • Game ${roundNumber}/${config.maxGames} • ${botLevel} bot`;
+
   return (
     <main className="game-page">
       <GameHeader
@@ -337,29 +345,84 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
         turn={turn}
         status={status}
         playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
-        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
+        details={detailsLine}
         onTitleClick={onHome}
         statusLabelOverride={headerStatusLabel}
         turnLabelOverride={headerTurnLabel}
       />
+
       <div className="game-layout chess-shell">
+        {/* ── Left panel ─────────────────────────────────────── */}
         <aside className="side-panel match-panel">
-          <p className="eyebrow">Match</p>
-          <h2>{config.label}</h2>
-          <div className="score-stack">
-            <span>White <strong>{score.white}</strong></span>
-            <span>Black <strong>{score.black}</strong></span>
+          <div className="panel-header">
+            <p className="eyebrow">
+              <Gamepad2 size={11} />
+              Match
+            </p>
+            <div className="panel-title-row">
+              <h2>{config.label}</h2>
+              <span className="mode-badge">{config.badge}</span>
+            </div>
           </div>
-          <p>Game {roundNumber}/{config.maxGames}</p>
-          <p>Bot level: <strong>{dailyAIDifficulty ?? botLevel}</strong></p>
-          <p>Daily seed: <strong>{dailySeedInfo.seed}</strong></p>
-          <p>Date: {dailySeedInfo.dateKey}</p>
-          <p>Back rank: {dailySeedInfo.backRankCode}</p>
-          <button type="button" className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
-          <button type="button" className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>
+
+          <div className="score-stack">
+            <div className="score-row">
+              <span className="score-circle score-circle-white" />
+              <span className="score-label">White</span>
+              <strong className="score-value">{score.white}</strong>
+            </div>
+            <div className="score-row">
+              <span className="score-circle score-circle-black" />
+              <span className="score-label">Black</span>
+              <strong className="score-value">{score.black}</strong>
+            </div>
+          </div>
+
+          <div className="info-rows">
+            <div className="info-row">
+              <Gamepad2 size={14} className="info-icon" />
+              <span className="info-label">Game</span>
+              <span className="info-value">{roundNumber}/{config.maxGames}</span>
+            </div>
+            <div className="info-row">
+              <BarChart2 size={14} className="info-icon" />
+              <span className="info-label">Bot level</span>
+              <span className="info-value info-value-accent">{effectiveBotLevel}</span>
+            </div>
+            <div className="info-row">
+              <Sprout size={14} className="info-icon" />
+              <span className="info-label">Daily seed</span>
+              <span className="info-value info-value-accent">{dailySeedInfo.seed}</span>
+            </div>
+            <div className="info-row">
+              <CalendarDays size={14} className="info-icon" />
+              <span className="info-label">Date</span>
+              <span className="info-value">{dailySeedInfo.dateKey}</span>
+            </div>
+            <div className="info-row">
+              <Layout size={14} className="info-icon" />
+              <span className="info-label">Back rank</span>
+              <span className="info-value">{dailySeedInfo.backRankCode}</span>
+            </div>
+          </div>
+
+          <div className="panel-buttons">
+            <button type="button" className="wide-action" onClick={() => setIsFlipped((f) => !f)}>
+              <RotateCcw size={16} /> Flip Board
+            </button>
+            <button type="button" className="wide-action" onClick={onToggleTheme}>
+              {theme === 'dark' ? <SunMedium size={16} /> : <Moon size={16} />} Theme
+            </button>
+          </div>
         </aside>
 
+        {/* ── Board column ───────────────────────────────────── */}
         <section className="board-column">
+          <div className="board-badge">
+            <Sprout size={13} />
+            <span className="board-badge-label">Daily Seed</span>
+            <strong>{dailySeedInfo.seed}</strong>
+          </div>
           <Board
             board={displayBoard}
             selectedSquare={isPreviewing ? null : selectedSquare}
@@ -372,15 +435,24 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
             onDragStart={handleDragStart}
             onDrop={handleDrop}
           />
+          <div className="board-size-label">
+            <Grid3x3 size={12} />
+            5x6 Board
+          </div>
         </section>
 
+        {/* ── Right panel — move history ─────────────────────── */}
         <aside className="side-panel review-panel history-panel">
           <div className="history-header">
-            <div className="panel-topbar">
-              <h2>Move history</h2>
-            </div>
-            <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
+            <h2>
+              <CalendarDays size={15} />
+              Move History
+            </h2>
+            <p className="panel-note">
+              Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.
+            </p>
           </div>
+
           <ol ref={historyListRef} className="move-history move-list history-list">
             {moveHistory.length === 0 ? (
               <li className="empty-history">
@@ -390,32 +462,47 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
             ) : (
               moveHistory.map((record, moveIndex) => (
                 <li key={`${record.timestamp}-${moveIndex}`}>
-                  <button type="button" className={previewPly === moveIndex + 1 ? 'history-move active-history-move' : 'history-move'} onClick={() => setPreviewPly(moveIndex + 1 >= latestPly ? null : moveIndex + 1)}>
-                    <span>{moveIndex + 1}.</span>
-                    <strong>{record.color}</strong>
-                    <span>{record.piece}</span>
-                    <span>{squareLabel(record.to % 5, Math.floor(record.to / 5))}</span>
+                  <button
+                    type="button"
+                    className={`history-move${previewPly === moveIndex + 1 ? ' active-history-move' : ''}`}
+                    onClick={() => setPreviewPly(moveIndex + 1 >= latestPly ? null : moveIndex + 1)}
+                  >
+                    <span className="history-move-num">{moveIndex + 1}.</span>
+                    <span className={`history-move-dot history-move-dot-${record.color}`} />
+                    <span className="history-move-color">{record.color}</span>
+                    <span className="history-move-piece">{record.piece}</span>
+                    <span className="history-move-squares">
+                      {moveSquareLabel(record.from)}–{moveSquareLabel(record.to)}
+                    </span>
                   </button>
                 </li>
               ))
             )}
           </ol>
-          <div className="review-footer history-actions">
+
+          <div className="history-actions">
             <div className="review-controls">
-              <button type="button" onClick={() => setPreviewPly(0)} disabled={moveHistory.length === 0}>⏮</button>
-              <button type="button" onClick={() => setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0))} disabled={moveHistory.length === 0}>‹</button>
-              <button type="button" onClick={() => setPreviewPly(null)}>Live</button>
-              <button type="button" onClick={() => setPreviewPly((ply) => { const nextPly = Math.min((ply ?? 0) + 1, latestPly); return nextPly >= latestPly ? null : nextPly; })} disabled={moveHistory.length === 0}>›</button>
-              <button type="button" onClick={() => setPreviewPly(null)} disabled={moveHistory.length === 0}>⏭</button>
+              <button type="button" onClick={() => setPreviewPly(0)} disabled={moveHistory.length === 0} title="Start">⏮</button>
+              <button type="button" onClick={() => setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0))} disabled={moveHistory.length === 0} title="Previous">‹</button>
+              <button type="button" onClick={() => setPreviewPly(null)} title="Live">Live</button>
+              <button type="button" onClick={() => setPreviewPly((ply) => { const next = Math.min((ply ?? 0) + 1, latestPly); return next >= latestPly ? null : next; })} disabled={moveHistory.length === 0} title="Next">›</button>
+              <button type="button" onClick={() => setPreviewPly(null)} disabled={moveHistory.length === 0} title="End">⏭</button>
             </div>
-            <div className="panel-actions stacked-actions">
-              <button type="button" onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
-              <button type="button" onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
-              <button type="button" onClick={requestRestart}>Restart Match</button>
+            <div className="stacked-actions">
+              <button type="button" onClick={() => setPendingAction('draw')}>
+                <Handshake size={15} /> Request Draw
+              </button>
+              <button type="button" className="danger-action" onClick={() => setPendingAction('resign')}>
+                <Flag size={15} /> Resign
+              </button>
+              <button type="button" className="primary-action restart-action" onClick={requestRestart}>
+                <RotateCcw size={15} /> Restart Match
+              </button>
             </div>
           </div>
         </aside>
       </div>
+
       {roundResult && (
         <GameResultPanel
           result={roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'}
@@ -433,11 +520,18 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
           )}
         />
       )}
+
       {pendingAction && (
         <div className="confirm-overlay" role="dialog" aria-modal="true">
           <div className="confirm-card">
             <p className="eyebrow">Confirm</p>
-            <h2>{pendingAction === 'resign' ? 'Resign this game?' : pendingAction === 'draw' ? 'Offer a draw?' : 'Restart the match?'}</h2>
+            <h2>
+              {pendingAction === 'resign'
+                ? 'Resign this game?'
+                : pendingAction === 'draw'
+                  ? 'Offer a draw?'
+                  : 'Restart the match?'}
+            </h2>
             <p>This action can change or reset the current game. Do you want to continue?</p>
             <div className="panel-actions centered-actions">
               <button type="button" onClick={confirmPendingAction}>Continue</button>
