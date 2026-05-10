@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Link as LinkIcon, Moon, Search, Shuffle, SunMedium, Users, X } from 'lucide-react';
+import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, Moon, Shuffle, SunMedium, Users, X, Zap } from 'lucide-react';
+import { BOARD_FILES, BOARD_RANKS } from '../game/constants.js';
+import { createInitialBoard } from '../game/createInitialBoard.js';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded } from '../game/dailyAIProgress.js';
+import { getPieceImageSrc } from '../game/pieceAssets.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, resolveBackRankCode } from '../game/seed.js';
+import type { Piece, PieceType } from '../game/types.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 
 type HomePageProps = {
@@ -36,6 +40,18 @@ function randomPastDate(todayKey: string): string {
 
 function spacedCode(backRankCode: string): string {
   return backRankCode.split('').join(' ');
+}
+
+function getPieceName(pieceType: PieceType): string {
+  return pieceType.charAt(0).toUpperCase() + pieceType.slice(1);
+}
+
+function buildSeedPreviewRows(backRankCode: string): Array<Array<Piece | null>> {
+  const board = createInitialBoard({ backRankCode });
+  return Array.from({ length: BOARD_RANKS }, (_rankPlaceholder, rowIndex) => {
+    const rank = BOARD_RANKS - 1 - rowIndex;
+    return Array.from({ length: BOARD_FILES }, (_filePlaceholder, file) => board[rank * BOARD_FILES + file].piece);
+  });
 }
 
 function monthKeyFromDateKey(dateKey: string): string {
@@ -89,6 +105,7 @@ export function HomePage({
   const [calendarMonthKey, setCalendarMonthKey] = useState(monthKeyFromDateKey(todayKey));
   const [dateError, setDateError] = useState<string | null>(null);
   const [customSeed, setCustomSeed] = useState('');
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [modal, setModal] = useState<ModalName>(null);
   const [matchmaking, setMatchmaking] = useState<MatchmakingState>({ status: 'idle' });
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
@@ -100,6 +117,7 @@ export function HomePage({
   const calendarCells = getCalendarCells(calendarMonthKey);
   const canGoNextMonth = shiftMonth(calendarMonthKey, 1) <= monthKeyFromDateKey(todayKey);
   const blackBackRankCode = [...dailyBackRankCode].reverse().join('');
+  const previewRows = buildSeedPreviewRows(dailyBackRankCode);
   const customSeedValue = customSeed.trim();
   const customSeedLooksLikeCode = /^[BRKNQ]+$/i.test(customSeedValue);
   const customSeedError = customSeedValue && customSeedLooksLikeCode && !isValidBackRankCode(customSeedValue)
@@ -147,6 +165,25 @@ export function HomePage({
       const nextMonthKey = shiftMonth(currentMonthKey, 1);
       return nextMonthKey <= monthKeyFromDateKey(todayKey) ? nextMonthKey : currentMonthKey;
     });
+  }
+
+  async function copyDailySeed() {
+    const copyText = `${dailySeed} • ${dailyBackRankCode}`;
+    try {
+      await navigator.clipboard.writeText(copyText);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = copyText;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    setCopyStatus('copied');
+    window.setTimeout(() => setCopyStatus('idle'), 1600);
   }
 
   async function requestMatchFor(seed: string, backRankCode: string) {
@@ -209,62 +246,91 @@ export function HomePage({
         {theme === 'dark' ? 'Light' : 'Dark'} mode
       </button>
 
-      <section className="hero-card shuffle-hero-card">
+      <section className="home-hero-shell" aria-labelledby="home-title">
         <div className="hero-copy">
-          <div className="brand-badge" aria-hidden="true"><img src="/Icon.png" alt="" draggable={false} /></div>
-          <p className="eyebrow">Pocket Shuffle Chess</p>
-          <h1 className="home-title"><span>Pocket</span><span>Shuffle</span><span>Chess</span></h1>
-          <p className="hero-subtitle">Fast chess. New opening every time.</p>
-
-          <div className="daily-summary-card">
-            <span>Today’s Daily</span>
-            <strong>{dailySeed} · {dailyBackRankCode}</strong>
+          <div className="brand-row">
+            <span className="brand-icon-tile" aria-hidden="true"><img src="/Icon.png" alt="" draggable={false} /></span>
+            <span>POCKET SHUFFLE CHESS</span>
           </div>
 
-          <div className="opponent-actions" aria-label="Choose opponent">
-            <button type="button" className="opponent-card primary-action daily-ai-card" onClick={() => onStartBot(todayKey)}>
-              <span className={dailyAIProgress.magicStarUnlocked ? 'daily-ai-stars magic-star-active' : 'daily-ai-stars'} aria-label={dailyAIProgress.magicStarUnlocked ? 'Magic star unlocked' : `${dailyAIProgress.stars} of 3 daily AI stars earned`}>
-                {dailyAIProgress.magicStarUnlocked ? <span aria-hidden="true">✦</span> : [0, 1, 2].map((starIndex) => <span key={starIndex} aria-hidden="true">{starIndex < dailyAIProgress.stars ? '★' : '☆'}</span>)}
-              </span>
-              <Bot size={22} />
-              <span><strong>Play AI</strong><small>Instant daily game</small><small className="daily-ai-status">{dailyAIStatusLine}</small></span>
+          <span className="title-spark title-spark-yellow" aria-hidden="true" />
+          <span className="title-spark title-spark-mint" aria-hidden="true" />
+          <h1 id="home-title" className="hero-title"><span>Pocket</span><span>Shuffle</span><span>Chess</span></h1>
+          <p className="hero-tagline"><Zap size={18} aria-hidden="true" /><span>Fast chess. <strong>New opening</strong> every time.</span></p>
+
+          <div className="today-pill">
+            <span className="today-pill-icon" aria-hidden="true"><CalendarDays size={21} /></span>
+            <span className="today-pill-copy">
+              <span>Today’s Daily</span>
+              <strong>{dailySeed} • {dailyBackRankCode}</strong>
+            </span>
+            <button type="button" className="copy-seed-button" onClick={copyDailySeed} aria-label={`Copy ${dailySeed} seed`}>
+              <Copy size={18} aria-hidden="true" />
+              <span>{copyStatus === 'copied' ? 'Copied' : 'Copy'}</span>
             </button>
-            <button type="button" className="opponent-card primary-action" onClick={() => requestMatchFor(dailySeed, dailyBackRankCode)}>
-              <Search size={22} />
-              <span><strong>Find Match</strong><small>Match today's seed</small></span>
+            <span className="copy-status" aria-live="polite">{copyStatus === 'copied' ? 'Copied.' : ''}</span>
+          </div>
+
+          <div className="home-action-grid" aria-label="Choose how to play">
+            <button type="button" className="home-action-card home-action-ai" onClick={() => onStartBot(todayKey)}>
+              <span className="action-badge"><Bot size={14} aria-hidden="true" /> AI</span>
+              <span className="card-sparkle card-sparkle-one" aria-hidden="true" />
+              <img className="action-piece action-piece-pawn" src="/pieces/white-pawn.png" alt="White pawn" draggable={false} />
+              <span className="action-card-copy"><strong>Play AI</strong><small>Instant daily game</small><small className="daily-ai-status">{dailyAIStatusLine}</small></span>
+              <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
-            <button type="button" className="opponent-card primary-action" onClick={onInvite}>
-              <LinkIcon size={22} />
-              <span><strong>Invite Friend</strong><small>Share a challenge link</small></span>
+            <button type="button" className="home-action-card home-action-match" onClick={() => requestMatchFor(dailySeed, dailyBackRankCode)}>
+              <span className="card-sparkle card-sparkle-two" aria-hidden="true" />
+              <img className="action-piece action-piece-rook" src="/pieces/white-rook.png" alt="White rook" draggable={false} />
+              <span className="action-card-copy"><strong>Find Match</strong><small>Match today’s seed</small></span>
+              <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
+            </button>
+            <button type="button" className="home-action-card home-action-invite" onClick={onInvite}>
+              <span className="action-badge invite-badge"><LinkIcon size={14} aria-hidden="true" /> Link</span>
+              <span className="card-sparkle card-sparkle-three" aria-hidden="true" />
+              <img className="action-piece action-piece-knight" src="/pieces/white-knight.png" alt="White knight" draggable={false} />
+              <span className="action-card-copy"><strong>Invite Friend</strong><small>Share a challenge link</small></span>
+              <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
           </div>
 
-          <div className="secondary-links" aria-label="More options">
-            <button type="button" onClick={() => setModal('date')}><CalendarDays size={16} /> Choose Date</button>
-            <button type="button" onClick={() => setModal('custom')}><Shuffle size={16} /> Custom Seed</button>
-            <button type="button" onClick={() => setModal('rules')}><BookOpen size={16} /> How It Works</button>
+          <div className="secondary-home-actions" aria-label="More options">
+            <button type="button" onClick={() => setModal('date')}><CalendarDays size={17} aria-hidden="true" /> Choose Date</button>
+            <button type="button" onClick={() => setModal('custom')}><Shuffle size={17} aria-hidden="true" /> Custom Seed</button>
+            <button type="button" onClick={() => setModal('rules')}><BookOpen size={17} aria-hidden="true" /> How It Works</button>
           </div>
         </div>
 
-        <aside className="setup-preview-card" aria-label="Today's setup preview">
-          <span className="decor-dot decor-dot-one" aria-hidden="true" />
-          <span className="decor-dot decor-dot-two" aria-hidden="true" />
-          <span className="decor-spark decor-spark-one" aria-hidden="true">✦</span>
-          <span className="decor-spark decor-spark-two" aria-hidden="true">✦</span>
-          <span className="decor-heart" aria-hidden="true">♥</span>
-          <p className="eyebrow">Today’s Setup</p>
-          <div className="mini-board-preview" aria-hidden="true">
-            {blackBackRankCode.split('').map((piece, index) => <span key={`black-${piece}-${index}`} className="preview-piece preview-piece-black">{piece}</span>)}
-            {Array.from({ length: 20 }, (_, index) => <span key={`empty-${index}`} className="preview-empty" />)}
-            {dailyBackRankCode.split('').map((piece, index) => <span key={`white-${piece}-${index}`} className="preview-piece preview-piece-white">{piece}</span>)}
+        <aside className="today-setup-showcase" aria-label="Today’s 5 by 6 setup preview">
+          <span className="setup-spark setup-spark-left" aria-hidden="true" />
+          <span className="setup-spark setup-spark-right" aria-hidden="true" />
+          <div className="setup-header-pill"><span aria-hidden="true" />TODAY’S SETUP<span aria-hidden="true" /></div>
+          <div className="preview-board-frame">
+            <div className="preview-board-grid" role="img" data-seed={dailySeed} data-white-back-rank={dailyBackRankCode} data-black-back-rank={blackBackRankCode} aria-label={`5 by 6 seed arrangement for ${dailySeed}: white bottom ${spacedCode(dailyBackRankCode)}, black top ${spacedCode(blackBackRankCode)}`}>
+              {previewRows.flatMap((row, rowIndex) => row.map((piece, fileIndex) => (
+                <span key={`${rowIndex}-${fileIndex}`} className="preview-square">
+                  {piece && <img src={getPieceImageSrc(piece)} alt={`${piece.color} ${getPieceName(piece.type)}`} draggable={false} />}
+                </span>
+              )))}
+            </div>
           </div>
-          <div className="setup-code-stack">
-            <small>Daily shuffle</small>
-            <span>White: {spacedCode(dailyBackRankCode)}</span>
-            <span>Black: {spacedCode(blackBackRankCode)}</span>
-            <strong>{dailyBackRankCode}</strong>
+          <div className="setup-summary-panel">
+            <div className="setup-summary-copy">
+              <span>DAILY SHUFFLE</span>
+              <p><strong>White (Bottom):</strong> {spacedCode(dailyBackRankCode)}</p>
+              <p><strong>Black (Top):</strong> {spacedCode(blackBackRankCode)}</p>
+            </div>
+            <div className="setup-seed-block">
+              <span>SEED</span>
+              <strong>{dailyBackRankCode}</strong>
+            </div>
           </div>
         </aside>
+
+        <div className="decorative-home-pieces" aria-hidden="true">
+          <img className="decorative-black-pawn" src="/pieces/black-pawn.png" alt="" draggable={false} />
+          <img className="decorative-white-bishop" src="/pieces/white-bishop.png" alt="" draggable={false} />
+        </div>
       </section>
 
       {modal === 'date' && (
