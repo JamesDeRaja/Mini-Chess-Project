@@ -19,7 +19,7 @@ function roleColor(playerRole?: string): Color | null {
 }
 
 function isGameOver(status: GameStatus): boolean {
-  return status === 'white_won' || status === 'black_won' || status === 'draw';
+  return status === 'white_won' || status === 'black_won' || status === 'draw' || status === 'expired' || status === 'timeout';
 }
 
 function statusLabel(status: GameStatus, isOwnTurn: boolean): string {
@@ -31,7 +31,7 @@ function statusLabel(status: GameStatus, isOwnTurn: boolean): string {
 function getStatusAvatarColor(status: GameStatus, turn: Color, playerColor: Color | null): Color {
   if (status === 'white_won') return 'white';
   if (status === 'black_won') return 'black';
-  if (status === 'draw') return playerColor ?? 'white';
+  if (status === 'draw' || status === 'expired' || status === 'timeout') return playerColor ?? 'white';
   return turn;
 }
 
@@ -40,7 +40,7 @@ export function GameHeader({ title, turn, status, playerRole, details, onTitleCl
   const isOwnTurn = status === 'active' && playerColor === turn;
   const dotState = isGameOver(status) || !playerColor ? 'neutral' : isOwnTurn ? 'active' : 'waiting';
   const avatarColor = getStatusAvatarColor(status, turn, playerColor);
-  const avatarLabel = status === 'draw'
+  const avatarLabel = status === 'draw' || status === 'expired' || status === 'timeout'
     ? 'Draw status avatar'
     : status === 'white_won' || status === 'black_won'
       ? `${avatarColor === 'white' ? 'White' : 'Black'} winner avatar`

@@ -37,15 +37,15 @@ function getStoredTheme(): Theme | null {
   return storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : null;
 }
 
-function getDefaultTheme(route: Route): Theme {
-  return route.name === 'home' ? 'light' : 'dark';
+function getDefaultTheme(): Theme {
+  return 'light';
 }
 
 export function App() {
   const [route, setRoute] = useState<Route>(() => routeFromLocation());
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(() => getStoredTheme());
   const [inviteError, setInviteError] = useState<string | null>(null);
-  const theme = selectedTheme ?? getDefaultTheme(route);
+  const theme = selectedTheme ?? getDefaultTheme();
 
   useEffect(() => {
     const onPopState = () => setRoute(routeFromLocation());

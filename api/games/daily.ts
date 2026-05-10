@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createInitialBoard } from '../../src/game/createInitialBoard.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey } from '../../src/game/seed.js';
 import { safeSupabaseInsert } from '../../src/multiplayer/safeSupabaseInsert.js';
+import { cleanupOldGames, getNewGameLifecycleFields } from './lifecycle.js';
 import { getServerSupabase } from './serverSupabase.js';
 
 type DailySeedRecord = {
@@ -42,6 +43,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
   }
 
   const supabase = getServerSupabase();
+  await cleanupOldGames(supabase);
+  const lifecycleFields = getNewGameLifecycleFields();
   const storedDailySeed = await getStoredDailySeed(supabase, dateKey);
   const seed = storedDailySeed?.seed ?? getDailySeed(dateKey);
   const backRankCode = storedDailySeed?.back_rank_code ?? backRankCodeFromSeed(seed);
@@ -55,6 +58,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       white_player_id: playerId,
       black_player_id: null,
       move_history: [],
+      ...lifecycleFields,
       seed,
       seed_source: 'daily',
       back_rank_code: backRankCode,

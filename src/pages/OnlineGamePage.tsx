@@ -13,11 +13,10 @@ import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../game/see
 import { playCheckSound, playMoveSound } from '../game/sound.js';
 import { applyMoveDelta, isMoveDelta, moveDeltaToMove, rebuildBoardFromHistory } from '../game/moveDelta.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveDelta, MoveRecord } from '../game/types.js';
-import { createOnlineGame, joinOnlineGame, submitOnlineMove } from '../multiplayer/gameApi.js';
+import { createOnlineGame, createSeededGame, joinOnlineGame, submitOnlineGameAction, submitOnlineMove } from '../multiplayer/gameApi.js';
 import type { OnlineGameRecord } from '../multiplayer/gameApi.js';
 import { getPlayerId } from '../multiplayer/playerSession.js';
 import { subscribeToGame, unsubscribeFromGame } from '../multiplayer/realtime.js';
-import { isSupabaseConfigured } from '../multiplayer/supabaseClient.js';
 import type { MatchMode } from './BotGamePage.js';
 
 type OnlineGamePageProps = {
@@ -77,6 +76,12 @@ function sameMove(a: MoveDelta | MoveRecord | null | undefined, b: MoveDelta | M
   return aFrom === bFrom && aTo === bTo && a.color === b.color;
 }
 
+function getDrawOfferBy(game: OnlineGameRecord): Color | null {
+  if (game.draw_offer_by === 'white' || game.draw_offer_by === 'black') return game.draw_offer_by;
+  const [, offeredBy] = game.result_type?.match(/^draw_offer:(white|black)$/) ?? [];
+  return offeredBy === 'white' || offeredBy === 'black' ? offeredBy : null;
+}
+
 export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome, onNewOnlineGame }: OnlineGamePageProps) {
   const playerId = useMemo(() => getPlayerId(), []);
   const isCreatingInvite = gameId === 'new';
@@ -97,12 +102,15 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   const [backRankCode, setBackRankCode] = useState<string | null>(null);
   const [roundNumber, setRoundNumber] = useState(1);
   const [scores, setScores] = useState({ whiteScore: 0, blackScore: 0 });
+  const [resultType, setResultType] = useState<string | null>(null);
+  const [drawOfferBy, setDrawOfferBy] = useState<Color | null>(null);
+  const [gameActionPending, setGameActionPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [isRealtimeConnected, setIsRealtimeConnected] = useState(true);
   const [pendingClientMoveIds, setPendingClientMoveIds] = useState<Set<string>>(() => new Set());
   const historyListRef = useRef<HTMLOListElement | null>(null);
+  const hasAppliedRoleFlipRef = useRef(false);
   const confirmedGameRef = useRef<OnlineGameRecord | null>(null);
   const pendingClientMoveIdsRef = useRef(pendingClientMoveIds);
   const boardRef = useRef(board);
@@ -114,38 +122,61 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   const hasWhite = Boolean(whitePlayerId);
   const hasBlack = Boolean(blackPlayerId);
   const bothPlayersJoined = hasWhite && hasBlack;
-  const isCompleted = status === 'white_won' || status === 'black_won' || status === 'draw';
-  const isOnlineGameReady = status === 'active' || bothPlayersJoined;
+  const isLifecycleTerminal = status === 'expired' || status === 'timeout';
+  const isFinishedGame = status === 'white_won' || status === 'black_won' || status === 'draw';
+  const isCompleted = isFinishedGame || isLifecycleTerminal;
+  const isOnlineGameReady = !isLifecycleTerminal && (status === 'active' || bothPlayersJoined);
   const shouldShowWaitingOverlay = !isCompleted && inviteState !== 'error' && !isOnlineGameReady;
   const canInteractWithBoard = !shouldShowWaitingOverlay && !isCompleted && role === turn && !hasPendingMove;
   const displayStatus: GameStatus = isOnlineGameReady && status === 'waiting' ? 'active' : status;
   const primaryStatus = useMemo(() => {
     if (inviteState === 'creating_game') return 'Creating game...';
     if (inviteState === 'waiting_for_link') return 'Creating invite link...';
+    if (status === 'expired') return 'Challenge link expired';
+    if (status === 'timeout') return 'Session over';
     if (isCompleted) return status === 'draw' ? 'Draw' : `${status === 'white_won' ? 'White' : 'Black'} won`;
     if (!isOnlineGameReady) return 'Waiting for opponent';
     if (role === 'spectator') return `${turn === 'white' ? 'White' : 'Black'} to move`;
     return role === turn ? 'Your turn' : "Opponent's turn";
   }, [inviteState, isCompleted, isOnlineGameReady, role, status, turn]);
   const winner: Color | null = status === 'white_won' ? 'white' : status === 'black_won' ? 'black' : null;
-  const onlineResult: 'win' | 'loss' | 'draw' | 'spectator' = status === 'draw' ? 'draw' : role === 'spectator' ? 'spectator' : winner === role ? 'win' : 'loss';
-  const onlineResultTitle = status === 'draw'
-    ? 'Draw'
-    : role === 'spectator'
-      ? `${winner === 'white' ? 'White' : 'Black'} won`
-      : winner === role
-        ? 'You won!'
-        : 'You lost';
-  const onlineResultSummary = `${winner ? `${winner === 'white' ? 'White' : 'Black'} wins by checkmate.` : 'The game ended in a draw.'} ${moveHistory.length} moves. Seed: ${seedLabel}.`;
-  const headerStatusLabel = isCompleted ? 'Game Over' : undefined;
+  const drawOfferIsFromOpponent = (role === 'white' || role === 'black') && drawOfferBy !== null && drawOfferBy !== role;
+  const drawActionLabel = drawOfferIsFromOpponent ? 'Accept Draw' : drawOfferBy === role ? 'Draw Requested' : 'Request Draw';
+  const canUseGameActions = isOnlineGameReady && !isCompleted && (role === 'white' || role === 'black') && !gameActionPending;
+  const onlineResult: 'win' | 'loss' | 'draw' | 'spectator' = isLifecycleTerminal || status === 'draw' ? 'draw' : role === 'spectator' ? 'spectator' : winner === role ? 'win' : 'loss';
+  const onlineResultTitle = status === 'expired'
+    ? 'This challenge link has expired.'
+    : status === 'timeout'
+      ? 'This game session is over.'
+      : status === 'draw'
+        ? 'Draw'
+        : role === 'spectator'
+          ? `${winner === 'white' ? 'White' : 'Black'} won`
+          : winner === role
+            ? 'You won!'
+            : 'You lost';
+  const onlineResultSummary = status === 'expired'
+    ? 'Challenge links expire after 60 minutes. Create a new challenge to keep playing.'
+    : status === 'timeout'
+      ? 'No moves were made for 60 minutes. Create a new challenge to keep playing.'
+      : resultType === 'draw_agreement'
+        ? `Players agreed to a draw. ${moveHistory.length} moves. Seed: ${seedLabel}.`
+        : resultType === 'resignation'
+          ? `${winner === 'white' ? 'White' : 'Black'} wins by resignation. ${moveHistory.length} moves. Seed: ${seedLabel}.`
+          : `${winner ? `${winner === 'white' ? 'White' : 'Black'} wins by checkmate.` : 'The game ended in a draw.'} ${moveHistory.length} moves. Seed: ${seedLabel}.`;
+  const headerStatusLabel = isCompleted ? (isLifecycleTerminal ? 'Session Over' : 'Game Over') : undefined;
   const headerTurnLabel = isCompleted
-    ? status === 'draw'
-      ? 'Draw'
-      : role === 'spectator'
-        ? `${winner === 'white' ? 'White' : 'Black'} won`
-        : winner === role
-          ? 'You won'
-          : 'You lost'
+    ? status === 'expired'
+      ? 'Link expired'
+      : status === 'timeout'
+        ? 'Timed out'
+        : status === 'draw'
+          ? 'Draw'
+          : role === 'spectator'
+            ? `${winner === 'white' ? 'White' : 'Black'} won`
+            : winner === role
+              ? 'You won'
+              : 'You lost'
     : undefined;
 
   function setPendingIds(updater: (ids: Set<string>) => Set<string>) {
@@ -158,7 +189,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
 
   function updateInviteStateFromGame(game: OnlineGameRecord) {
     const gameHasBothPlayers = Boolean(game.white_player_id) && Boolean(game.black_player_id);
-    if (game.status === 'white_won' || game.status === 'black_won' || game.status === 'draw') {
+    if (game.status === 'white_won' || game.status === 'black_won' || game.status === 'draw' || game.status === 'expired' || game.status === 'timeout') {
       setInviteState('completed');
       return;
     }
@@ -192,6 +223,8 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
     setSeedLabel(game.seed ?? 'Random');
     setBackRankCode(derivedBackRankCode);
     setRoundNumber(game.round_number ?? 1);
+    setResultType(game.result_type ?? null);
+    setDrawOfferBy(getDrawOfferBy(game));
     setScores({
       whiteScore: game.white_score ?? estimatedScores.whiteScore,
       blackScore: game.black_score ?? estimatedScores.blackScore,
@@ -214,6 +247,18 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
       })
       .catch((syncError: Error) => setError(syncError.message));
   }
+
+  useEffect(() => {
+    hasAppliedRoleFlipRef.current = false;
+  }, [effectiveGameId]);
+
+  useEffect(() => {
+    if (!isOnlineGameReady) return;
+    if (role !== 'white' && role !== 'black') return;
+    if (hasAppliedRoleFlipRef.current) return;
+    setIsFlipped(role === 'black');
+    hasAppliedRoleFlipRef.current = true;
+  }, [isOnlineGameReady, role]);
 
   useEffect(() => {
     pendingClientMoveIdsRef.current = pendingClientMoveIds;
@@ -279,7 +324,6 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   useEffect(() => {
     if (!effectiveGameId) return undefined;
     const channel = subscribeToGame(effectiveGameId, (game) => {
-      setIsRealtimeConnected(true);
       const latestMove = getLatestMove(game);
       const serverMoveCount = game.move_count ?? game.total_moves ?? game.move_history?.length ?? 0;
       const localHistory = moveHistoryRef.current;
@@ -321,7 +365,6 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
       setLegalMoves([]);
     });
 
-    if (!channel) setIsRealtimeConnected(false);
     return () => unsubscribeFromGame(channel);
   // applyGameRecord intentionally reads refs while this subscription is keyed by game identity.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -337,9 +380,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
           applyGameRecord(game);
           setRole(refreshedRole);
         })
-        .catch(() => {
-          setIsRealtimeConnected(false);
-        });
+        .catch(() => undefined);
     }, 2000);
 
     return () => window.clearInterval(pollId);
@@ -359,9 +400,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
           if (nextVersion !== confirmedVersion) applyGameRecord(game);
           setRole(refreshedRole);
         })
-        .catch(() => {
-          setIsRealtimeConnected(false);
-        });
+        .catch(() => undefined);
     }, 2000);
 
     return () => window.clearInterval(pollId);
@@ -417,6 +456,35 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
     window.setTimeout(() => setCopied(false), 1600);
   }
 
+  async function handleCreateNewChallenge() {
+    setError(null);
+    setInviteState('creating_game');
+    try {
+      const createdGame = seedLabel && seedLabel !== 'Random' ? await createSeededGame(playerId, seedLabel) : await createOnlineGame(playerId);
+      setEffectiveGameId(createdGame.gameId);
+      setInviteState('waiting_for_link');
+      window.history.replaceState(null, '', `/game/${createdGame.gameId}?mode=${matchMode}`);
+    } catch (createError) {
+      setInviteState('error');
+      setError(createError instanceof Error ? createError.message : 'Could not create invite link.');
+    }
+  }
+
+  async function handleOnlineGameAction(action: 'resign' | 'request_draw' | 'accept_draw') {
+    if (!effectiveGameId || gameActionPending) return;
+    setGameActionPending(true);
+    setError(null);
+    try {
+      const { game } = await submitOnlineGameAction(effectiveGameId, playerId, action);
+      applyGameRecord(game);
+      if (action === 'request_draw') setToast('Draw offer sent.');
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Unable to update game.');
+    } finally {
+      setGameActionPending(false);
+    }
+  }
+
   async function retryCreateInvite() {
     setError(null);
     setInviteState('creating_game');
@@ -468,6 +536,10 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
             applyGameRecord(game, { preserveLocalMove: true });
             return;
           }
+          setPendingIds((ids) => {
+            ids.delete(clientMoveId);
+            return ids;
+          });
           applyGameRecord(game);
         })
         .catch(() => {
@@ -521,10 +593,7 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
             <p><span>Back rank</span><strong>{backRankCode ?? 'Setup pending'}</strong></p>
             <p><span>🎮 Game</span><strong>{roundNumber}</strong></p>
           </div>
-          <p className="panel-note">{isOnlineGameReady ? 'Share remains available.' : shareIsLoading ? 'Share the invite link. Your friend joins as Black.' : 'Send this link to a friend. The game starts when they join.'}</p>
-          {hasPendingMove && <p className="subtle-inline-status">Sending move...</p>}
-          {isSupabaseConfigured && !isRealtimeConnected && <p className="subtle-inline-status reconnecting-badge">Reconnecting...</p>}
-          {!isSupabaseConfigured && <p className="panel-note">Supabase environment variables are required for live multiplayer.</p>}
+          <p className="panel-note">{isOnlineGameReady ? (drawOfferBy ? `${drawOfferBy === role ? 'You offered a draw.' : 'Opponent offered a draw.'}` : 'Share remains available.') : shareIsLoading ? 'Share the invite link. Your friend joins when they open it.' : 'Send this link to a friend. The game starts when they join.'}</p>
           <div className="match-actions">
             <button type="button" className="wide-action primary-action" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : isOnlineGameReady ? 'Share' : 'Share Invite'}</button>
             <button type="button" className="wide-action secondary-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
@@ -599,7 +668,8 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
               <button type="button" disabled>⏭</button>
             </div>
             <div className="panel-actions stacked-actions">
-              <button type="button" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : 'Share Invite'}</button>
+              <button type="button" className="danger-action" onClick={() => handleOnlineGameAction('resign')} disabled={!canUseGameActions}>Resign</button>
+              <button type="button" className="secondary-action" onClick={() => handleOnlineGameAction(drawOfferIsFromOpponent ? 'accept_draw' : 'request_draw')} disabled={!canUseGameActions || drawOfferBy === role}>{gameActionPending ? 'Updating...' : drawActionLabel}</button>
             </div>
           </div>
         </aside>
@@ -613,7 +683,7 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
           summary={onlineResultSummary}
           actions={(
             <>
-              <button type="button" onClick={onNewOnlineGame}>New Online Game</button>
+              {isLifecycleTerminal ? <button type="button" onClick={handleCreateNewChallenge}>Create New Challenge</button> : <button type="button" onClick={onNewOnlineGame}>New Online Game</button>}
               <button type="button" onClick={onHome}>Back Home</button>
               <button type="button" onClick={handleShareResult}>Share Result</button>
             </>

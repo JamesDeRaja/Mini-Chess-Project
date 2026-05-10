@@ -29,6 +29,10 @@ export type OnlineGameRecord = {
   black_score?: number | null;
   created_at?: string;
   updated_at?: string;
+  expires_at?: string | null;
+  last_activity_at?: string | null;
+  timeout_at?: string | null;
+  draw_offer_by?: Color | null;
 };
 
 async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -89,6 +93,15 @@ export function joinOnlineGame(gameId: string, playerId: string): Promise<{ game
 export type SubmitMoveOptions = {
   promotion?: PromotionPieceType;
 };
+
+export type OnlineGameAction = 'resign' | 'request_draw' | 'accept_draw';
+
+export function submitOnlineGameAction(gameId: string, playerId: string, action: OnlineGameAction): Promise<{ game: OnlineGameRecord }> {
+  return requestJson('/api/games/action', {
+    method: 'POST',
+    body: JSON.stringify({ gameId, playerId, action }),
+  });
+}
 
 export function submitOnlineMove(gameId: string, playerId: string, move: Move, options: SubmitMoveOptions = {}): Promise<{ game: OnlineGameRecord }> {
   return requestJson('/api/games/move', {
