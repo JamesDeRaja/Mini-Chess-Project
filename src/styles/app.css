@@ -2113,8 +2113,8 @@ button:active:not(:disabled) {
 .preview-square:nth-child(10n + 9) { background: #c5d7c0; }
 
 .preview-square img {
-  width: 86%;
-  height: 86%;
+  width: 120.4%;
+  height: 120.4%;
   object-fit: contain;
   filter: drop-shadow(0 7px 5px rgba(40, 34, 24, 0.2));
   pointer-events: none;
