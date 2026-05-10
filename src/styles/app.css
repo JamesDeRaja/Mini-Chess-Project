@@ -1490,3 +1490,177 @@ button:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 3px 7px
 .stacked-actions .secondary-action { color: #253028; background: #bfe3cd; border-color: #abd5bd; }
 .stacked-actions .danger-action { color: #7b3834; background: #f4cfc8; border-color: #e5b4ad; }
 .stacked-actions .gold-action { color: #2d2b25; background: #f2d063; border-color: #d9ba55; }
+
+/* Final measured light-theme correction pass */
+:root,
+:root[data-theme='light'] {
+  --page-bg: #fdf7e7;
+  --page-bg-band: #c8e3d2;
+  --page-bg-2: #c8e3d2;
+  --text-primary: #222428;
+  --text-secondary: #67756d;
+  --accent: #92b097;
+  --accent-soft: #e1eddf;
+  --card-bg: #fbf8ee;
+  --card-border: rgba(222, 217, 203, 0.82);
+  --card-shadow: 0 22px 44px rgba(101, 111, 92, 0.16);
+  --square-light: #fcf5e5;
+  --square-dark: #c5d7c0;
+  --button-yellow-face: #f4dd9b;
+  --button-yellow-underlay: #e5ca89;
+  --button-arrow-face: #fbf3dd;
+  --button-arrow-underlay: #eddfc1;
+  --button-green-face: #c2d4bf;
+  --button-green-underlay: #a9c0a9;
+  --button-primary-bg: #f4dd9b;
+  --button-secondary-bg: #c2d4bf;
+  --button-danger-bg: #f1c8c1;
+  --panel-bg: #fbf8ee;
+  --panel-border: rgba(222, 217, 203, 0.82);
+  --button-bg: #f4dd9b;
+  --button-bg-hover: #f7e4aa;
+}
+
+body { background: #fdf7e7; }
+.home-page,
+.game-page,
+:root[data-theme='light'] .home-page,
+:root[data-theme='light'] .game-page {
+  background:
+    radial-gradient(circle at 66% 8%, rgba(255,255,255,0.58) 0 0.75rem, transparent 0.82rem),
+    radial-gradient(circle at 77% 16%, rgba(255,255,255,0.52) 0 0.34rem, transparent 0.4rem),
+    radial-gradient(circle at 60% 15%, rgba(255,255,255,0.5) 0 0.45rem, transparent 0.52rem),
+    linear-gradient(180deg, #fdf7e7 0 66%, #c8e3d2 66% 100%);
+}
+
+.brand-lockup,
+.brand-crown,
+.game-details,
+.eyebrow,
+.mode-badge,
+.board-seed-badge span,
+.status-word-active,
+.info-stack strong a {
+  color: #92b097;
+}
+.game-page h1 {
+  color: #202124;
+  font-family: "Arial Rounded MT Bold", "Trebuchet MS", Inter, ui-rounded, system-ui, sans-serif;
+  font-size: clamp(58px, 6.1vw, 98px);
+  font-weight: 950;
+  line-height: 0.9;
+  letter-spacing: -0.078em;
+  text-shadow: none;
+}
+.side-panel h2,
+.review-panel h2,
+.history-header h2 {
+  color: #222428;
+  font-family: "Arial Rounded MT Bold", "Trebuchet MS", Inter, ui-rounded, system-ui, sans-serif;
+  font-weight: 950;
+  letter-spacing: -0.045em;
+}
+button { font-weight: 850; }
+.eyebrow { font-weight: 900; letter-spacing: 0.25em; }
+
+.status-card,
+.side-panel,
+.invite-panel,
+.error-card,
+.sync-toast,
+.waiting-board-overlay,
+.winner-card,
+.confirm-card,
+.promotion-modal {
+  background: #fbf8ee;
+  border-color: rgba(222, 217, 203, 0.82);
+  box-shadow: 0 22px 44px rgba(101, 111, 92, 0.16);
+  backdrop-filter: none;
+}
+.status-card { box-shadow: 0 18px 38px rgba(101, 111, 92, 0.16); }
+.status-avatar {
+  background: #a9c8b2;
+  box-shadow: 0 9px 18px rgba(86, 107, 88, 0.14), inset 0 0 0 1px rgba(146, 176, 151, 0.22);
+}
+.status-piece { filter: drop-shadow(0 8px 7px rgba(64, 54, 43, 0.22)); }
+.status-dot-active { background: #5aa487; }
+.status-dot-waiting { background: #d8b856; }
+.status-dot-neutral { background: #a7aaa5; }
+.status-copy strong,
+.status-word-active { color: #92b097; }
+.mode-badge { color: #7f9f86; background: #e1eddf; }
+.score-stack .active-score-row {
+  border-color: rgba(169, 192, 169, 0.56);
+  background: rgba(194, 212, 191, 0.38);
+  box-shadow: 0 8px 18px rgba(99, 116, 96, 0.09);
+}
+.board-seed-badge {
+  background: #fbf8ee;
+  border-color: rgba(222, 217, 203, 0.82);
+  box-shadow: 0 12px 24px rgba(101, 111, 92, 0.12);
+}
+
+button,
+.primary-action,
+.theme-action,
+.gold-action {
+  position: relative;
+  color: #2d2b25;
+  background: #f4dd9b;
+  border-color: rgba(229, 202, 137, 0.74);
+  box-shadow: 0 5px 0 #e5ca89, 0 12px 22px rgba(119, 102, 60, 0.13);
+  background-image: none;
+}
+.secondary-action,
+.wide-action.secondary-action,
+.stacked-actions .secondary-action {
+  color: #253028;
+  background: #c2d4bf;
+  border-color: rgba(169, 192, 169, 0.78);
+  box-shadow: 0 5px 0 #a9c0a9, 0 12px 22px rgba(83, 105, 83, 0.13);
+}
+.danger-action,
+.stacked-actions .danger-action {
+  color: #7b3834;
+  background: #f1c8c1;
+  border-color: rgba(224, 174, 166, 0.78);
+  box-shadow: 0 5px 0 #dfada5, 0 12px 22px rgba(119, 72, 66, 0.12);
+}
+.review-controls button {
+  color: #6b6559;
+  background: #fbf3dd;
+  border-color: rgba(237, 223, 193, 0.9);
+  box-shadow: 0 5px 0 #eddfc1, 0 10px 18px rgba(115, 102, 76, 0.11);
+}
+.review-controls button:nth-child(3) {
+  color: #253028;
+  background: #c2d4bf;
+  border-color: rgba(169, 192, 169, 0.78);
+  box-shadow: 0 5px 0 #a9c0a9, 0 10px 18px rgba(83, 105, 83, 0.12);
+}
+.stacked-actions .gold-action,
+.theme-action,
+.primary-action,
+.gold-action {
+  color: #2d2b25;
+  background: #f4dd9b;
+  border-color: rgba(229, 202, 137, 0.74);
+  box-shadow: 0 5px 0 #e5ca89, 0 12px 22px rgba(119, 102, 60, 0.13);
+}
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.015);
+}
+button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 currentColor, 0 7px 14px rgba(99, 91, 70, 0.1);
+}
+.secondary-action:active:not(:disabled),
+.wide-action.secondary-action:active:not(:disabled),
+.review-controls button:nth-child(3):active:not(:disabled) { box-shadow: 0 2px 0 #a9c0a9, 0 7px 14px rgba(83, 105, 83, 0.1); }
+.theme-action:active:not(:disabled),
+.primary-action:active:not(:disabled),
+.gold-action:active:not(:disabled),
+.stacked-actions .gold-action:active:not(:disabled) { box-shadow: 0 2px 0 #e5ca89, 0 7px 14px rgba(119, 102, 60, 0.1); }
+.danger-action:active:not(:disabled) { box-shadow: 0 2px 0 #dfada5, 0 7px 14px rgba(119, 72, 66, 0.1); }
+.review-controls button:active:not(:disabled) { box-shadow: 0 2px 0 #eddfc1, 0 7px 14px rgba(115, 102, 76, 0.1); }

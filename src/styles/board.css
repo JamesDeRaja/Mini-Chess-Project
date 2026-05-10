@@ -383,3 +383,31 @@
 @media (max-height: 780px) and (min-width: 1181px) {
   .board-shell { width: min(39vw, calc((100svh - 190px) * 5 / 6)); }
 }
+
+/* Final measured board correction */
+.board-shell .board {
+  gap: 5px;
+  padding: 13px;
+  border: 5px solid #453d36;
+  border-radius: 34px;
+  background: #fdfaed;
+  box-shadow: 0 18px 34px rgba(74, 70, 58, 0.2);
+}
+.square {
+  border-radius: 18px;
+  background-image: none !important;
+  box-shadow: 0 5px 9px rgba(92, 91, 77, 0.06);
+}
+.square-light { background: #fcf5e5; }
+.square-dark { background: #c5d7c0; }
+.board-label { display: none !important; }
+.board-rank-labels,
+.board-file-labels { color: rgba(69, 61, 54, 0.7); font-weight: 850; }
+.piece {
+  filter: drop-shadow(0 9px 7px rgba(54, 48, 39, 0.24));
+}
+.piece-selected { filter: drop-shadow(0 12px 10px rgba(54, 48, 39, 0.28)); }
+@media (max-width: 699px) {
+  .board-shell .board { gap: 3px; padding: 9px; border-radius: 27px; }
+  .square { border-radius: 13px; }
+}

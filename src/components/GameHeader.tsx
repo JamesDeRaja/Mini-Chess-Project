@@ -32,7 +32,8 @@ export function GameHeader({ title, turn, status, playerRole, details, onTitleCl
   const playerColor = roleColor(playerRole);
   const isOwnTurn = status === 'active' && playerColor === turn;
   const dotState = isGameOver(status) || !playerColor ? 'neutral' : isOwnTurn ? 'active' : 'waiting';
-  const avatarLabel = playerColor === 'black' ? 'Black side avatar' : 'White side avatar';
+  const avatarColor = turn;
+  const avatarLabel = avatarColor === 'black' ? 'Black to move avatar' : 'White to move avatar';
 
   return (
     <header className="game-header">
@@ -46,7 +47,7 @@ export function GameHeader({ title, turn, status, playerRole, details, onTitleCl
       </div>
       <div className="status-card" aria-live="polite">
         <span className={`status-corner-dot status-dot-${dotState}`} aria-label={`${dotState} status`} />
-        <div className={`status-avatar ${playerColor === 'black' ? 'black-avatar' : 'white-avatar'}`} role="img" aria-label={avatarLabel}>
+        <div className={`status-avatar ${avatarColor === 'black' ? 'black-avatar' : 'white-avatar'}`} role="img" aria-label={avatarLabel}>
           <span className="status-piece status-piece-white">♙</span>
           <span className="status-piece status-piece-black">♟</span>
         </div>

@@ -73,7 +73,6 @@ export function Board({
           {fileLabels.map((file) => <span key={file}>{file}</span>)}
         </div>
       </div>
-      <div className="board-label" aria-hidden="true"><span>✣</span> 5x6 Board</div>
     </div>
   );
 }
