@@ -5,6 +5,7 @@ import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
+import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
 import { type BotLevel, getBotMoveByLevel } from '../game/bot.js';
 import {
   type DailyAIDifficulty,
@@ -78,6 +79,13 @@ function getBotLevelForDailyDifficulty(difficulty: DailyAIDifficulty): BotLevel 
   return 'powerful';
 }
 
+function getAscensionTierForDailyDifficulty(difficulty: DailyAIDifficulty | null): AscensionTier {
+  if (difficulty === 'medium') return 1;
+  if (difficulty === 'hard') return 2;
+  if (difficulty === 'extreme') return 3;
+  return 0;
+}
+
 function getDailyProgressionMessage(progress: DailyAIProgress, didPlayerWin: boolean): string {
   if (!didPlayerWin) return 'No star lost. Retry the same bot.';
   if (progress.stars === 0) return 'Star earned. Medium bot unlocked.';
@@ -104,9 +112,13 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   const isDailyAI = !customSeed;
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
+  const dailyAscensionTier = getAscensionTierForDailyDifficulty(dailyAIDifficulty);
   const playerColor = isDailyAI ? getDailyAIPlayerColor(dailyAIProgress) : 'white';
   const botColor = getOpponent(playerColor);
-  const initialBoardForMount = useMemo(() => createInitialBoard({ backRankCode: dailySeedInfo.backRankCode }), [dailySeedInfo.backRankCode]);
+  const initialBoardForMount = useMemo(() => {
+    const dailyBoard = createInitialBoard({ backRankCode: dailySeedInfo.backRankCode });
+    return isDailyAI ? removeAscensionPieces(dailyBoard, dailyAscensionTier, playerColor) : dailyBoard;
+  }, [dailyAscensionTier, dailySeedInfo.backRankCode, isDailyAI, playerColor]);
   const [board, setBoard] = useState<ChessBoard>(() => initialBoardForMount);
   const [boardTimeline, setBoardTimeline] = useState<ChessBoard[]>(() => [cloneBoard(initialBoardForMount)]);
   const [turn, setTurn] = useState<Color>('white');
@@ -221,7 +233,8 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   }, [board, finishRound, playerColor]);
 
   function resetRound(nextRoundNumber = roundNumber) {
-    const initialBoard = createInitialBoard({ backRankCode: dailySeedInfo.backRankCode });
+    const dailyBoard = createInitialBoard({ backRankCode: dailySeedInfo.backRankCode });
+    const initialBoard = isDailyAI ? removeAscensionPieces(dailyBoard, dailyAscensionTier, playerColor) : dailyBoard;
     setBoard(initialBoard);
     setBoardTimeline([cloneBoard(initialBoard)]);
     setTurn('white');
