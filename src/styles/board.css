@@ -85,6 +85,7 @@
   transform-origin: center;
   --piece-offset-x: 0%;
   --piece-offset-y: 0%;
+  --piece-bottom-seat-offset-y: 7.5%;
   animation: piece-land 250ms cubic-bezier(.2, 1.35, .35, 1);
   transition: transform 250ms ease, filter 250ms ease;
 }
@@ -96,7 +97,7 @@
   place-self: center;
   max-width: none;
   object-fit: contain;
-  transform: translate(var(--piece-offset-x), var(--piece-offset-y));
+  transform: translate(var(--piece-offset-x), calc(var(--piece-offset-y) + var(--piece-bottom-seat-offset-y)));
   filter: drop-shadow(0 6px 6px rgba(40, 34, 24, 0.22));
   pointer-events: none;
   user-select: none;
