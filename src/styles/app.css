@@ -2836,8 +2836,14 @@ body.home-modal-open { overflow: hidden; }
 }
 
 .meet-square.is-move-preview::after {
-  background: radial-gradient(circle, rgba(32, 224, 163, 0.34), rgba(32, 224, 163, 0.1) 62%, transparent 66%);
-  box-shadow: 0 0 18px rgba(32, 224, 163, 0.42);
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: clamp(13px, 3.7vw, 17px);
+  height: clamp(13px, 3.7vw, 17px);
+  background: rgba(247, 207, 114, 0.92);
+  box-shadow: 0 0 0 clamp(7px, 1.7vw, 9px) rgba(247, 207, 114, 0.22), 0 0 18px rgba(247, 207, 114, 0.42);
+  transform: translate(-50%, -50%);
   animation: meet-move-glow 1.55s ease-in-out infinite alternate;
 }
 
@@ -2916,10 +2922,37 @@ body.home-modal-open { overflow: hidden; }
   transform: translateY(-50%) rotate(45deg);
 }
 
+.meet-piece-close {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  color: #6f7d74;
+  background: rgba(237, 242, 233, 0.78);
+  font-size: 1.35rem;
+  font-weight: 850;
+  line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(146, 176, 151, 0.22);
+}
+
+.meet-piece-close:hover {
+  color: #31332f;
+  background: rgba(247, 207, 114, 0.26);
+  transform: translateY(-1px);
+}
+
 .meet-piece-card-header {
   display: flex;
   align-items: center;
   gap: 9px;
+  padding-right: 26px;
 }
 
 .meet-piece-icon {
@@ -2937,11 +2970,11 @@ body.home-modal-open { overflow: hidden; }
 
 .meet-piece-icon img {
   display: block;
-  width: 56px;
-  height: 56px;
+  width: 72px;
+  height: 72px;
   object-fit: contain;
   object-position: center center;
-  transform: translateY(-2%);
+  transform: translateY(-7%);
   transform-origin: center center;
   filter: drop-shadow(0 5px 4px rgba(40, 34, 24, 0.18));
 }
@@ -3004,8 +3037,49 @@ body.home-modal-open { overflow: hidden; }
   transform: translateY(-1px);
 }
 
+.meet-board-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 12px;
+  margin: -11px 0 0;
+  color: #708077;
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.meet-board-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(253, 247, 231, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(222, 217, 203, 0.58);
+}
+
+.meet-legend-orb,
+.meet-legend-capture {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.meet-legend-orb {
+  background: rgba(247, 207, 114, 0.94);
+  box-shadow: 0 0 0 6px rgba(247, 207, 114, 0.2);
+}
+
+.meet-legend-capture {
+  border: 3px solid rgba(211, 82, 82, 0.88);
+  background: rgba(211, 82, 82, 0.1);
+  box-shadow: 0 0 0 4px rgba(211, 82, 82, 0.12);
+}
+
 .meet-board-hint {
-  margin: -10px 0 0;
+  margin: -8px 0 0;
   color: #708077;
   font-size: 0.85rem;
   font-weight: 850;
@@ -3024,8 +3098,8 @@ body.home-modal-open { overflow: hidden; }
 }
 
 @keyframes meet-move-glow {
-  from { opacity: 0.68; transform: scale(0.88); }
-  to { opacity: 1; transform: scale(1.04); }
+  from { opacity: 0.76; transform: translate(-50%, -50%) scale(0.88); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
 }
 
 @keyframes meet-capture-glow {
@@ -3046,5 +3120,7 @@ body.home-modal-open { overflow: hidden; }
 
 @media (max-width: 420px) {
   .meet-piece-card { width: min(230px, calc(100% - 16px)); }
+  .meet-piece-icon img { width: 66px; height: 66px; }
+  .meet-board-legend { margin-top: -3px; font-size: 0.7rem; }
   .meet-board-hint { margin-top: -3px; font-size: 0.78rem; }
 }

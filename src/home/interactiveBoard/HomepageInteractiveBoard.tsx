@@ -40,6 +40,7 @@ const POPUP_GAP = 12;
 const POPUP_INSET = 8;
 const SELECTED_OVERLAP_PENALTY = 200000;
 const CAPTURE_OVERLAP_PENALTY = 100000;
+const NON_PREFERRED_ROW_PENALTY = 5000;
 
 function clamp(value: number, min: number, max: number): number {
   if (max < min) return min;
@@ -82,11 +83,12 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
   }, [board, selectedIndex]);
   useLayoutEffect(() => {
     if (selectedIndex === null) return undefined;
+    const activeSelectedIndex = selectedIndex;
 
     function updateCardPosition() {
       const frame = frameRef.current;
       const card = cardRef.current;
-      const selectedSquare = frame?.querySelector<HTMLElement>(`[data-square-index="${selectedIndex}"]`);
+      const selectedSquare = frame?.querySelector<HTMLElement>(`[data-square-index="${activeSelectedIndex}"]`);
       if (!frame || !card || !selectedSquare) return;
 
       const frameRect = frame.getBoundingClientRect();
@@ -106,6 +108,8 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
       const maxTop = window.innerHeight - frameRect.top - cardHeight - POPUP_INSET;
       const centeredLeft = squareCenterX - cardWidth / 2;
       const centeredTop = squareCenterY - cardHeight / 2;
+      const selectedVisualRow = BOARD_RANKS - 1 - Math.floor(activeSelectedIndex / BOARD_FILES);
+      const preferredVerticalPlacement: MeetPiecePlacement = selectedVisualRow >= BOARD_RANKS / 2 ? 'below' : 'above';
       const selectedSquareRect = {
         left: squareLeft,
         top: squareTop,
@@ -124,13 +128,19 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
             bottom: captureRect.bottom - frameRect.top,
           };
         });
-      const candidates: PlacementCandidate[] = [
-        {
-          placement: 'above',
-          left: centeredLeft,
-          top: squareTop - POPUP_GAP - cardHeight,
-          fits: squareTop - POPUP_GAP - cardHeight >= minTop,
-        },
+      const aboveCandidate: PlacementCandidate = {
+        placement: 'above',
+        left: centeredLeft,
+        top: squareTop - POPUP_GAP - cardHeight,
+        fits: squareTop - POPUP_GAP - cardHeight >= minTop,
+      };
+      const belowCandidate: PlacementCandidate = {
+        placement: 'below',
+        left: centeredLeft,
+        top: squareBottom + POPUP_GAP,
+        fits: squareBottom + POPUP_GAP + cardHeight <= maxTop + cardHeight,
+      };
+      const sideCandidates: PlacementCandidate[] = [
         {
           placement: 'right',
           left: squareRight + POPUP_GAP,
@@ -143,13 +153,10 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
           top: centeredTop,
           fits: squareLeft - POPUP_GAP - cardWidth >= minLeft,
         },
-        {
-          placement: 'below',
-          left: centeredLeft,
-          top: squareBottom + POPUP_GAP,
-          fits: squareBottom + POPUP_GAP + cardHeight <= maxTop + cardHeight,
-        },
       ];
+      const candidates = preferredVerticalPlacement === 'below'
+        ? [belowCandidate, ...sideCandidates, aboveCandidate]
+        : [aboveCandidate, ...sideCandidates, belowCandidate];
       const scoredCandidates = candidates.map((candidate, index) => {
         const clampedLeft = clamp(candidate.left, minLeft, maxLeft);
         const clampedTop = clamp(candidate.top, minTop, maxTop);
@@ -167,7 +174,11 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
           index,
           left: clampedLeft,
           top: clampedTop,
-          score: (candidate.fits ? 0 : 10000) + selectedOverlap * SELECTED_OVERLAP_PENALTY + captureOverlap * CAPTURE_OVERLAP_PENALTY + clampDistance,
+          score: (candidate.fits ? 0 : 10000)
+            + (candidate.placement === preferredVerticalPlacement ? 0 : NON_PREFERRED_ROW_PENALTY)
+            + selectedOverlap * SELECTED_OVERLAP_PENALTY
+            + captureOverlap * CAPTURE_OVERLAP_PENALTY
+            + clampDistance,
         };
       });
       scoredCandidates.sort((first, second) => first.score - second.score || first.index - second.index);
@@ -205,6 +216,11 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
       window.removeEventListener('resize', updateCardPosition);
     };
   }, [dialogueStep, highlightedSquares.captures, selectedIndex, selectedPiece]);
+
+  function closePieceCard() {
+    setCardPosition(null);
+    setSelectedIndex(null);
+  }
 
   function selectPiece(squareIndex: number) {
     if (!board[squareIndex].piece) return;
@@ -261,6 +277,7 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
             style={cardPosition?.style}
             aria-live="polite"
           >
+            <button type="button" className="meet-piece-close" onClick={closePieceCard} aria-label="Close piece tip">×</button>
             <div className="meet-piece-card-header">
               <span className="meet-piece-icon" aria-hidden="true"><img src={getPieceImageSrc(selectedPiece)} alt="" draggable={false} /></span>
               <div>
@@ -276,6 +293,10 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
             <button type="button" className="meet-piece-cta" onClick={onTryDaily}>Try Today&apos;s Daily</button>
           </aside>
         )}
+      </div>
+      <div className="meet-board-legend" aria-label="Movement preview legend">
+        <span><i className="meet-legend-orb" aria-hidden="true" />Orb = can move there</span>
+        <span><i className="meet-legend-capture" aria-hidden="true" />Red = can capture there</span>
       </div>
       <p className="meet-board-hint">Tap a piece. It will explain itself with only a little attitude.</p>
     </>
