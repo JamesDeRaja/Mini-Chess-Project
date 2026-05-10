@@ -76,11 +76,12 @@
   z-index: 2;
   display: inline-grid;
   place-items: center;
-  width: 76%;
-  height: 76%;
+  place-self: center;
+  width: 98.8%;
+  height: 98.8%;
   cursor: grab;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2.2rem, 7vw, 4.75rem);
+  font-size: clamp(2.86rem, 9.1vw, 6.175rem);
   line-height: 1;
   user-select: none;
   transform: translateZ(0);
@@ -89,7 +90,7 @@
 }
 
 @supports (font-size: 1cqi) {
-  .piece { font-size: clamp(1.9rem, 62cqi, 4.9rem); }
+  .piece { font-size: clamp(2.47rem, 80.6cqi, 6.37rem); }
 }
 .piece::before,
 .piece::after {
