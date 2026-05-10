@@ -37,7 +37,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const nextWhitePlayerId = updates.white_player_id ?? existingGame.white_player_id;
   const nextBlackPlayerId = updates.black_player_id ?? existingGame.black_player_id;
   if (nextWhitePlayerId && nextBlackPlayerId && existingGame.status === 'waiting') {
-    updates = { ...updates, status: 'active' };
+    updates = {
+      ...updates,
+      status: 'active',
+      turn: existingGame.turn ?? 'white',
+      updated_at: new Date().toISOString(),
+    };
   }
 
   if (Object.keys(updates).length > 0) {

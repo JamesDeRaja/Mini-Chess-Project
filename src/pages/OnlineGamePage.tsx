@@ -241,6 +241,26 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveGameId]);
 
+
+  useEffect(() => {
+    if (!effectiveGameId || isOnlineGameReady || isCompleted || inviteState === 'error') return undefined;
+
+    const pollId = window.setInterval(() => {
+      joinOnlineGame(effectiveGameId, playerId)
+        .then(({ game, role: refreshedRole }) => {
+          applyGameRecord(game);
+          setRole(refreshedRole);
+        })
+        .catch(() => {
+          setIsRealtimeConnected(false);
+        });
+    }, 2000);
+
+    return () => window.clearInterval(pollId);
+  // applyGameRecord intentionally merges the latest server row while this fallback is keyed by readiness.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveGameId, inviteState, isCompleted, isOnlineGameReady, playerId]);
+
   async function handleShareInvite() {
     if (!inviteLink) return;
     const shareData = {
