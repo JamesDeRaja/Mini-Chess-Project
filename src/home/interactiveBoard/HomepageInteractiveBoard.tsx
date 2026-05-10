@@ -290,8 +290,8 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
               {pieceDialogues[selectedPiece.type].moves.map((moveText) => <p key={moveText}>{moveText}</p>)}
             </div>
             <div className="meet-piece-preview-tags" aria-label="Movement preview legend">
-              <span><i className="meet-legend-orb" aria-hidden="true" />Yellow orb = move</span>
-              <span><i className="meet-legend-capture" aria-hidden="true" />Red orb = capture</span>
+              <span className="meet-preview-chip-move" aria-label="Yellow orb means move"><i className="meet-legend-orb" aria-hidden="true" />= move</span>
+              <span className="meet-preview-chip-capture" aria-label="Red orb means capture"><i className="meet-legend-capture" aria-hidden="true" />= capture</span>
             </div>
           </aside>
         )}
