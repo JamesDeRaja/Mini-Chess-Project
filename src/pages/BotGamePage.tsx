@@ -5,7 +5,7 @@ import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
-import { getAscensionTierPieces, removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
+import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
 import { type BotLevel, getBotMoveByLevel } from '../game/bot.js';
 import {
   type DailyAIDifficulty,
@@ -79,21 +79,18 @@ function getBotLevelForDailyDifficulty(difficulty: DailyAIDifficulty): BotLevel 
   return 'powerful';
 }
 
-function getAscensionTierName(tier: AscensionTier): string {
-  if (tier === 0) return 'Standard Daily';
-  return `Ascension ${['I', 'II', 'III'][tier - 1]}`;
-}
-
-function getAscensionRemainingPiecesLabel(tier: AscensionTier): string {
-  const labels: Record<string, string> = { king: 'King', queen: 'Queen', rook: 'Rook', bishop: 'Bishop', knight: 'Knight' };
-  return getAscensionTierPieces(tier).map((piece) => labels[piece]).join(', ');
+function getAscensionTierForDailyDifficulty(difficulty: DailyAIDifficulty | null): AscensionTier {
+  if (difficulty === 'medium') return 1;
+  if (difficulty === 'hard') return 2;
+  if (difficulty === 'extreme') return 3;
+  return 0;
 }
 
 function getDailyProgressionMessage(progress: DailyAIProgress, didPlayerWin: boolean): string {
   if (!didPlayerWin) return 'No star lost. Retry the same bot.';
-  if (progress.stars === 0) return 'Star earned. Medium bot unlocked with Ascension I.';
-  if (progress.stars === 1) return 'Star earned. Hard bot unlocked with Ascension II.';
-  if (progress.stars === 2) return 'Third star earned. Final boss unlocked with Ascension III.';
+  if (progress.stars === 0) return 'Star earned. Medium bot unlocked.';
+  if (progress.stars === 1) return 'Star earned. Hard bot unlocked.';
+  if (progress.stars === 2) return 'Third star earned. Final boss unlocked.';
   return 'Magic star unlocked.';
 }
 
@@ -115,13 +112,13 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   const isDailyAI = !customSeed;
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
-  const dailyAscensionTier = (isDailyAI ? Math.min(dailyAIProgress.stars, 3) : 0) as AscensionTier;
+  const dailyAscensionTier = getAscensionTierForDailyDifficulty(dailyAIDifficulty);
   const playerColor = isDailyAI ? getDailyAIPlayerColor(dailyAIProgress) : 'white';
   const botColor = getOpponent(playerColor);
   const initialBoardForMount = useMemo(() => {
     const dailyBoard = createInitialBoard({ backRankCode: dailySeedInfo.backRankCode });
-    return isDailyAI ? removeAscensionPieces(dailyBoard, dailyAscensionTier) : dailyBoard;
-  }, [dailyAscensionTier, dailySeedInfo.backRankCode, isDailyAI]);
+    return isDailyAI ? removeAscensionPieces(dailyBoard, dailyAscensionTier, playerColor) : dailyBoard;
+  }, [dailyAscensionTier, dailySeedInfo.backRankCode, isDailyAI, playerColor]);
   const [board, setBoard] = useState<ChessBoard>(() => initialBoardForMount);
   const [boardTimeline, setBoardTimeline] = useState<ChessBoard[]>(() => [cloneBoard(initialBoardForMount)]);
   const [turn, setTurn] = useState<Color>('white');
@@ -237,7 +234,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
 
   function resetRound(nextRoundNumber = roundNumber) {
     const dailyBoard = createInitialBoard({ backRankCode: dailySeedInfo.backRankCode });
-    const initialBoard = isDailyAI ? removeAscensionPieces(dailyBoard, dailyAscensionTier) : dailyBoard;
+    const initialBoard = isDailyAI ? removeAscensionPieces(dailyBoard, dailyAscensionTier, playerColor) : dailyBoard;
     setBoard(initialBoard);
     setBoardTimeline([cloneBoard(initialBoard)]);
     setTurn('white');
@@ -354,7 +351,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
         turn={turn}
         status={status}
         playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
-        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${getAscensionTierName(dailyAscensionTier)} · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
+        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
         onTitleClick={onHome}
         statusLabelOverride={headerStatusLabel}
         turnLabelOverride={headerTurnLabel}
@@ -375,8 +372,6 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
           <div className="info-stack">
             <p><span>🎮 Game</span><strong>{roundNumber}/{config.maxGames}</strong></p>
             <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
-            {isDailyAI && <p><span>⭐ Tier</span><strong>{getAscensionTierName(dailyAscensionTier)}</strong></p>}
-            {isDailyAI && <p><span>♕ Remaining</span><strong>{getAscensionRemainingPiecesLabel(dailyAscensionTier)}</strong></p>}
             <p><span>🌱 Daily seed</span><strong>{dailySeedInfo.seed}</strong></p>
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>
             <p><span>Back rank</span><strong>{dailySeedInfo.backRankCode}</strong></p>
@@ -451,7 +446,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
           winner={roundResult.winner}
           eyebrow={matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}
           title={matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}
-          summary={`Score: White ${score.white} — Black ${score.black}. ${isDailyAI ? `${getAscensionTierName(dailyAscensionTier)} · Remaining pieces: ${getAscensionTierPieces(dailyAscensionTier).map((piece) => piece.charAt(0).toUpperCase()).join(' ')}.` : matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}`}
+          summary={`Score: White ${score.white} — Black ${score.black}. ${isDailyAI ? 'Daily ladder mode.' : matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}`}
           progressionMessage={roundResult.progressionMessage}
           actions={(
             <>
