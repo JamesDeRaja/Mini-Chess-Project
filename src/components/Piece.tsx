@@ -17,17 +17,18 @@ export function Piece({ piece, isDraggable = false, isSelected = false, onDragSt
 
   return (
     <span
-      className={`piece piece-${piece.color} piece-${piece.type} ${isSelected ? 'piece-selected' : ''}`}
+      className={`piece piece-wrapper piece-${piece.color} ${isSelected ? 'piece-selected' : ''}`}
       draggable={isDraggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       aria-label={ariaLabel}
     >
       {imageFailed ? (
-        <span className="piece-fallback" aria-hidden="true">{getPieceFallbackSymbol(piece)}</span>
+        <span className="piece-fallback" data-piece={piece.type} aria-hidden="true">{getPieceFallbackSymbol(piece)}</span>
       ) : (
         <img
           className="piece-img"
+          data-piece={piece.type}
           src={pieceImageSrc}
           alt=""
           draggable={false}

@@ -71,51 +71,50 @@
   animation: check-pulse 1s ease-in-out infinite alternate;
 }
 
-.piece {
-  position: relative;
+.piece,
+.piece-wrapper {
+  position: absolute;
+  inset: 0;
   z-index: 2;
-  display: inline-grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: grab;
   line-height: 1;
   user-select: none;
-  transform: translateZ(0);
-  transform-origin: center;
-  --piece-offset-x: 0%;
-  --piece-offset-y: 0%;
-  --piece-bottom-seat-offset-y: 11%;
+  transform-origin: center center;
+  --piece-size: 76%;
   animation: piece-land 250ms cubic-bezier(.2, 1.35, .35, 1);
   transition: transform 250ms ease, filter 250ms ease;
 }
 
 .piece-img {
   display: block;
-  width: 202.8%;
-  height: 202.8%;
-  place-self: center;
-  max-width: none;
+  max-width: var(--piece-size);
+  max-height: var(--piece-size);
+  width: auto;
+  height: auto;
   object-fit: contain;
-  transform: translate(var(--piece-offset-x), calc(var(--piece-offset-y) - var(--piece-bottom-seat-offset-y)));
-  filter: drop-shadow(0 6px 6px rgba(40, 34, 24, 0.22));
+  transform: translateY(var(--piece-y, 0px)) scale(var(--piece-scale, 1));
+  transform-origin: center center;
+  filter: drop-shadow(0 8px 8px rgba(40, 34, 24, 0.22));
   pointer-events: none;
   user-select: none;
 }
 
-.piece-king { --piece-offset-x: 0.29%; --piece-offset-y: 3.03%; }
-.piece-queen { --piece-offset-x: 0.88%; --piece-offset-y: 2.64%; }
-.piece-rook { --piece-offset-x: 0.1%; --piece-offset-y: -1.37%; }
-.piece-bishop { --piece-offset-x: -0.49%; --piece-offset-y: -2.64%; }
-.piece-knight { --piece-offset-x: 1.95%; --piece-offset-y: -2.73%; }
-.piece-pawn { --piece-offset-x: -0.2%; --piece-offset-y: -6.15%; }
+.piece-img[data-piece='queen'] { --piece-scale: 0.98; }
+.piece-img[data-piece='rook'] { --piece-scale: 1.08; --piece-y: -2px; }
+.piece-img[data-piece='bishop'],
+.piece-img[data-piece='knight'] { --piece-scale: 1.08; --piece-y: -2px; }
+.piece-img[data-piece='pawn'] { --piece-scale: 1.08; --piece-y: -2px; }
 
 .piece-fallback {
   display: grid;
   place-items: center;
-  width: 202.8%;
-  height: 202.8%;
-  place-self: center;
+  width: var(--piece-size);
+  height: var(--piece-size);
+  transform: translateY(var(--piece-y, 0px)) scale(var(--piece-scale, 1));
+  transform-origin: center center;
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(4.4rem, 14vw, 9.5rem);
   line-height: 1;
@@ -123,9 +122,12 @@
   user-select: none;
 }
 
-@supports (font-size: 1cqi) {
-  .piece-fallback { font-size: clamp(3.8rem, 124cqi, 9.8rem); }
-}
+.piece-fallback[data-piece='queen'] { --piece-scale: 0.98; }
+.piece-fallback[data-piece='rook'],
+.piece-fallback[data-piece='bishop'],
+.piece-fallback[data-piece='knight'],
+.piece-fallback[data-piece='pawn'] { --piece-scale: 1.08; --piece-y: -2px; }
+
 .piece:active,
 .piece-dragging {
   cursor: grabbing;
