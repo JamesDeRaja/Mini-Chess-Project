@@ -59,9 +59,20 @@ export function Board({
     }
   }
 
+  const rankLabels = visualRanks.map((rank) => rank + 1);
+  const fileLabels = visualFiles.map((file) => fileLabel(file));
+
   return (
     <div className="board-shell">
-      <div className="board">{squares}</div>
+      <div className="board-stage">
+        <div className="board-rank-labels" aria-hidden="true">
+          {rankLabels.map((rank) => <span key={rank}>{rank}</span>)}
+        </div>
+        <div className="board">{squares}</div>
+        <div className="board-file-labels" aria-hidden="true">
+          {fileLabels.map((file) => <span key={file}>{file}</span>)}
+        </div>
+      </div>
       <div className="board-label" aria-hidden="true"><span>✣</span> 5x6 Board</div>
     </div>
   );
