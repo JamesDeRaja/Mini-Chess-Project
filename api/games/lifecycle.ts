@@ -1,11 +1,13 @@
+import { safeSupabaseUpdate } from '../../src/multiplayer/safeSupabaseUpdate.js';
+
 const INVITE_EXPIRATION_MINUTES = 60;
 const GAME_TIMEOUT_MINUTES = 60;
 const CLEANUP_DAYS = 7;
 
 const TERMINAL_CLEANUP_STATUSES = ['expired', 'timeout', 'white_won', 'black_won', 'draw', 'checkmate', 'stalemate', 'finished'] as const;
 
-type QueryResult = { data: GameRecord | null; error: { message?: string } | null };
-type UpdateBuilder = { eq: (column: 'id', value: string) => { select: (columns?: string) => { single: () => PromiseLike<QueryResult> } } };
+type UpdateResult = { data: GameRecord | null; error: { message: string } | null };
+type UpdateBuilder = { eq: (column: 'id', value: string) => { select: (columns?: string) => { single: () => PromiseLike<UpdateResult> } } };
 type DeleteBuilder = { lt: (column: 'created_at', value: string) => { in: (column: 'status', values: readonly string[]) => PromiseLike<unknown> } };
 type SupabaseLike = {
   from: (table: 'games') => {
@@ -67,7 +69,7 @@ async function markGameTerminal(supabase: SupabaseLike, game: GameRecord, status
     updated_at: now.toISOString(),
   };
 
-  const { data, error } = await supabase.from('games').update(payload).eq('id', String(game.id)).select('*').single();
+  const { data, error } = await safeSupabaseUpdate(supabase, String(game.id), payload);
   if (error || !data) return { ...game, ...payload };
   return data;
 }

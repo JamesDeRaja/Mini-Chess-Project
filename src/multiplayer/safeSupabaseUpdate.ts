@@ -1,6 +1,7 @@
-import { pickBaseGameFields } from './safeSupabaseInsert.js';
+import { getMissingSchemaColumn, optionalGameMetadataFields, pickBaseGameFields } from './safeSupabaseInsert.js';
 
-type QueryResult<T> = { data: T | null; error: { message: string } | null };
+type SupabaseError = { message: string };
+type QueryResult<T> = { data: T | null; error: SupabaseError | null };
 type UpdateQuery<T> = {
   eq: (column: 'id', value: string) => {
     select: (columns?: string) => {
@@ -21,10 +22,22 @@ export async function safeSupabaseUpdate<T>(
   payload: Record<string, unknown>,
   selectColumns = '*',
 ): Promise<QueryResult<T>> {
-  const firstAttempt = await supabase.from('games').update(payload).eq('id', gameId).select(selectColumns).single();
-  if (!firstAttempt.error) return firstAttempt;
+  let currentPayload = { ...payload };
+  let firstAttempt: QueryResult<T> | null = null;
+
+  for (let attempt = 0; attempt <= optionalGameMetadataFields.length; attempt += 1) {
+    const result = await supabase.from('games').update(currentPayload).eq('id', gameId).select(selectColumns).single();
+    if (!firstAttempt) firstAttempt = result;
+    if (!result.error) return result;
+
+    const missingColumn = getMissingSchemaColumn(result.error);
+    if (!missingColumn || !(missingColumn in currentPayload)) break;
+
+    currentPayload = { ...currentPayload };
+    delete currentPayload[missingColumn];
+  }
 
   const basePayload = pickBaseGameFields(payload);
   const retryAttempt = await supabase.from('games').update(basePayload).eq('id', gameId).select(selectColumns).single();
-  return retryAttempt.error ? firstAttempt : retryAttempt;
+  return retryAttempt.error ? (firstAttempt ?? retryAttempt) : retryAttempt;
 }

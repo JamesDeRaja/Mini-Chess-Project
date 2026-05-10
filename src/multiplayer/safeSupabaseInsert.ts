@@ -25,7 +25,8 @@ export const optionalGameMetadataFields = [
   'timeout_at',
 ] as const;
 
-type QueryResult<T> = { data: T | null; error: { message: string } | null };
+type SupabaseError = { message: string };
+type QueryResult<T> = { data: T | null; error: SupabaseError | null };
 type InsertQuery<T> = {
   select: (columns?: string) => {
     single: () => PromiseLike<QueryResult<T>>;
@@ -45,15 +46,36 @@ export function pickBaseGameFields(payload: Record<string, unknown>): Record<str
   }, {});
 }
 
+export function getMissingSchemaColumn(error: SupabaseError | null): string | null {
+  const message = error?.message ?? '';
+  const schemaCacheMatch = message.match(/Could not find the '([^']+)' column/);
+  if (schemaCacheMatch?.[1]) return schemaCacheMatch[1];
+
+  const columnMatch = message.match(/column "([^"]+)"/i);
+  return columnMatch?.[1] ?? null;
+}
+
 export async function safeSupabaseInsert<T>(
   supabase: SupabaseClientLike<T>,
   payload: Record<string, unknown>,
   selectColumns = '*',
 ): Promise<QueryResult<T>> {
-  const firstAttempt = await supabase.from('games').insert(payload).select(selectColumns).single();
-  if (!firstAttempt.error) return firstAttempt;
+  let currentPayload = { ...payload };
+  let firstAttempt: QueryResult<T> | null = null;
+
+  for (let attempt = 0; attempt <= optionalGameMetadataFields.length; attempt += 1) {
+    const result = await supabase.from('games').insert(currentPayload).select(selectColumns).single();
+    if (!firstAttempt) firstAttempt = result;
+    if (!result.error) return result;
+
+    const missingColumn = getMissingSchemaColumn(result.error);
+    if (!missingColumn || !(missingColumn in currentPayload)) break;
+
+    currentPayload = { ...currentPayload };
+    delete currentPayload[missingColumn];
+  }
 
   const basePayload = pickBaseGameFields(payload);
   const retryAttempt = await supabase.from('games').insert(basePayload).select(selectColumns).single();
-  return retryAttempt.error ? firstAttempt : retryAttempt;
+  return retryAttempt.error ? (firstAttempt ?? retryAttempt) : retryAttempt;
 }

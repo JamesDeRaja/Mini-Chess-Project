@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { safeSupabaseUpdate } from '../../src/multiplayer/safeSupabaseUpdate.js';
 import { assessGameLifecycle, getActivityResetFields } from './lifecycle.js';
 import { getServerSupabase } from './serverSupabase.js';
 
@@ -59,12 +60,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
   }
 
   if (Object.keys(updates).length > 0) {
-    const { data: updatedGame, error: updateError } = await supabase
-      .from('games')
-      .update(updates)
-      .eq('id', gameId)
-      .select('*')
-      .single();
+    const { data: updatedGame, error: updateError } = await safeSupabaseUpdate(
+      supabase,
+      gameId,
+      updates,
+    );
 
     if (updateError) {
       response.status(500).send(updateError.message);
