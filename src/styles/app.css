@@ -2417,3 +2417,371 @@ body.home-modal-open { overflow: hidden; }
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* Mobile-only layout polish. Keep desktop/tablet rules untouched above this breakpoint. */
+.home-action-more { display: none; }
+.action-more-glyph { display: none; }
+
+@media (max-width: 768px) {
+  .home-page,
+  :root[data-theme='light'] .home-page,
+  :root[data-theme='dark'] .home-page {
+    min-height: 100svh;
+    padding: 12px 12px 22px;
+    overflow-x: hidden;
+  }
+
+  .home-hero-shell {
+    gap: 16px;
+    padding-top: 52px;
+    padding-bottom: 8px;
+  }
+
+  .home-hero-shell .hero-copy { gap: 10px; }
+  .brand-row { gap: 9px; font-size: 0.66rem; letter-spacing: 0.16em; }
+  .brand-icon-tile { width: 34px; height: 34px; border-radius: 12px; }
+  .hero-title { font-size: clamp(46px, 15.5vw, 72px); line-height: 0.86; }
+  .hero-tagline { font-size: 0.98rem; }
+  .title-spark-yellow { top: 78px; right: 10px; width: 24px; height: 24px; }
+  .title-spark-mint,
+  .decorative-home-pieces { display: none; }
+
+  .today-pill {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 9px;
+    width: 100%;
+    padding: 9px;
+    border-radius: 22px;
+  }
+  .today-pill-icon { width: 38px; height: 38px; }
+  .today-pill-copy span { font-size: 0.76rem; }
+  .today-pill-copy strong { font-size: 0.86rem; }
+  .copy-seed-button { grid-column: auto; width: auto; padding: 9px; }
+  .copy-seed-button span { display: none; }
+  .copy-status { left: 10px; bottom: -19px; }
+
+  .home-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    max-width: none;
+    margin-top: 8px;
+  }
+  .home-action-more { display: flex; background: #fbf3dd; border-color: rgba(237, 223, 193, 0.9); }
+  .home-action-card {
+    min-height: 136px;
+    padding: 12px;
+    border-radius: 24px;
+  }
+  .home-action-card .action-badge {
+    top: 10px;
+    left: 10px;
+    padding: 5px 7px;
+    font-size: 0.66rem;
+  }
+  .action-piece {
+    top: 22px;
+    right: 8px;
+    left: auto;
+    width: 82px;
+    height: 76px;
+    opacity: 0.78;
+    transform: none;
+  }
+  .action-card-copy { gap: 3px; padding-right: 44px; }
+  .action-card-copy strong { font-size: clamp(0.98rem, 4.4vw, 1.14rem); }
+  .action-card-copy small { font-size: 0.72rem; line-height: 1.18; }
+  .action-card-copy .daily-ai-status { display: none; }
+  .action-arrow { right: 10px; bottom: 10px; width: 30px; height: 30px; }
+  .card-sparkle-four { top: 22px; right: 16px; transform: rotate(12deg); }
+  .action-more-glyph {
+    position: absolute;
+    top: 42px;
+    right: 12px;
+    display: inline-flex;
+    gap: 2px;
+    color: #7f9f86;
+    opacity: 0.42;
+    transform: rotate(-6deg) scale(0.86);
+  }
+  .more-badge { color: #7f9f86; }
+  .secondary-home-actions { display: none; }
+
+  .today-setup-showcase {
+    gap: 10px;
+    width: min(100%, 390px);
+    padding: 14px;
+    border-radius: 26px;
+  }
+  .setup-header-pill { padding: 7px 11px; font-size: 0.66rem; letter-spacing: 0.18em; }
+  .preview-board-frame { width: min(100%, 250px); border-width: 4px; border-radius: 20px; }
+  .preview-board-grid { gap: 2px; padding: 3px; border-radius: 15px; }
+  .preview-square { border-radius: 7px; }
+  .preview-square img { width: 125%; height: 125%; }
+  .setup-summary-panel { gap: 9px; padding: 11px; border-radius: 20px; }
+  .setup-summary-copy p { font-size: 0.8rem; }
+  .setup-seed-block { padding-top: 9px; }
+
+  .home-page > .modal-backdrop {
+    z-index: 2000;
+    padding: 14px;
+    align-items: center;
+  }
+  .home-page > .modal-backdrop > .utility-modal {
+    width: min(100%, 430px);
+    max-height: min(86vh, 86dvh);
+    padding: 20px;
+    border-radius: 28px;
+  }
+  .more-options-list { display: grid; gap: 10px; margin-top: 14px; }
+  .more-option-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-content: start;
+    gap: 12px;
+    min-height: 66px;
+    width: 100%;
+    padding: 12px 14px;
+    text-align: left;
+    color: #2d2b25;
+    background: rgba(251, 243, 221, 0.9);
+    border-color: rgba(237, 223, 193, 0.9);
+  }
+  .more-option-item span { display: grid; gap: 3px; }
+  .more-option-item small { color: #67756d; font-weight: 750; line-height: 1.25; }
+
+  .game-page {
+    min-height: 100svh;
+    height: auto;
+    grid-template-rows: auto auto;
+    gap: 12px;
+    padding: 12px;
+    overflow: visible;
+  }
+  .game-header {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .brand-lockup { margin-bottom: 5px; font-size: 0.62rem; letter-spacing: 0.16em; }
+  .brand-icon { width: 28px; height: 28px; }
+  .game-page h1 { font-size: clamp(34px, 10.5vw, 48px); line-height: 0.92; }
+  .game-details { margin-top: 6px; font-size: 0.88rem; line-height: 1.35; }
+
+  .status-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    min-height: 0;
+    width: 100%;
+    padding: 9px 12px;
+    gap: 9px;
+    border-radius: 18px;
+  }
+  .status-avatar { width: 40px; height: 40px; border-radius: 13px; }
+  .status-piece-img { width: 140%; height: 140%; }
+  .status-corner-dot {
+    position: static;
+    grid-column: 3;
+    grid-row: 1;
+    width: 11px;
+    height: 11px;
+    align-self: center;
+  }
+  .status-copy {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 2px 8px;
+    min-width: 0;
+  }
+  .status-copy span,
+  .status-copy .turn-line { font-size: 0.78rem; line-height: 1.15; }
+  .status-copy strong,
+  .status-word-active { font-size: 0.98rem; line-height: 1.1; }
+  .status-copy .turn-line { grid-column: 1 / -1; }
+
+  .chess-shell {
+    --play-area-height: min(68vh, calc(100vw * 1.2));
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+    min-height: 0;
+  }
+  .board-column {
+    order: 1;
+    width: 100%;
+    overflow: visible;
+  }
+  .match-panel {
+    order: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .review-panel { order: 3; }
+  .side-panel,
+  .invite-panel,
+  .error-card,
+  .sync-toast {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    max-height: none;
+    padding: 14px;
+    border-radius: 22px;
+  }
+  .panel-title-row { gap: 10px; }
+  .side-panel h2,
+  .review-panel h2,
+  .history-header h2 { font-size: 1.22rem; }
+  .mode-badge { padding: 5px 8px; font-size: 0.76rem; }
+  .score-stack {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .score-stack span {
+    min-height: 42px;
+    padding: 7px 9px;
+    font-size: 0.88rem;
+  }
+  .piece-score-icon { width: 38px; height: 38px; }
+  .info-stack {
+    grid-template-columns: 1fr;
+    gap: 7px;
+    padding-top: 10px;
+  }
+  .info-stack p { font-size: 0.82rem; }
+  .match-actions,
+  .panel-actions,
+  .stacked-actions,
+  .review-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .match-actions { order: -1; padding-top: 0; }
+  .match-actions button,
+  .panel-actions button,
+  .stacked-actions button { flex: 1 1 140px; min-width: 0; }
+  .wide-action { min-height: 44px; justify-content: center; }
+
+  .history-panel {
+    display: flex;
+    min-height: 0;
+    max-height: none;
+  }
+  .history-header { margin-bottom: 8px; }
+  .history-header .panel-note { margin: 4px 0 0; font-size: 0.8rem; }
+  .history-list {
+    flex: 0 1 auto;
+    max-height: 190px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .review-footer { gap: 10px; padding-top: 10px; }
+  .review-controls { width: 100%; }
+  .review-controls button { flex: 1 1 42px; min-height: 40px; padding: 8px 9px; }
+  .move-history-row {
+    grid-template-columns: 1.65rem minmax(0, 1fr) minmax(0, 1fr);
+    min-height: 42px;
+  }
+  .history-move { min-height: 40px; padding: 4px; font-size: 0.82rem; }
+  .history-piece-icon { width: 34px; height: 34px; }
+  .waiting-board-overlay {
+    width: min(86%, 300px);
+    padding: 12px;
+    border-radius: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .board {
+    width: min(94vw, 430px);
+    max-width: 100%;
+    padding: 8px;
+    border-width: 4px;
+    border-radius: 26px;
+  }
+  .coordinate-label { top: 4px; left: 6px; font-size: clamp(0.58rem, 2.5vw, 0.78rem); }
+}
+
+@media (max-width: 380px) {
+  .home-action-card { min-height: 126px; }
+  .action-piece { width: 70px; height: 66px; }
+  .action-card-copy { padding-right: 34px; }
+  .today-pill { grid-template-columns: auto minmax(0, 1fr); }
+  .copy-seed-button { grid-column: 1 / -1; width: 100%; }
+  .copy-seed-button span { display: inline; }
+  .history-list { max-height: 170px; }
+}
+
+@media (max-width: 768px) {
+  .match-panel {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .match-panel .panel-title-row,
+  .match-panel .score-stack,
+  .match-panel .info-stack,
+  .match-panel .match-actions {
+    width: 100%;
+  }
+
+  .match-panel .panel-title-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .score-stack span {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    justify-content: stretch;
+    gap: 8px;
+    text-align: left;
+  }
+
+  .info-stack {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding-top: 12px;
+  }
+
+  .info-stack p {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-content: start;
+    align-items: start;
+    gap: 5px;
+    min-height: 62px;
+    padding: 10px 12px;
+    border: 1px solid rgba(220, 214, 199, 0.66);
+    border-radius: 16px;
+    background: rgba(247, 242, 227, 0.42);
+    font-size: 0.8rem;
+  }
+
+  .info-stack p:nth-child(3),
+  .online-match-panel .info-stack p:nth-child(5),
+  .online-match-panel .info-stack p:nth-child(6) {
+    grid-column: 1 / -1;
+    min-height: 58px;
+  }
+
+  .info-stack span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #68766e;
+  }
+
+  .info-stack strong {
+    text-align: left;
+    font-size: 0.94rem;
+    line-height: 1.18;
+  }
+}
