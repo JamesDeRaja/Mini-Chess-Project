@@ -583,6 +583,11 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   color: var(--text);
   background: rgba(255, 248, 233, 0.78);
 }
+
+.custom-seed-example {
+  overflow-x: auto;
+  white-space: nowrap;
+}
 .selected-daily-panel {
   display: grid;
   gap: 3px;
@@ -2276,4 +2281,40 @@ button:active:not(:disabled) {
 .preview-square:nth-child(10n + 10) {
   --preview-tile-depth: rgba(166, 137, 94, 0.14);
   background: #faf2e1;
+}
+
+/* Main menu modal usability: keep home overlays centered above all page chrome. */
+body.home-modal-open { overflow: hidden; }
+.home-page > .modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  padding: clamp(16px, 4vw, 32px);
+  overflow: hidden;
+  background: rgba(45, 43, 40, 0.36);
+  animation: home-modal-fade 180ms ease-out;
+}
+.home-page > .modal-backdrop > .utility-modal {
+  width: min(100%, 640px);
+  max-height: min(88vh, 88dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: home-modal-pop 220ms cubic-bezier(.2, 1.1, .4, 1);
+}
+.home-page > .modal-backdrop > .rules-modal,
+.home-page > .modal-backdrop > .matchmaking-modal { width: min(100%, 680px); }
+
+@keyframes home-modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes home-modal-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
