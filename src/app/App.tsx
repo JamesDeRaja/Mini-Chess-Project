@@ -3,6 +3,7 @@ import { cancelMatchmaking, createDailyGame, createSeededGame, findMatchmakingGa
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { getPlayerId } from '../multiplayer/playerSession.js';
 import { BotGamePage } from '../pages/BotGamePage.js';
+import type { AscensionTier } from '../game/ascension.js';
 import type { MatchMode } from '../pages/BotGamePage.js';
 import { HomePage } from '../pages/HomePage.js';
 import { OnlineGamePage } from '../pages/OnlineGamePage.js';
@@ -11,11 +12,16 @@ type Theme = 'light' | 'dark';
 
 type Route =
   | { name: 'home' }
-  | { name: 'bot'; dateKey?: string; seed?: string }
+  | { name: 'bot'; dateKey?: string; seed?: string; ascensionTier?: AscensionTier }
   | { name: 'online'; gameId: string; matchMode: MatchMode };
 
 function isMatchMode(value: string | null): value is MatchMode {
   return value === 'single' || value === 'best-of-3' || value === 'best-of-5';
+}
+
+function parseAscensionTier(value: string | null): AscensionTier | undefined {
+  if (value === '0' || value === '1' || value === '2' || value === '3') return Number(value) as AscensionTier;
+  return undefined;
 }
 
 function routeFromLocation(): Route {
@@ -23,7 +29,7 @@ function routeFromLocation(): Route {
   const search = new URLSearchParams(window.location.search);
   const mode = search.get('mode');
   if (gameMatch) return { name: 'online', gameId: gameMatch[1], matchMode: isMatchMode(mode) ? mode : 'single' };
-  if (window.location.pathname === '/bot') return { name: 'bot', dateKey: search.get('date') ?? undefined, seed: search.get('seed') ?? undefined };
+  if (window.location.pathname === '/bot') return { name: 'bot', dateKey: search.get('date') ?? undefined, seed: search.get('seed') ?? undefined, ascensionTier: parseAscensionTier(search.get('ascension')) };
   return { name: 'home' };
 }
 
@@ -65,6 +71,12 @@ export function App() {
     navigate(`/bot?seed=${encodeURIComponent(seed)}`);
   }
 
+  function startDailyAscension(tier: AscensionTier, dateKey?: string) {
+    const params = new URLSearchParams({ ascension: String(tier) });
+    if (dateKey) params.set('date', dateKey);
+    navigate(`/bot?${params.toString()}`);
+  }
+
   function handleInvite() {
     setInviteError(null);
     navigate('/game/new?mode=single&create=invite');
@@ -102,7 +114,7 @@ export function App() {
   }
 
   if (route.name === 'bot') {
-    return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} theme={theme} onToggleTheme={toggleTheme} onHome={() => navigate('/')} />;
+    return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}-${route.ascensionTier ?? 'daily'}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} ascensionTier={route.ascensionTier} theme={theme} onToggleTheme={toggleTheme} onHome={() => navigate('/')} />;
   }
   if (route.name === 'online') {
     return (
@@ -124,6 +136,7 @@ export function App() {
         onToggleTheme={toggleTheme}
         onStartBot={startBot}
         onStartSeededBot={startSeededBot}
+        onStartDailyAscension={startDailyAscension}
         onInvite={handleInvite}
         onDaily={handleDaily}
         onSeeded={handleSeeded}

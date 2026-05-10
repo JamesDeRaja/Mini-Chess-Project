@@ -2277,3 +2277,45 @@ button:active:not(:disabled) {
   --preview-tile-depth: rgba(166, 137, 94, 0.14);
   background: #faf2e1;
 }
+
+.ascension-tier-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ascension-tier-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  background: rgba(255, 248, 233, 0.78);
+  box-shadow: none;
+  text-align: left;
+}
+
+.ascension-tier-card span {
+  display: grid;
+  gap: 3px;
+}
+
+.ascension-tier-card strong {
+  color: var(--text);
+}
+
+.ascension-tier-card small,
+.ascension-tier-meta small {
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.ascension-tier-meta {
+  justify-items: end;
+}
+
+.ascension-tier-meta strong {
+  color: var(--accent);
+  letter-spacing: 0.12em;
+}

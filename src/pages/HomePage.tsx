@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, Moon, Shuffle, SunMedium, Users, X, Zap } from 'lucide-react';
+import { ASCENSION_TIERS, canPlayAscensionTier, getAscensionTierPieces, getUnlockedAscensionTier, type AscensionTier } from '../game/ascension.js';
 import { BOARD_FILES, BOARD_RANKS } from '../game/constants.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded } from '../game/dailyAIProgress.js';
@@ -13,6 +14,7 @@ type HomePageProps = {
   onToggleTheme: () => void;
   onStartBot: (dateKey?: string) => void;
   onStartSeededBot: (seed: string) => void;
+  onStartDailyAscension: (tier: AscensionTier, dateKey?: string) => void;
   onInvite: () => void;
   onDaily: (dateKey?: string) => void;
   onSeeded: (seed: string) => void;
@@ -20,7 +22,7 @@ type HomePageProps = {
   onCancelFindMatch: (queueId?: string) => Promise<void>;
 };
 
-type ModalName = 'date' | 'custom' | 'rules' | 'matchmaking' | null;
+type ModalName = 'date' | 'custom' | 'rules' | 'matchmaking' | 'ascension' | null;
 type MatchmakingState =
   | { status: 'idle' }
   | { status: 'finding'; queueId?: string }
@@ -44,6 +46,23 @@ function spacedCode(backRankCode: string): string {
 
 function getPieceName(pieceType: PieceType): string {
   return pieceType.charAt(0).toUpperCase() + pieceType.slice(1);
+}
+
+function getAscensionTierName(tier: AscensionTier): string {
+  if (tier === 0) return 'Standard Daily';
+  return `Ascension ${['I', 'II', 'III'][tier - 1]}`;
+}
+
+function getAscensionTierDescription(tier: AscensionTier): string {
+  if (tier === 0) return 'Normal daily setup';
+  if (tier === 1) return 'No Knight';
+  if (tier === 2) return 'No Knight + Bishop';
+  return 'Queen and King only';
+}
+
+function getPieceInitials(pieceTypes: PieceType[]): string {
+  const initials: Record<PieceType, string> = { king: 'K', queen: 'Q', rook: 'R', bishop: 'B', knight: 'N', pawn: 'P' };
+  return pieceTypes.map((piece) => initials[piece]).join(' ');
 }
 
 function buildSeedPreviewRows(backRankCode: string): Array<Array<Piece | null>> {
@@ -92,6 +111,7 @@ export function HomePage({
   onToggleTheme,
   onStartBot,
   onStartSeededBot,
+  onStartDailyAscension,
   onInvite,
   onDaily,
   onSeeded,
@@ -109,6 +129,7 @@ export function HomePage({
   const [modal, setModal] = useState<ModalName>(null);
   const [matchmaking, setMatchmaking] = useState<MatchmakingState>({ status: 'idle' });
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
+  const [unlockedAscensionTier, setUnlockedAscensionTier] = useState(() => getUnlockedAscensionTier(todayKey));
   const [matchTarget, setMatchTarget] = useState({ seed: getDailySeed(todayKey), backRankCode: backRankCodeFromSeed(getDailySeed(todayKey)) });
   const dailySeed = getDailySeed(todayKey);
   const dailyBackRankCode = backRankCodeFromSeed(dailySeed);
@@ -134,6 +155,7 @@ export function HomePage({
   useEffect(() => {
     function refreshDailyAIProgress() {
       setDailyAIProgress(getDailyAIProgress(todayKey));
+      setUnlockedAscensionTier(getUnlockedAscensionTier(todayKey));
     }
 
     refreshDailyAIProgress();
@@ -296,6 +318,7 @@ export function HomePage({
 
           <div className="secondary-home-actions" aria-label="More options">
             <button type="button" onClick={() => setModal('date')}><CalendarDays size={17} aria-hidden="true" /> Choose Date</button>
+            <button type="button" onClick={() => setModal('ascension')}>⭐ Daily Ascension</button>
             <button type="button" onClick={() => setModal('custom')}><Shuffle size={17} aria-hidden="true" /> Custom Seed</button>
             <button type="button" onClick={() => setModal('rules')}><BookOpen size={17} aria-hidden="true" /> How It Works</button>
           </div>
@@ -332,6 +355,48 @@ export function HomePage({
           <img className="decorative-white-bishop" src="/pieces/white-bishop.png" alt="" draggable={false} />
         </div>
       </section>
+
+      {modal === 'ascension' && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="ascension-modal-title">
+          <div className="confirm-card utility-modal">
+            <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Close Daily Ascension"><X size={18} /></button>
+            <p className="eyebrow">Daily Ascension</p>
+            <h2 id="ascension-modal-title">Master today’s seed</h2>
+            <p>Beat today’s seed with fewer pieces.</p>
+            <div className="selected-daily-panel">
+              <span>Today’s Seed</span>
+              <strong>{dailyBackRankCode}</strong>
+              <p>{dailySeed}</p>
+            </div>
+            <div className="ascension-tier-list" aria-label="Ascension tiers">
+              {ASCENSION_TIERS.map((tier) => {
+                const isUnlocked = canPlayAscensionTier(todayKey, tier);
+                const pieces = getAscensionTierPieces(tier);
+                return (
+                  <button
+                    type="button"
+                    key={tier}
+                    className="ascension-tier-card"
+                    disabled={!isUnlocked}
+                    onClick={() => onStartDailyAscension(tier, todayKey)}
+                    aria-label={`${getAscensionTierName(tier)}: ${isUnlocked ? 'unlocked' : 'locked'}`}
+                  >
+                    <span>
+                      <strong>{getAscensionTierName(tier)}</strong>
+                      <small>{getAscensionTierDescription(tier)}</small>
+                    </span>
+                    <span className="ascension-tier-meta">
+                      <small>{isUnlocked ? 'Tier unlocked' : `Complete ${getAscensionTierName((tier - 1) as AscensionTier)}`}</small>
+                      <strong>{getPieceInitials(pieces)}</strong>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="panel-note">Unlocked through {getAscensionTierName(unlockedAscensionTier)} for {getDisplayDate(todayKey)}.</p>
+          </div>
+        </div>
+      )}
 
       {modal === 'date' && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="date-modal-title">
