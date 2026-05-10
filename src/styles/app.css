@@ -2284,7 +2284,7 @@ button:active:not(:disabled) {
   user-select: none;
 }
 
-.decorative-black-pawn { left: 42%; bottom: 20%; width: 52%; opacity: 0.92; }
+.decorative-black-pawn { left: 42%; bottom: 0; width: 52%; opacity: 0.92; }
 .decorative-white-bishop { left: 0; bottom: 0; width: 78%; }
 
 .home-page button:focus-visible,
