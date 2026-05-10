@@ -97,7 +97,7 @@
   place-self: center;
   max-width: none;
   object-fit: contain;
-  transform: translate(var(--piece-offset-x), calc(var(--piece-offset-y) + var(--piece-bottom-seat-offset-y)));
+  transform: translate(var(--piece-offset-x), calc(var(--piece-offset-y) - var(--piece-bottom-seat-offset-y)));
   filter: drop-shadow(0 6px 6px rgba(40, 34, 24, 0.22));
   pointer-events: none;
   user-select: none;
