@@ -478,9 +478,9 @@ export function HomePage({
             </section>
             <section className="rules-section">
               <h3>AI Challenge</h3>
-              <p>Playing against the AI is the main daily challenge. As you improve, the default AI mode can remove some of your White pieces to make each seed harder, more fun, and more interesting.</p>
+              <p>Playing against the AI is the main daily challenge. As you improve, the default AI mode can remove some pieces from your side to make each seed harder, more fun, and more interesting.</p>
               <p>Those lighter setups are designed as a challenge, not a penalty. They create fresh tactical puzzles, force new plans, and help you discover surprising ways to win with fewer resources.</p>
-              <p>Black AI keeps its full setup, and today&apos;s seed remains the same so you can keep exploring new tactics from the same board.</p>
+              <p>The AI&apos;s side keeps its full setup, and today&apos;s seed remains the same so you can keep exploring new tactics from the same board.</p>
             </section>
           </div>
         </div>
