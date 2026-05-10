@@ -2257,23 +2257,23 @@ button:active:not(:disabled) {
   height: clamp(104px, 12vw, 190px);
 }
 
-/* Home preview tile depth: subtle darker bottom lip per tile color. */
+/* Home preview tile depth: very soft darker bottom lip per tile color. */
 .preview-square {
-  --preview-tile-depth: #eadcc5;
+  --preview-tile-depth: rgba(166, 137, 94, 0.14);
   background: #faf2e1;
-  box-shadow: inset 0 -5px 0 var(--preview-tile-depth), 0 5px 9px rgba(92, 91, 77, 0.06);
+  box-shadow: inset 0 -3px 0 var(--preview-tile-depth), 0 4px 7px rgba(92, 91, 77, 0.04);
 }
 
 .preview-square:nth-child(odd),
 .preview-square:nth-child(10n + 7),
 .preview-square:nth-child(10n + 9) {
-  --preview-tile-depth: #aebfa8;
+  --preview-tile-depth: rgba(80, 109, 80, 0.14);
   background: #c5d7c0;
 }
 
 .preview-square:nth-child(10n + 6),
 .preview-square:nth-child(10n + 8),
 .preview-square:nth-child(10n + 10) {
-  --preview-tile-depth: #eadcc5;
+  --preview-tile-depth: rgba(166, 137, 94, 0.14);
   background: #faf2e1;
 }

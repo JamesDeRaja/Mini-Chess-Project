@@ -412,13 +412,13 @@
   .square { border-radius: 13px; }
 }
 
-/* Board tile depth: subtle darker bottom lip per tile color. */
+/* Board tile depth: very soft darker bottom lip per tile color. */
 .board .square-light {
   background: #faf2e1;
-  box-shadow: inset 0 -5px 0 #eadcc5, 0 5px 9px rgba(92, 91, 77, 0.06);
+  box-shadow: inset 0 -3px 0 rgba(166, 137, 94, 0.14), 0 4px 7px rgba(92, 91, 77, 0.04);
 }
 
 .board .square-dark {
   background: #c5d7c0;
-  box-shadow: inset 0 -5px 0 #aebfa8, 0 5px 9px rgba(92, 91, 77, 0.06);
+  box-shadow: inset 0 -3px 0 rgba(80, 109, 80, 0.14), 0 4px 7px rgba(92, 91, 77, 0.04);
 }
