@@ -83,17 +83,17 @@
   line-height: 1;
   user-select: none;
   transform-origin: center center;
-  --piece-size: 76%;
+  --piece-size: 228%;
   animation: piece-land 250ms cubic-bezier(.2, 1.35, .35, 1);
   transition: transform 250ms ease, filter 250ms ease;
 }
 
 .piece-img {
   display: block;
-  max-width: var(--piece-size);
-  max-height: var(--piece-size);
-  width: auto;
-  height: auto;
+  width: var(--piece-size);
+  height: var(--piece-size);
+  max-width: none;
+  max-height: none;
   object-fit: contain;
   transform: translateY(var(--piece-y, 0px)) scale(var(--piece-scale, 1));
   transform-origin: center center;
