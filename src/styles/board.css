@@ -210,3 +210,5 @@
   .piece::before,
   .piece::after { display: none; }
 }
+
+.square:active { transform: scale(0.98); }

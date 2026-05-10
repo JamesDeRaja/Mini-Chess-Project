@@ -40,6 +40,8 @@ export type MoveRecord = {
   color: Color;
   captured?: PieceType;
   timestamp: number;
+  clientMoveId?: string;
+  playerId?: string;
 };
 
 export type GameState = {

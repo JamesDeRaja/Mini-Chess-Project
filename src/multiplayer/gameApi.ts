@@ -83,9 +83,15 @@ export function joinOnlineGame(gameId: string, playerId: string): Promise<{ game
   });
 }
 
-export function submitOnlineMove(gameId: string, playerId: string, move: Move): Promise<{ game: OnlineGameRecord }> {
+export type SubmitMoveOptions = {
+  clientMoveId?: string;
+  moveNumber?: number;
+  previousStateVersion?: number;
+};
+
+export function submitOnlineMove(gameId: string, playerId: string, move: Move, options: SubmitMoveOptions = {}): Promise<{ game: OnlineGameRecord }> {
   return requestJson('/api/games/move', {
     method: 'POST',
-    body: JSON.stringify({ gameId, playerId, move }),
+    body: JSON.stringify({ gameId, playerId, move, ...options }),
   });
 }

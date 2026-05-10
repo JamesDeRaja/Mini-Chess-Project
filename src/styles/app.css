@@ -667,3 +667,194 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   text-shadow: 0 0 8px rgba(124, 110, 230, 0.38), 0 0 12px rgba(247, 212, 124, 0.32);
 }
 .daily-ai-status { font-size: 0.78rem; opacity: 0.82; }
+
+.online-game-page {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: clamp(8px, 1.2vh, 14px);
+}
+.online-topbar { width: min(100%, 1500px); margin: 0 auto; }
+.topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.online-layout {
+  width: min(100%, 1500px);
+  min-height: 0;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: clamp(12px, 1.8vw, 22px);
+  align-items: start;
+}
+.online-main-column {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(220px, 320px);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: clamp(10px, 1.4vw, 18px);
+  align-items: start;
+  justify-content: center;
+}
+.mobile-waiting-card { display: none; }
+.online-status-strip {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  background: var(--panel-bg);
+  box-shadow: 0 12px 28px rgba(80, 122, 108, 0.12);
+}
+.online-status-strip strong { color: var(--text); font-size: 1rem; }
+.online-status-strip span,
+.online-status-strip small,
+.subtle-status { color: var(--muted); font-weight: 850; }
+.subtle-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255, 248, 233, 0.76);
+  border: 1px solid var(--panel-border);
+}
+.reconnecting-badge { background: rgba(247, 207, 114, 0.28); }
+.online-board-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  --play-area-height: min(74svh, calc(100svh - 168px));
+}
+.online-board-wrap .board {
+  width: clamp(280px, min(64vw, calc((100svh - 170px) * 5 / 6)), 650px);
+  max-width: 100%;
+}
+.waiting-board-overlay {
+  position: absolute;
+  inset: auto 50% auto auto;
+  transform: translateX(50%);
+  display: grid;
+  gap: 7px;
+  width: min(78%, 330px);
+  padding: 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 24px;
+  background: rgba(255, 252, 241, 0.86);
+  box-shadow: 0 18px 40px rgba(45, 43, 40, 0.16);
+  backdrop-filter: blur(12px);
+  text-align: center;
+  pointer-events: auto;
+}
+.waiting-board-overlay strong { color: var(--text); font-size: 1.05rem; }
+.waiting-board-overlay span { color: var(--muted); font-weight: 800; }
+.waiting-board-overlay button { justify-self: center; padding: 9px 13px; }
+.online-sidebar { display: grid; gap: 12px; min-width: 0; }
+.online-sidebar .side-panel,
+.online-sidebar .invite-panel { min-width: 0; width: 100%; }
+.online-status-card { display: grid; }
+.online-role-card { display: grid; gap: 6px; }
+.online-role-card strong { color: var(--text); }
+.online-role-card span,
+.online-role-card small { color: var(--muted); font-weight: 850; }
+.online-history-panel {
+  width: 100%;
+  height: min(100%, calc(100svh - 170px));
+  max-height: calc(100svh - 170px);
+  min-width: 0;
+}
+.compact-invite-card {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 16px;
+  border-radius: 24px;
+}
+.compact-invite-card h2 { margin-bottom: 0; font-size: 1.2rem; }
+.compact-invite-card p { margin: 0; line-height: 1.45; }
+.compact-invite-card small { color: var(--muted); font-weight: 800; }
+.compact-invite-card button { width: 100%; }
+.compact-invite-panel {
+  min-width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.button-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(45, 43, 40, 0.22);
+  border-top-color: rgba(45, 43, 40, 0.72);
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+}
+.sync-toast,
+.error-card {
+  width: min(100%, 1500px);
+  margin: 0 auto;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: rgba(255, 248, 233, 0.92);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 12px 32px rgba(80, 122, 108, 0.16);
+}
+.sync-toast { color: var(--text); font-weight: 850; }
+.error-card { display: grid; gap: 8px; }
+.error-card p { margin: 0; }
+button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 5px 0 rgba(45, 43, 40, 0.08), inset 0 -2px rgba(45, 43, 40, 0.08); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 1180px) {
+  .online-game-page { grid-template-rows: auto auto auto; }
+  .online-layout { grid-template-columns: 1fr; }
+  .online-main-column { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .online-sidebar {
+    width: min(100%, 760px);
+    justify-self: center;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .online-status-card { display: grid; }
+  .online-history-panel {
+    width: min(100%, 760px);
+    height: auto;
+    max-height: none;
+  }
+  .online-board-wrap { --play-area-height: min(68svh, calc(100svh - 146px)); }
+  .online-board-wrap .board { width: clamp(280px, min(88vw, calc((100svh - 155px) * 5 / 6)), 620px); }
+}
+
+@media (max-width: 760px) {
+  .online-game-page { padding: 10px; gap: 8px; }
+  .online-topbar { align-items: flex-start; }
+  .topbar-actions { justify-content: flex-start; }
+  .online-main-column { gap: 8px; }
+  .mobile-waiting-card {
+    display: block;
+    width: 100%;
+    max-width: 460px;
+  }
+  .online-sidebar > .invite-panel { display: none; }
+  .online-sidebar {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+  .online-status-strip {
+    width: 100%;
+    max-width: 460px;
+    min-height: 42px;
+    padding: 8px 11px;
+  }
+  .online-board-wrap { width: 100%; --play-area-height: min(62svh, calc(100svh - 152px)); }
+  .online-board-wrap .board { width: clamp(270px, min(94vw, calc((100svh - 162px) * 5 / 6)), 470px); }
+  .waiting-board-overlay { width: min(82%, 300px); padding: 12px; }
+  .online-history-panel { width: 100%; }
+  .compact-invite-card { padding: 12px; border-radius: 20px; }
+  .compact-invite-card p,
+  .compact-invite-card small { font-size: 0.88rem; }
+}
