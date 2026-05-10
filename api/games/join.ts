@@ -34,6 +34,17 @@ export default async function handler(request: VercelRequest, response: VercelRe
     updates = { black_player_id: playerId, status: 'active' };
   }
 
+  const nextWhitePlayerId = updates.white_player_id ?? existingGame.white_player_id;
+  const nextBlackPlayerId = updates.black_player_id ?? existingGame.black_player_id;
+  if (nextWhitePlayerId && nextBlackPlayerId && existingGame.status === 'waiting') {
+    updates = {
+      ...updates,
+      status: 'active',
+      turn: existingGame.turn ?? 'white',
+      updated_at: new Date().toISOString(),
+    };
+  }
+
   if (Object.keys(updates).length > 0) {
     const { data: updatedGame, error: updateError } = await supabase
       .from('games')

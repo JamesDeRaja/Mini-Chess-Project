@@ -28,6 +28,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const gameId = typeof request.body?.gameId === 'string' ? request.body.gameId : null;
   const playerId = typeof request.body?.playerId === 'string' ? request.body.playerId : null;
   const requestedMove = request.body?.move as Move | undefined;
+  const clientMoveId = typeof request.body?.clientMoveId === 'string' ? request.body.clientMoveId : undefined;
+  const moveNumber = typeof request.body?.moveNumber === 'number' ? request.body.moveNumber : undefined;
+  const previousStateVersion = typeof request.body?.previousStateVersion === 'number' ? request.body.previousStateVersion : undefined;
   if (!gameId || !playerId || !requestedMove) {
     response.status(400).send('Missing gameId, playerId, or move');
     return;
@@ -46,6 +49,17 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return;
   }
 
+  const currentMoveHistory = game.move_history ?? [];
+  if (typeof previousStateVersion === 'number' && previousStateVersion !== currentMoveHistory.length) {
+    response.status(409).send('Board state changed');
+    return;
+  }
+
+  if (typeof moveNumber === 'number' && moveNumber !== currentMoveHistory.length + 1) {
+    response.status(409).send('Move number mismatch');
+    return;
+  }
+
   const legalMove = getLegalMoves(game.board, requestedMove.from).find((move) => move.to === requestedMove.to);
   if (!legalMove) {
     response.status(400).send('Illegal move');
@@ -55,7 +69,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const nextBoard = applyMove(game.board, legalMove);
   const nextTurn = getOpponent(game.turn);
   const nextStatus = getStatusForTurn(nextBoard, nextTurn);
-  const moveHistory = [...(game.move_history ?? []), createMoveRecord(legalMove)];
+  const moveHistory = [...currentMoveHistory, createMoveRecord(legalMove, { clientMoveId, playerId })];
   const materialScores = estimateMaterialScores(moveHistory);
 
   const { data: updatedGame, error: updateError } = await safeSupabaseUpdate(
@@ -71,6 +85,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       total_moves: moveHistory.length,
       white_score: materialScores.whiteScore,
       black_score: materialScores.blackScore,
+      updated_at: new Date().toISOString(),
     },
   );
 

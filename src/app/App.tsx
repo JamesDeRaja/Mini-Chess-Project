@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { cancelMatchmaking, createDailyGame, createOnlineGame, createSeededGame, findMatchmakingGame } from '../multiplayer/gameApi.js';
+import { cancelMatchmaking, createDailyGame, createSeededGame, findMatchmakingGame } from '../multiplayer/gameApi.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { getPlayerId } from '../multiplayer/playerSession.js';
 import { BotGamePage } from '../pages/BotGamePage.js';
@@ -65,14 +65,9 @@ export function App() {
     navigate(`/bot?seed=${encodeURIComponent(seed)}`);
   }
 
-  async function handleInvite() {
+  function handleInvite() {
     setInviteError(null);
-    try {
-      const { gameId } = await createOnlineGame(getPlayerId());
-      navigate(`/game/${gameId}?mode=single`);
-    } catch (error) {
-      setInviteError(error instanceof Error ? error.message : 'Unable to create invite link');
-    }
+    navigate('/game/new?mode=single&create=invite');
   }
 
   async function handleDaily(dateKey?: string) {
@@ -117,6 +112,7 @@ export function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onHome={() => navigate('/')}
+        onNewOnlineGame={() => navigate('/game/new?mode=single&create=invite')}
       />
     );
   }

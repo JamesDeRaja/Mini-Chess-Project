@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Flag, Handshake, Moon, RotateCcw, SunMedium, Trophy } from 'lucide-react';
+import { Flag, Handshake, Moon, RotateCcw, SunMedium } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
+import { GameResultPanel } from '../components/GameResultPanel.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { type BotLevel, getBotMoveByLevel } from '../game/bot.js';
 import {
@@ -320,6 +321,14 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   }, [board, botColor, botLevel, completeMove, isPreviewing, status, turn]);
 
   const activeLegalMoves = isPreviewing ? [] : legalMoves;
+  const headerStatusLabel = roundResult ? 'Game Over' : undefined;
+  const headerTurnLabel = roundResult
+    ? roundResult.status === 'draw'
+      ? 'Draw'
+      : roundResult.didPlayerWin
+        ? 'You won'
+        : 'You lost'
+    : undefined;
 
   return (
     <main className="game-page">
@@ -330,6 +339,8 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
         playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
         details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
         onTitleClick={onHome}
+        statusLabelOverride={headerStatusLabel}
+        turnLabelOverride={headerTurnLabel}
       />
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel">
@@ -406,23 +417,21 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
         </aside>
       </div>
       {roundResult && (
-        <div className="winner-overlay" role="status">
-          {roundResult.didPlayerWin && <div className="confetti" />}
-          <div className={roundResult.didPlayerWin ? 'winner-card player-winner-card' : 'winner-card calm-result-card'}>
-            {roundResult.didPlayerWin ? <Trophy size={48} /> : <span className="result-emoji">{roundResult.winner ? '😅' : '🤝'}</span>}
-            <p className="eyebrow">{matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}</p>
-            <h2>{matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}</h2>
-            <p>
-              Score: White {score.white} — Black {score.black}. {isDailyAI ? 'Daily ladder mode.' : matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}
-            </p>
-            {roundResult.progressionMessage && <p className="panel-note">{roundResult.progressionMessage}</p>}
-            <div className="panel-actions centered-actions">
+        <GameResultPanel
+          result={roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'}
+          winner={roundResult.winner}
+          eyebrow={matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}
+          title={matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}
+          summary={`Score: White ${score.white} — Black ${score.black}. ${isDailyAI ? 'Daily ladder mode.' : matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}`}
+          progressionMessage={roundResult.progressionMessage}
+          actions={(
+            <>
               {!matchWinner && roundResult.status !== 'draw' && <button type="button" onClick={nextRound}>Next Game</button>}
               {!matchWinner && roundResult.status === 'draw' && <button type="button" onClick={nextRound}>Replay Game</button>}
               <button type="button" onClick={requestRestart}>Restart Match</button>
-            </div>
-          </div>
-        </div>
+            </>
+          )}
+        />
       )}
       {pendingAction && (
         <div className="confirm-overlay" role="dialog" aria-modal="true">
