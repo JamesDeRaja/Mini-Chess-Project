@@ -13,7 +13,7 @@ import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../game/see
 import { playCheckSound, playMoveSound } from '../game/sound.js';
 import { applyMoveDelta, isMoveDelta, moveDeltaToMove, rebuildBoardFromHistory } from '../game/moveDelta.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveDelta, MoveRecord } from '../game/types.js';
-import { createOnlineGame, joinOnlineGame, submitOnlineMove } from '../multiplayer/gameApi.js';
+import { createOnlineGame, createSeededGame, joinOnlineGame, submitOnlineMove } from '../multiplayer/gameApi.js';
 import type { OnlineGameRecord } from '../multiplayer/gameApi.js';
 import { getPlayerId } from '../multiplayer/playerSession.js';
 import { subscribeToGame, unsubscribeFromGame } from '../multiplayer/realtime.js';
@@ -114,38 +114,54 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   const hasWhite = Boolean(whitePlayerId);
   const hasBlack = Boolean(blackPlayerId);
   const bothPlayersJoined = hasWhite && hasBlack;
-  const isCompleted = status === 'white_won' || status === 'black_won' || status === 'draw';
-  const isOnlineGameReady = status === 'active' || bothPlayersJoined;
+  const isLifecycleTerminal = status === 'expired' || status === 'timeout';
+  const isFinishedGame = status === 'white_won' || status === 'black_won' || status === 'draw';
+  const isCompleted = isFinishedGame || isLifecycleTerminal;
+  const isOnlineGameReady = !isLifecycleTerminal && (status === 'active' || bothPlayersJoined);
   const shouldShowWaitingOverlay = !isCompleted && inviteState !== 'error' && !isOnlineGameReady;
   const canInteractWithBoard = !shouldShowWaitingOverlay && !isCompleted && role === turn && !hasPendingMove;
   const displayStatus: GameStatus = isOnlineGameReady && status === 'waiting' ? 'active' : status;
   const primaryStatus = useMemo(() => {
     if (inviteState === 'creating_game') return 'Creating game...';
     if (inviteState === 'waiting_for_link') return 'Creating invite link...';
+    if (status === 'expired') return 'Challenge link expired';
+    if (status === 'timeout') return 'Session over';
     if (isCompleted) return status === 'draw' ? 'Draw' : `${status === 'white_won' ? 'White' : 'Black'} won`;
     if (!isOnlineGameReady) return 'Waiting for opponent';
     if (role === 'spectator') return `${turn === 'white' ? 'White' : 'Black'} to move`;
     return role === turn ? 'Your turn' : "Opponent's turn";
   }, [inviteState, isCompleted, isOnlineGameReady, role, status, turn]);
   const winner: Color | null = status === 'white_won' ? 'white' : status === 'black_won' ? 'black' : null;
-  const onlineResult: 'win' | 'loss' | 'draw' | 'spectator' = status === 'draw' ? 'draw' : role === 'spectator' ? 'spectator' : winner === role ? 'win' : 'loss';
-  const onlineResultTitle = status === 'draw'
-    ? 'Draw'
-    : role === 'spectator'
-      ? `${winner === 'white' ? 'White' : 'Black'} won`
-      : winner === role
-        ? 'You won!'
-        : 'You lost';
-  const onlineResultSummary = `${winner ? `${winner === 'white' ? 'White' : 'Black'} wins by checkmate.` : 'The game ended in a draw.'} ${moveHistory.length} moves. Seed: ${seedLabel}.`;
-  const headerStatusLabel = isCompleted ? 'Game Over' : undefined;
+  const onlineResult: 'win' | 'loss' | 'draw' | 'spectator' = isLifecycleTerminal || status === 'draw' ? 'draw' : role === 'spectator' ? 'spectator' : winner === role ? 'win' : 'loss';
+  const onlineResultTitle = status === 'expired'
+    ? 'This challenge link has expired.'
+    : status === 'timeout'
+      ? 'This game session is over.'
+      : status === 'draw'
+        ? 'Draw'
+        : role === 'spectator'
+          ? `${winner === 'white' ? 'White' : 'Black'} won`
+          : winner === role
+            ? 'You won!'
+            : 'You lost';
+  const onlineResultSummary = status === 'expired'
+    ? 'Challenge links expire after 60 minutes. Create a new challenge to keep playing.'
+    : status === 'timeout'
+      ? 'No moves were made for 60 minutes. Create a new challenge to keep playing.'
+      : `${winner ? `${winner === 'white' ? 'White' : 'Black'} wins by checkmate.` : 'The game ended in a draw.'} ${moveHistory.length} moves. Seed: ${seedLabel}.`;
+  const headerStatusLabel = isCompleted ? (isLifecycleTerminal ? 'Session Over' : 'Game Over') : undefined;
   const headerTurnLabel = isCompleted
-    ? status === 'draw'
-      ? 'Draw'
-      : role === 'spectator'
-        ? `${winner === 'white' ? 'White' : 'Black'} won`
-        : winner === role
-          ? 'You won'
-          : 'You lost'
+    ? status === 'expired'
+      ? 'Link expired'
+      : status === 'timeout'
+        ? 'Timed out'
+        : status === 'draw'
+          ? 'Draw'
+          : role === 'spectator'
+            ? `${winner === 'white' ? 'White' : 'Black'} won`
+            : winner === role
+              ? 'You won'
+              : 'You lost'
     : undefined;
 
   function setPendingIds(updater: (ids: Set<string>) => Set<string>) {
@@ -158,7 +174,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
 
   function updateInviteStateFromGame(game: OnlineGameRecord) {
     const gameHasBothPlayers = Boolean(game.white_player_id) && Boolean(game.black_player_id);
-    if (game.status === 'white_won' || game.status === 'black_won' || game.status === 'draw') {
+    if (game.status === 'white_won' || game.status === 'black_won' || game.status === 'draw' || game.status === 'expired' || game.status === 'timeout') {
       setInviteState('completed');
       return;
     }
@@ -417,6 +433,20 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
     window.setTimeout(() => setCopied(false), 1600);
   }
 
+  async function handleCreateNewChallenge() {
+    setError(null);
+    setInviteState('creating_game');
+    try {
+      const createdGame = seedLabel && seedLabel !== 'Random' ? await createSeededGame(playerId, seedLabel) : await createOnlineGame(playerId);
+      setEffectiveGameId(createdGame.gameId);
+      setInviteState('waiting_for_link');
+      window.history.replaceState(null, '', `/game/${createdGame.gameId}?mode=${matchMode}`);
+    } catch (createError) {
+      setInviteState('error');
+      setError(createError instanceof Error ? createError.message : 'Could not create invite link.');
+    }
+  }
+
   async function retryCreateInvite() {
     setError(null);
     setInviteState('creating_game');
@@ -468,6 +498,10 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
             applyGameRecord(game, { preserveLocalMove: true });
             return;
           }
+          setPendingIds((ids) => {
+            ids.delete(clientMoveId);
+            return ids;
+          });
           applyGameRecord(game);
         })
         .catch(() => {
@@ -613,7 +647,7 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
           summary={onlineResultSummary}
           actions={(
             <>
-              <button type="button" onClick={onNewOnlineGame}>New Online Game</button>
+              {isLifecycleTerminal ? <button type="button" onClick={handleCreateNewChallenge}>Create New Challenge</button> : <button type="button" onClick={onNewOnlineGame}>New Online Game</button>}
               <button type="button" onClick={onHome}>Back Home</button>
               <button type="button" onClick={handleShareResult}>Share Result</button>
             </>

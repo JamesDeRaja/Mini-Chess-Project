@@ -9,6 +9,7 @@ import { rebuildBoardFromHistory } from '../../src/game/moveDelta.js';
 import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../../src/game/seed.js';
 import type { Board, Color, GameStatus, MoveDelta, PromotionPieceType, SquareCoord } from '../../src/game/types.js';
 import { safeSupabaseUpdate } from '../../src/multiplayer/safeSupabaseUpdate.js';
+import { assessGameLifecycle, getActivityResetFields } from './lifecycle.js';
 import { getServerSupabase } from './serverSupabase.js';
 
 function getWinner(status: GameStatus): Color | null {
@@ -58,25 +59,31 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return;
   }
 
-  if (game.status !== 'active') {
+  const lifecycleGame = await assessGameLifecycle(supabase, game);
+  if (lifecycleGame.status === 'timeout') {
+    response.status(200).json({ game: lifecycleGame });
+    return;
+  }
+
+  if (lifecycleGame.status !== 'active') {
     response.status(403).send('Game is not active');
     return;
   }
 
-  const playerColor: Color | null = game.white_player_id === playerId ? 'white' : game.black_player_id === playerId ? 'black' : null;
+  const playerColor: Color | null = lifecycleGame.white_player_id === playerId ? 'white' : lifecycleGame.black_player_id === playerId ? 'black' : null;
   if (!playerColor) {
     response.status(403).send('Player is not in this game');
     return;
   }
 
-  if (game.turn !== playerColor) {
+  if (lifecycleGame.turn !== playerColor) {
     response.status(403).send('It is not your turn');
     return;
   }
 
-  const currentMoveHistory = game.move_history ?? [];
-  const fallbackBoard = Array.isArray(game.board) ? (game.board as Board) : null;
-  const backRankCode = game.back_rank_code ?? deriveBackRankCodeFromBoard(fallbackBoard ?? []);
+  const currentMoveHistory = Array.isArray(lifecycleGame.move_history) ? lifecycleGame.move_history : [];
+  const fallbackBoard = Array.isArray(lifecycleGame.board) ? (lifecycleGame.board as Board) : null;
+  const backRankCode = typeof lifecycleGame.back_rank_code === 'string' ? lifecycleGame.back_rank_code : deriveBackRankCodeFromBoard(fallbackBoard ?? []);
   const currentBoard = rebuildBoardFromHistory(currentMoveHistory, { backRankCode, fallbackBoard });
   const fromIndex = index(from.file, from.rank);
   const toIndex = index(to.file, to.rank);
@@ -94,7 +101,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
   if (promotion && legalMove.isPromotion) legalMove.promotionPiece = promotion;
 
   const nextBoard = applyMove(currentBoard, legalMove);
-  const nextTurn = getOpponent(game.turn);
+  const nextTurn = getOpponent(playerColor);
   const nextStatus = getStatusForTurn(nextBoard, nextTurn);
   const createdAt = new Date().toISOString();
   const moveDelta: MoveDelta = {
@@ -124,7 +131,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     total_moves: moveCount,
     white_score: materialScores.whiteScore,
     black_score: materialScores.blackScore,
-    updated_at: createdAt,
+    ...getActivityResetFields(new Date(createdAt)),
   };
 
   if (!backRankCode) updatePayload.board = nextBoard;

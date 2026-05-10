@@ -29,6 +29,9 @@ export type OnlineGameRecord = {
   black_score?: number | null;
   created_at?: string;
   updated_at?: string;
+  expires_at?: string | null;
+  last_activity_at?: string | null;
+  timeout_at?: string | null;
 };
 
 async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {

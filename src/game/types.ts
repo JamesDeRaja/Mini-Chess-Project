@@ -21,7 +21,7 @@ export type Board = Square[];
 
 export type GameMode = 'bot' | 'online';
 
-export type GameStatus = 'waiting' | 'active' | 'white_won' | 'black_won' | 'draw';
+export type GameStatus = 'waiting' | 'active' | 'white_won' | 'black_won' | 'draw' | 'expired' | 'timeout';
 
 export type SquareCoord = {
   file: number;

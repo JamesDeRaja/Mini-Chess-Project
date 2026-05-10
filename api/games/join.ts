@@ -1,5 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { assessGameLifecycle, getActivityResetFields } from './lifecycle.js';
 import { getServerSupabase } from './serverSupabase.js';
+
+function getPlayerRole(game: Record<string, unknown>, playerId: string): 'white' | 'black' | 'spectator' {
+  if (game.white_player_id === playerId) return 'white';
+  if (game.black_player_id === playerId) return 'black';
+  return 'spectator';
+}
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== 'POST') {
@@ -21,27 +28,33 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return;
   }
 
-  let role: 'white' | 'black' | 'spectator' = 'spectator';
-  let updates: Record<string, string> = {};
-
-  if (existingGame.white_player_id === playerId) role = 'white';
-  else if (existingGame.black_player_id === playerId) role = 'black';
-  else if (!existingGame.white_player_id) {
-    role = 'white';
-    updates = { white_player_id: playerId };
-  } else if (!existingGame.black_player_id) {
-    role = 'black';
-    updates = { black_player_id: playerId, status: 'active' };
+  const lifecycleGame = await assessGameLifecycle(supabase, existingGame);
+  if (lifecycleGame.status === 'expired' || lifecycleGame.status === 'timeout') {
+    response.status(200).json({ game: lifecycleGame, role: getPlayerRole(lifecycleGame, playerId) });
+    return;
   }
 
-  const nextWhitePlayerId = updates.white_player_id ?? existingGame.white_player_id;
-  const nextBlackPlayerId = updates.black_player_id ?? existingGame.black_player_id;
-  if (nextWhitePlayerId && nextBlackPlayerId && existingGame.status === 'waiting') {
+  let role: 'white' | 'black' | 'spectator' = 'spectator';
+  let updates: Record<string, unknown> = {};
+
+  if (lifecycleGame.white_player_id === playerId) role = 'white';
+  else if (lifecycleGame.black_player_id === playerId) role = 'black';
+  else if (!lifecycleGame.white_player_id) {
+    role = 'white';
+    updates = { white_player_id: playerId };
+  } else if (!lifecycleGame.black_player_id) {
+    role = 'black';
+    updates = { black_player_id: playerId, status: 'active', ...getActivityResetFields() };
+  }
+
+  const nextWhitePlayerId = updates.white_player_id ?? lifecycleGame.white_player_id;
+  const nextBlackPlayerId = updates.black_player_id ?? lifecycleGame.black_player_id;
+  if (nextWhitePlayerId && nextBlackPlayerId && lifecycleGame.status === 'waiting') {
     updates = {
       ...updates,
       status: 'active',
-      turn: existingGame.turn ?? 'white',
-      updated_at: new Date().toISOString(),
+      turn: lifecycleGame.turn ?? 'white',
+      ...getActivityResetFields(),
     };
   }
 
@@ -62,5 +75,5 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return;
   }
 
-  response.status(200).json({ game: existingGame, role });
+  response.status(200).json({ game: lifecycleGame, role });
 }

@@ -18,6 +18,11 @@ export const optionalGameMetadataFields = [
   'total_moves',
   'white_score',
   'black_score',
+  'created_at',
+  'updated_at',
+  'expires_at',
+  'last_activity_at',
+  'timeout_at',
 ] as const;
 
 type QueryResult<T> = { data: T | null; error: { message: string } | null };
