@@ -261,6 +261,28 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveGameId, inviteState, isCompleted, isOnlineGameReady, playerId]);
 
+  useEffect(() => {
+    if (!effectiveGameId || !isOnlineGameReady || isCompleted || hasPendingMove) return undefined;
+
+    const pollId = window.setInterval(() => {
+      joinOnlineGame(effectiveGameId, playerId)
+        .then(({ game, role: refreshedRole }) => {
+          const confirmedGame = confirmedGameRef.current;
+          const confirmedVersion = confirmedGame?.updated_at ?? `${confirmedGame?.move_history?.length ?? 0}:${confirmedGame?.turn}:${confirmedGame?.status}`;
+          const nextVersion = game.updated_at ?? `${game.move_history?.length ?? 0}:${game.turn}:${game.status}`;
+          if (nextVersion !== confirmedVersion) applyGameRecord(game);
+          setRole(refreshedRole);
+        })
+        .catch(() => {
+          setIsRealtimeConnected(false);
+        });
+    }, 2000);
+
+    return () => window.clearInterval(pollId);
+  // applyGameRecord intentionally merges changed server rows while this fallback is keyed by active sync state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveGameId, hasPendingMove, isCompleted, isOnlineGameReady, playerId]);
+
   async function handleShareInvite() {
     if (!inviteLink) return;
     const shareData = {
@@ -382,7 +404,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
           <p>{isOnlineGameReady ? 'Share remains available for spectators or reconnecting players.' : shareIsLoading ? 'Share the invite link. Your friend joins as Black.' : 'Send this link to a friend. The game starts when they join.'}</p>
           {!isOnlineGameReady && <p className="panel-note">Extra visitors can spectate.</p>}
           {hasPendingMove && <p className="subtle-inline-status">Sending move...</p>}
-          {!isRealtimeConnected && <p className="subtle-inline-status reconnecting-badge">Reconnecting...</p>}
+          {isSupabaseConfigured && !isRealtimeConnected && <p className="subtle-inline-status reconnecting-badge">Reconnecting...</p>}
           {!isSupabaseConfigured && <p className="panel-note">Supabase environment variables are required for live multiplayer.</p>}
           <p>Seed: <strong>{seedLabel}</strong></p>
           <p>Back rank: <strong>{backRankCode ?? 'Setup pending'}</strong></p>

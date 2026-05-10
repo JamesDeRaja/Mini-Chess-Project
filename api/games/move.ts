@@ -85,6 +85,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       total_moves: moveHistory.length,
       white_score: materialScores.whiteScore,
       black_score: materialScores.blackScore,
+      updated_at: new Date().toISOString(),
     },
   );
 
