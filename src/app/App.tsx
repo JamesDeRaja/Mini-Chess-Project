@@ -32,15 +32,20 @@ function navigate(path: string) {
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
-function getStoredTheme(): Theme {
+function getStoredTheme(): Theme | null {
   const storedTheme = localStorage.getItem('mini_chess_theme');
-  return storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
+  return storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : null;
+}
+
+function getDefaultTheme(route: Route): Theme {
+  return route.name === 'home' ? 'light' : 'dark';
 }
 
 export function App() {
   const [route, setRoute] = useState<Route>(() => routeFromLocation());
-  const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
+  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(() => getStoredTheme());
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const theme = selectedTheme ?? getDefaultTheme(route);
 
   useEffect(() => {
     const onPopState = () => setRoute(routeFromLocation());
@@ -50,11 +55,14 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem('mini_chess_theme', theme);
-  }, [theme]);
+    if (selectedTheme) localStorage.setItem('mini_chess_theme', selectedTheme);
+  }, [selectedTheme, theme]);
 
   function toggleTheme() {
-    setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'));
+    setSelectedTheme((currentTheme) => {
+      const activeTheme = currentTheme ?? theme;
+      return activeTheme === 'dark' ? 'light' : 'dark';
+    });
   }
 
   function startBot(dateKey?: string) {

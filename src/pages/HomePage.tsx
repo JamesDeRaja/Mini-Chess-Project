@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, Moon, Shuffle, SunMedium, Users, X, Zap } from 'lucide-react';
 import { BOARD_FILES, BOARD_RANKS } from '../game/constants.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
@@ -199,11 +199,11 @@ export function HomePage({
     }
   }
 
-  async function cancelMatch() {
+  const cancelMatch = useCallback(async () => {
     if (matchmaking.status === 'finding' || matchmaking.status === 'timeout') await onCancelFindMatch(matchmaking.queueId);
     setMatchmaking({ status: 'idle' });
     setModal(null);
-  }
+  }, [matchmaking, onCancelFindMatch]);
 
   function playAiForSeed(seed: string) {
     if (seed.startsWith('daily-')) onStartBot(seed.replace('daily-', ''));
@@ -216,6 +216,29 @@ export function HomePage({
     setModal(null);
     nextAction();
   }
+
+  const closeModal = useCallback(() => {
+    if (modal === 'matchmaking') {
+      void cancelMatch();
+      return;
+    }
+    setModal(null);
+  }, [cancelMatch, modal]);
+
+  useEffect(() => {
+    if (!modal) return undefined;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') closeModal();
+    }
+
+    document.body.classList.add('home-modal-open');
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.classList.remove('home-modal-open');
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [closeModal, modal]);
 
   useEffect(() => {
     if (matchmaking.status !== 'finding') return;
@@ -334,8 +357,8 @@ export function HomePage({
       </section>
 
       {modal === 'date' && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="date-modal-title">
-          <div className="confirm-card utility-modal">
+        <div className="modal-backdrop" role="presentation" onClick={closeModal}>
+          <div className="confirm-card utility-modal" role="dialog" aria-modal="true" aria-labelledby="date-modal-title" onClick={(event) => event.stopPropagation()}>
             <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Close date picker"><X size={18} /></button>
             <p className="eyebrow">Daily Seed Calendar</p>
             <h2 id="date-modal-title">Choose a daily setup</h2>
@@ -395,9 +418,13 @@ export function HomePage({
       )}
 
       {modal === 'custom' && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="custom-modal-title">
+        <div className="modal-backdrop" role="presentation" onClick={closeModal}>
           <form
             className="confirm-card utility-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="custom-modal-title"
+            onClick={(event) => event.stopPropagation()}
             onSubmit={(event) => {
               event.preventDefault();
               const formData = new FormData(event.currentTarget);
@@ -431,8 +458,8 @@ export function HomePage({
       )}
 
       {modal === 'rules' && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
-          <div className="confirm-card utility-modal rules-modal">
+        <div className="modal-backdrop" role="presentation" onClick={closeModal}>
+          <div className="confirm-card utility-modal rules-modal" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title" onClick={(event) => event.stopPropagation()}>
             <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Close rules"><X size={18} /></button>
             <p className="eyebrow">How It Works</p>
             <h2 id="rules-modal-title">Pocket Shuffle Chess rules</h2>
@@ -458,13 +485,24 @@ export function HomePage({
                 <li>Mirror Match later lets players play both sides of the same seed.</li>
               </ul>
             </section>
+            <section className="rules-section">
+              <h3>Daily Ascension</h3>
+              <p>Can you beat today&apos;s seed with fewer pieces? After mastering the daily AI challenge, optional Ascension tiers unlock a steeper difficulty climb for the same seed.</p>
+              <p>Daily mode remains balanced normally. Ascension is a mastery challenge: Black AI keeps its full setup while White climbs through harder tiers.</p>
+              <ul>
+                <li>Ascension I → No Knight.</li>
+                <li>Ascension II → No Knight + Bishop.</li>
+                <li>Ascension III → Queen and King only.</li>
+              </ul>
+              <p>The same daily seed is reused for every Ascension tier, so each climb tests how far you can push today&apos;s setup.</p>
+            </section>
           </div>
         </div>
       )}
 
       {modal === 'matchmaking' && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="matchmaking-modal-title">
-          <div className="confirm-card utility-modal matchmaking-modal">
+        <div className="modal-backdrop" role="presentation" onClick={closeModal}>
+          <div className="confirm-card utility-modal matchmaking-modal" role="dialog" aria-modal="true" aria-labelledby="matchmaking-modal-title" onClick={(event) => event.stopPropagation()}>
             <button type="button" className="modal-close" onClick={cancelMatch} aria-label="Cancel matchmaking"><X size={18} /></button>
             <p className="eyebrow">Find Match</p>
             <h2 id="matchmaking-modal-title">{matchmaking.status === 'timeout' ? 'No opponent found yet.' : matchmaking.status === 'failed' ? 'Matchmaking unavailable' : 'Finding opponent...'}</h2>
