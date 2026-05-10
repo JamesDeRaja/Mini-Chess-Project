@@ -583,6 +583,11 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   color: var(--text);
   background: rgba(255, 248, 233, 0.78);
 }
+
+.custom-seed-example {
+  overflow-x: auto;
+  white-space: nowrap;
+}
 .selected-daily-panel {
   display: grid;
   gap: 3px;

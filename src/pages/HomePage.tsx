@@ -445,7 +445,7 @@ export function HomePage({
               onChange={(event) => setCustomSeed(event.target.value)}
               autoFocus
             />
-            <p>Use a direct code like BRKNQ or a text seed like boss-battle-1.</p>
+            <p className="custom-seed-example">Use a direct code like BRKNQ or a text seed like boss‑battle‑1.</p>
             {customSeedError && <p className="error-message inline-message">{customSeedError}</p>}
             {customBackRankCode && <p className="seed-readout"><span>Generated back rank</span><span>{customBackRankCode}</span></p>}
             <div className="panel-actions centered-actions">
