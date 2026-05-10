@@ -90,8 +90,7 @@ export function getDailyAIDifficulty(progress: DailyAIProgress): DailyAIDifficul
   return 'extreme';
 }
 
-export function getDailyAIPlayerColor(progress: DailyAIProgress): Color {
-  if (progress.currentStage === 1 || progress.currentStage >= 3) return 'black';
+export function getDailyAIPlayerColor(_progress: DailyAIProgress): Color {
   return 'white';
 }
 
@@ -121,7 +120,7 @@ export function handleDailyAIGameResult(progress: DailyAIProgress, result: Daily
 export function getDailyAIStatusLine(progress: DailyAIProgress): string {
   if (progress.magicStarUnlocked) return 'Daily mastered';
   if (progress.stars === 0) return 'Easy bot awaits';
-  if (progress.stars === 1) return 'Medium bot unlocked';
-  if (progress.stars === 2) return 'Hard bot unlocked';
-  return 'Final boss unlocked';
+  if (progress.stars === 1) return 'Medium bot · Ascension I';
+  if (progress.stars === 2) return 'Hard bot · Ascension II';
+  return 'Final boss · Ascension III';
 }

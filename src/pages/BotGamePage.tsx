@@ -5,13 +5,7 @@ import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
-import {
-  canPlayAscensionTier,
-  getAscensionTierPieces,
-  removeAscensionPieces,
-  unlockAscensionTier,
-  type AscensionTier,
-} from '../game/ascension.js';
+import { getAscensionTierPieces, removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
 import { type BotLevel, getBotMoveByLevel } from '../game/bot.js';
 import {
   type DailyAIDifficulty,
@@ -26,7 +20,7 @@ import { createInitialBoard } from '../game/createInitialBoard.js';
 import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
-import { backRankCodeFromSeed, estimateMaterialScores, getDailySeed, getUtcDateKey, normalizeSeed, resolveBackRankCode } from '../game/seed.js';
+import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, normalizeSeed, resolveBackRankCode } from '../game/seed.js';
 import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types.js';
 
@@ -36,7 +30,6 @@ type BotGamePageProps = {
   matchMode: MatchMode;
   dateKey?: string;
   customSeed?: string;
-  ascensionTier?: AscensionTier;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onHome: () => void;
@@ -98,9 +91,9 @@ function getAscensionRemainingPiecesLabel(tier: AscensionTier): string {
 
 function getDailyProgressionMessage(progress: DailyAIProgress, didPlayerWin: boolean): string {
   if (!didPlayerWin) return 'No star lost. Retry the same bot.';
-  if (progress.stars === 0) return 'Star earned. Medium bot unlocked.';
-  if (progress.stars === 1) return 'Star earned. Hard bot unlocked.';
-  if (progress.stars === 2) return 'Third star earned. Final boss unlocked.';
+  if (progress.stars === 0) return 'Star earned. Medium bot unlocked with Ascension I.';
+  if (progress.stars === 1) return 'Star earned. Hard bot unlocked with Ascension II.';
+  if (progress.stars === 2) return 'Third star earned. Final boss unlocked with Ascension III.';
   return 'Magic star unlocked.';
 }
 
@@ -108,7 +101,7 @@ function cloneBoard(board: ChessBoard): ChessBoard {
   return board.map((square) => ({ ...square, piece: square.piece ? { ...square.piece } : null }));
 }
 
-export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, ascensionTier, theme, onToggleTheme, onHome }: BotGamePageProps) {
+export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, theme, onToggleTheme, onHome }: BotGamePageProps) {
   const dailySeedInfo = useMemo(() => {
     if (customSeed) {
       const seed = normalizeSeed(customSeed);
@@ -119,17 +112,16 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
     const seed = getDailySeed(dateKey);
     return { dateKey, seed, backRankCode: backRankCodeFromSeed(seed) };
   }, [customSeed, requestedDateKey]);
-  const isDailyAscension = !customSeed && ascensionTier !== undefined;
-  const activeAscensionTier = isDailyAscension && canPlayAscensionTier(dailySeedInfo.dateKey, ascensionTier) ? ascensionTier : 0;
-  const isDailyAI = !customSeed && !isDailyAscension;
+  const isDailyAI = !customSeed;
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
+  const dailyAscensionTier = (isDailyAI ? Math.min(dailyAIProgress.stars, 3) : 0) as AscensionTier;
   const playerColor = isDailyAI ? getDailyAIPlayerColor(dailyAIProgress) : 'white';
   const botColor = getOpponent(playerColor);
   const initialBoardForMount = useMemo(() => {
     const dailyBoard = createInitialBoard({ backRankCode: dailySeedInfo.backRankCode });
-    return isDailyAscension ? removeAscensionPieces(dailyBoard, activeAscensionTier) : dailyBoard;
-  }, [activeAscensionTier, dailySeedInfo.backRankCode, isDailyAscension]);
+    return isDailyAI ? removeAscensionPieces(dailyBoard, dailyAscensionTier) : dailyBoard;
+  }, [dailyAscensionTier, dailySeedInfo.backRankCode, isDailyAI]);
   const [board, setBoard] = useState<ChessBoard>(() => initialBoardForMount);
   const [boardTimeline, setBoardTimeline] = useState<ChessBoard[]>(() => [cloneBoard(initialBoardForMount)]);
   const [turn, setTurn] = useState<Color>('white');
@@ -206,16 +198,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
     const didPlayerWin = winner === playerColor;
     let progressionMessage: string | undefined;
 
-    if (isDailyAscension) {
-      if (didPlayerWin) {
-        const nextUnlockedTier = unlockAscensionTier(dailySeedInfo.dateKey, activeAscensionTier);
-        progressionMessage = activeAscensionTier === 3
-          ? "You beat today's seed with only a Queen and King."
-          : `${getAscensionTierName(nextUnlockedTier)} unlocked.`;
-      } else {
-        progressionMessage = 'Mastery run ready for another attempt.';
-      }
-    } else if (isDailyAI) {
+    if (isDailyAI) {
       progressionMessage = getDailyProgressionMessage(dailyAIProgress, didPlayerWin);
       const nextProgress = handleDailyAIGameResult(dailyAIProgress, didPlayerWin ? 'win' : 'loss');
       setDailyAIProgress(nextProgress);
@@ -228,7 +211,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
       if (!isDailyAI && updatedScore[winner] >= config.winsRequired) setMatchWinner(winner);
     }
     setRoundResult({ status: nextStatus, winner, message: getRoundMessage(nextStatus), progressionMessage, didPlayerWin });
-  }, [activeAscensionTier, config.winsRequired, dailyAIProgress, dailySeedInfo.dateKey, isDailyAI, isDailyAscension, playerColor, score]);
+  }, [config.winsRequired, dailyAIProgress, isDailyAI, playerColor, score]);
 
   const completeMove = useCallback((move: Move) => {
     const nextBoard = applyMove(board, move);
@@ -254,7 +237,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
 
   function resetRound(nextRoundNumber = roundNumber) {
     const dailyBoard = createInitialBoard({ backRankCode: dailySeedInfo.backRankCode });
-    const initialBoard = isDailyAscension ? removeAscensionPieces(dailyBoard, activeAscensionTier) : dailyBoard;
+    const initialBoard = isDailyAI ? removeAscensionPieces(dailyBoard, dailyAscensionTier) : dailyBoard;
     setBoard(initialBoard);
     setBoardTimeline([cloneBoard(initialBoard)]);
     setTurn('white');
@@ -371,7 +354,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
         turn={turn}
         status={status}
         playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
-        details={isDailyAscension ? `Daily Ascension · ${getAscensionTierName(activeAscensionTier)} · ${botLevel} bot` : dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
+        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${getAscensionTierName(dailyAscensionTier)} · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
         onTitleClick={onHome}
         statusLabelOverride={headerStatusLabel}
         turnLabelOverride={headerTurnLabel}
@@ -383,7 +366,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
               <p className="eyebrow">Match</p>
               <h2>{config.label}</h2>
             </div>
-            <span className="mode-badge">{isDailyAscension ? 'Ascension' : isDailyAI ? 'Daily' : '1v1'}</span>
+            <span className="mode-badge">{isDailyAI ? 'Daily' : '1v1'}</span>
           </div>
           <div className="score-stack">
             <span className={turn === 'white' && status === 'active' ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/white-pawn.png" alt="" draggable={false} />White <strong>{score.white}</strong></span>
@@ -392,8 +375,8 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
           <div className="info-stack">
             <p><span>🎮 Game</span><strong>{roundNumber}/{config.maxGames}</strong></p>
             <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
-            {isDailyAscension && <p><span>⭐ Tier</span><strong>{getAscensionTierName(activeAscensionTier)}</strong></p>}
-            {isDailyAscension && <p><span>♕ Remaining</span><strong>{getAscensionRemainingPiecesLabel(activeAscensionTier)}</strong></p>}
+            {isDailyAI && <p><span>⭐ Tier</span><strong>{getAscensionTierName(dailyAscensionTier)}</strong></p>}
+            {isDailyAI && <p><span>♕ Remaining</span><strong>{getAscensionRemainingPiecesLabel(dailyAscensionTier)}</strong></p>}
             <p><span>🌱 Daily seed</span><strong>{dailySeedInfo.seed}</strong></p>
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>
             <p><span>Back rank</span><strong>{dailySeedInfo.backRankCode}</strong></p>
@@ -466,22 +449,14 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
         <GameResultPanel
           result={roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'}
           winner={roundResult.winner}
-          eyebrow={isDailyAscension && roundResult.didPlayerWin ? '⭐ Ascension Complete' : matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}
-          title={isDailyAscension && roundResult.didPlayerWin ? `${getAscensionTierName(activeAscensionTier)} Complete` : matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}
-          summary={isDailyAscension
-            ? `Seed: ${dailySeedInfo.backRankCode}. Remaining Pieces: ${getAscensionTierPieces(activeAscensionTier).map((piece) => piece.charAt(0).toUpperCase()).join(' ')}. ${roundResult.didPlayerWin ? 'Victory' : roundResult.status === 'draw' ? 'Draw' : 'Challenge'} in ${moveHistory.length} moves. Score: White ${estimateMaterialScores(moveHistory).whiteScore} — Black ${estimateMaterialScores(moveHistory).blackScore}.`
-            : `Score: White ${score.white} — Black ${score.black}. ${isDailyAI ? 'Daily ladder mode.' : matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}`}
+          eyebrow={matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}
+          title={matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}
+          summary={`Score: White ${score.white} — Black ${score.black}. ${isDailyAI ? `${getAscensionTierName(dailyAscensionTier)} · Remaining pieces: ${getAscensionTierPieces(dailyAscensionTier).map((piece) => piece.charAt(0).toUpperCase()).join(' ')}.` : matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}`}
           progressionMessage={roundResult.progressionMessage}
           actions={(
             <>
-              {isDailyAscension ? (
-                <button type="button" onClick={onHome}>Continue</button>
-              ) : (
-                <>
-                  {!matchWinner && roundResult.status !== 'draw' && <button type="button" onClick={nextRound}>Next Game</button>}
-                  {!matchWinner && roundResult.status === 'draw' && <button type="button" onClick={nextRound}>Replay Game</button>}
-                </>
-              )}
+              {!matchWinner && roundResult.status !== 'draw' && <button type="button" onClick={nextRound}>Next Game</button>}
+              {!matchWinner && roundResult.status === 'draw' && <button type="button" onClick={nextRound}>Replay Game</button>}
               <button type="button" onClick={requestRestart}>Restart Match</button>
             </>
           )}
