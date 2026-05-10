@@ -434,7 +434,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
       <GameHeader title="Online Game" turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} statusLabelOverride={headerStatusLabel} turnLabelOverride={headerTurnLabel} />
       {toast && <p className="sync-toast" role="status">{toast}</p>}
       <div className="game-layout chess-shell">
-        <aside className="side-panel match-panel">
+        <aside className="side-panel match-panel online-match-panel">
           <p className="eyebrow">Online</p>
           <h2>{isOnlineGameReady ? 'Online Match' : 'Invite Friend'}</h2>
           <div className="score-stack">
@@ -445,15 +445,13 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
           <p>Opponent: <strong>{isOnlineGameReady ? 'Joined' : 'Waiting'}</strong></p>
           <p>Status: <strong>{leftPanelStatus}</strong></p>
           {isOnlineGameReady && !isCompleted && <p>Turn: <strong>{turn === 'white' ? 'White' : 'Black'}</strong></p>}
-          <p>{isOnlineGameReady ? 'Share remains available for spectators or reconnecting players.' : shareIsLoading ? 'Share the invite link. Your friend joins as Black.' : 'Send this link to a friend. The game starts when they join.'}</p>
-          {!isOnlineGameReady && <p className="panel-note">Extra visitors can spectate.</p>}
+          <p className="panel-note">{isOnlineGameReady ? 'Share remains available.' : shareIsLoading ? 'Share the invite link. Your friend joins as Black.' : 'Send this link to a friend. The game starts when they join.'}</p>
           {hasPendingMove && <p className="subtle-inline-status">Sending move...</p>}
           {isSupabaseConfigured && !isRealtimeConnected && <p className="subtle-inline-status reconnecting-badge">Reconnecting...</p>}
           {!isSupabaseConfigured && <p className="panel-note">Supabase environment variables are required for live multiplayer.</p>}
           <p>Seed: <strong>{seedLabel}</strong></p>
           <p>Back rank: <strong>{backRankCode ?? 'Setup pending'}</strong></p>
           <p>Game: {roundNumber}</p>
-          <p>Mode: {matchMode}</p>
           <button type="button" className="wide-action" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : isOnlineGameReady ? 'Share' : 'Share Invite'}</button>
           <button type="button" className="wide-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
           <button type="button" className="wide-action" onClick={onToggleTheme}>{theme === 'dark' ? <SunMedium size={18} /> : <Moon size={18} />} Theme</button>

@@ -668,6 +668,10 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 }
 .daily-ai-status { font-size: 0.78rem; opacity: 0.82; }
 
+.online-match-panel {
+  min-height: 0;
+  overflow-y: auto;
+}
 .online-board-column { position: relative; }
 .subtle-inline-status {
   margin: 0;
