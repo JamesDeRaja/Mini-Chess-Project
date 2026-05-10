@@ -1,0 +1,17 @@
+{
+  "name": "Pocket Shuffle Chess",
+  "short_name": "Pocket Chess",
+  "description": "Fast 5x6 chess without memorized openings. Play daily shuffled battles and challenge friends instantly.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff8e9",
+  "theme_color": "#8dbfaf",
+  "icons": [
+    {
+      "src": "/Icon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
