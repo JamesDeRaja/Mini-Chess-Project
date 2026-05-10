@@ -34,7 +34,7 @@ function navigate(path: string) {
 
 function getStoredTheme(): Theme | null {
   const storedTheme = localStorage.getItem('mini_chess_theme');
-  return storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : null;
+  return storedTheme === 'light' ? storedTheme : null;
 }
 
 function getDefaultTheme(): Theme {
@@ -43,7 +43,7 @@ function getDefaultTheme(): Theme {
 
 export function App() {
   const [route, setRoute] = useState<Route>(() => routeFromLocation());
-  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(() => getStoredTheme());
+  const [selectedTheme] = useState<Theme | null>(() => getStoredTheme());
   const [inviteError, setInviteError] = useState<string | null>(null);
   const theme = selectedTheme ?? getDefaultTheme();
 
@@ -57,13 +57,6 @@ export function App() {
     document.documentElement.dataset.theme = theme;
     if (selectedTheme) localStorage.setItem('mini_chess_theme', selectedTheme);
   }, [selectedTheme, theme]);
-
-  function toggleTheme() {
-    setSelectedTheme((currentTheme) => {
-      const activeTheme = currentTheme ?? theme;
-      return activeTheme === 'dark' ? 'light' : 'dark';
-    });
-  }
 
   function startBot(dateKey?: string) {
     navigate(dateKey ? `/bot?date=${encodeURIComponent(dateKey)}` : '/bot');
@@ -110,15 +103,13 @@ export function App() {
   }
 
   if (route.name === 'bot') {
-    return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} theme={theme} onToggleTheme={toggleTheme} onHome={() => navigate('/')} />;
+    return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} onHome={() => navigate('/')} />;
   }
   if (route.name === 'online') {
     return (
       <OnlineGamePage
         gameId={route.gameId}
         matchMode={route.matchMode}
-        theme={theme}
-        onToggleTheme={toggleTheme}
         onHome={() => navigate('/')}
         onNewOnlineGame={() => navigate('/game/new?mode=single&create=invite')}
       />
@@ -128,8 +119,6 @@ export function App() {
   return (
     <>
       <HomePage
-        theme={theme}
-        onToggleTheme={toggleTheme}
         onStartBot={startBot}
         onStartSeededBot={startSeededBot}
         onInvite={handleInvite}
