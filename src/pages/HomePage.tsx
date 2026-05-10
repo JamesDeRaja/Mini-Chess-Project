@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, Shuffle, Users, X, Zap } from 'lucide-react';
-import { BOARD_FILES, BOARD_RANKS } from '../game/constants.js';
-import { createInitialBoard } from '../game/createInitialBoard.js';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded } from '../game/dailyAIProgress.js';
-import { getPieceImageSrc } from '../game/pieceAssets.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, resolveBackRankCode } from '../game/seed.js';
-import type { Piece, PieceType } from '../game/types.js';
+import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 
 type HomePageProps = {
@@ -38,18 +35,6 @@ function randomPastDate(todayKey: string): string {
 
 function spacedCode(backRankCode: string): string {
   return backRankCode.split('').join(' ');
-}
-
-function getPieceName(pieceType: PieceType): string {
-  return pieceType.charAt(0).toUpperCase() + pieceType.slice(1);
-}
-
-function buildSeedPreviewRows(backRankCode: string): Array<Array<Piece | null>> {
-  const board = createInitialBoard({ backRankCode });
-  return Array.from({ length: BOARD_RANKS }, (_rankPlaceholder, rowIndex) => {
-    const rank = BOARD_RANKS - 1 - rowIndex;
-    return Array.from({ length: BOARD_FILES }, (_filePlaceholder, file) => board[rank * BOARD_FILES + file].piece);
-  });
 }
 
 function monthKeyFromDateKey(dateKey: string): string {
@@ -113,7 +98,6 @@ export function HomePage({
   const calendarCells = getCalendarCells(calendarMonthKey);
   const canGoNextMonth = shiftMonth(calendarMonthKey, 1) <= monthKeyFromDateKey(todayKey);
   const blackBackRankCode = [...dailyBackRankCode].reverse().join('');
-  const previewRows = buildSeedPreviewRows(dailyBackRankCode);
   const customSeedValue = customSeed.trim();
   const customSeedLooksLikeCode = /^[BRKNQ]+$/i.test(customSeedValue);
   const customSeedError = customSeedValue && customSeedLooksLikeCode && !isValidBackRankCode(customSeedValue)
@@ -326,15 +310,11 @@ export function HomePage({
           <span className="setup-spark setup-spark-left" aria-hidden="true" />
           <span className="setup-spark setup-spark-right" aria-hidden="true" />
           <div className="setup-header-pill"><span aria-hidden="true" />TODAY’S SETUP<span aria-hidden="true" /></div>
-          <div className="preview-board-frame">
-            <div className="preview-board-grid" role="img" data-seed={dailySeed} data-white-back-rank={dailyBackRankCode} data-black-back-rank={blackBackRankCode} aria-label={`5 by 6 seed arrangement for ${dailySeed}: white bottom ${spacedCode(dailyBackRankCode)}, black top ${spacedCode(blackBackRankCode)}`}>
-              {previewRows.flatMap((row, rowIndex) => row.map((piece, fileIndex) => (
-                <span key={`${rowIndex}-${fileIndex}`} className="preview-square">
-                  {piece && <img src={getPieceImageSrc(piece)} alt={`${piece.color} ${getPieceName(piece.type)}`} draggable={false} />}
-                </span>
-              )))}
-            </div>
-          </div>
+          <HomepageInteractiveBoard
+            backRankCode={dailyBackRankCode}
+            dailySeed={dailySeed}
+            blackBackRankCode={blackBackRankCode}
+          />
           <div className="setup-summary-panel">
             <div className="setup-summary-copy">
               <span>DAILY SHUFFLE</span>
