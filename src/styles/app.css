@@ -733,7 +733,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 5px 0 r
   --card-shadow: 0 26px 58px rgba(101, 133, 113, 0.22), 0 2px 0 rgba(255, 255, 255, 0.62) inset;
   --board-frame: #3a352d;
   --board-frame-accent: rgba(58, 53, 45, 0.18);
-  --square-light: #FEF8EB;
+  --square-light: #faf2e1;
   --square-dark: #a9d6ba;
   --button-primary-bg: linear-gradient(180deg, #ffe28a, #f6d774);
   --button-primary-text: #252525;
@@ -763,7 +763,7 @@ button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 5px 0 r
   --card-shadow: 0 26px 70px rgba(0, 0, 0, 0.46), 0 0 34px rgba(32, 224, 163, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --board-frame: #05231f;
   --board-frame-accent: #d7a928;
-  --square-light: #FEF8EB;
+  --square-light: #faf2e1;
   --square-dark: #4b8068;
   --button-primary-bg: linear-gradient(180deg, #20e0a3, #118d6b);
   --button-primary-text: #f7f1e3;
@@ -1128,7 +1128,7 @@ button:active:not(:disabled) { transform: translateY(1px) scale(0.99); }
   --card-shadow: 0 18px 38px rgba(93, 117, 103, 0.13);
   --board-frame: #453d36;
   --board-frame-accent: rgba(69, 61, 54, 0.12);
-  --square-light: #FEF8EB;
+  --square-light: #faf2e1;
   --square-dark: #a7d6c0;
   --button-primary-bg: #f2d063;
   --button-primary-text: #2d2b25;
@@ -1449,7 +1449,7 @@ button:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 3px 7px
   --card-bg: #fbf8ee;
   --card-border: rgba(222, 217, 203, 0.82);
   --card-shadow: 0 22px 44px rgba(101, 111, 92, 0.16);
-  --square-light: #FEF8EB;
+  --square-light: #faf2e1;
   --square-dark: #c5d7c0;
   --button-yellow-face: #f4dd9b;
   --button-yellow-underlay: #e5ca89;
@@ -2102,13 +2102,13 @@ button:active:not(:disabled) {
   min-width: 0;
   min-height: 0;
   border-radius: 13px;
-  background: #FEF8EB;
+  background: #faf2e1;
 }
 
 .preview-square:nth-child(odd) { background: #c5d7c0; }
 .preview-square:nth-child(10n + 6),
 .preview-square:nth-child(10n + 8),
-.preview-square:nth-child(10n + 10) { background: #FEF8EB; }
+.preview-square:nth-child(10n + 10) { background: #faf2e1; }
 .preview-square:nth-child(10n + 7),
 .preview-square:nth-child(10n + 9) { background: #c5d7c0; }
 
@@ -2255,4 +2255,25 @@ button:active:not(:disabled) {
   z-index: 0;
   width: clamp(128px, 13vw, 220px);
   height: clamp(104px, 12vw, 190px);
+}
+
+/* Home preview tile depth: subtle darker bottom lip per tile color. */
+.preview-square {
+  --preview-tile-depth: #eadcc5;
+  background: #faf2e1;
+  box-shadow: inset 0 -5px 0 var(--preview-tile-depth), 0 5px 9px rgba(92, 91, 77, 0.06);
+}
+
+.preview-square:nth-child(odd),
+.preview-square:nth-child(10n + 7),
+.preview-square:nth-child(10n + 9) {
+  --preview-tile-depth: #aebfa8;
+  background: #c5d7c0;
+}
+
+.preview-square:nth-child(10n + 6),
+.preview-square:nth-child(10n + 8),
+.preview-square:nth-child(10n + 10) {
+  --preview-tile-depth: #eadcc5;
+  background: #faf2e1;
 }
