@@ -17,7 +17,7 @@ export function Piece({ piece, isDraggable = false, isSelected = false, onDragSt
 
   return (
     <span
-      className={`piece piece-${piece.color} ${isSelected ? 'piece-selected' : ''}`}
+      className={`piece piece-${piece.color} piece-${piece.type} ${isSelected ? 'piece-selected' : ''}`}
       draggable={isDraggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
