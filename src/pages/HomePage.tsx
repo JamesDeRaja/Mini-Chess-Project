@@ -477,24 +477,10 @@ export function HomePage({
               </ul>
             </section>
             <section className="rules-section">
-              <h3>Scoring</h3>
-              <ul>
-                <li>Checkmate win: +100.</li>
-                <li>Faster wins get bonus points.</li>
-                <li>Captures add points.</li>
-                <li>Mirror Match later lets players play both sides of the same seed.</li>
-              </ul>
-            </section>
-            <section className="rules-section">
-              <h3>Daily Ascension</h3>
-              <p>Can you beat today&apos;s seed with fewer pieces? After mastering the daily AI challenge, optional Ascension tiers unlock a steeper difficulty climb for the same seed.</p>
-              <p>Daily mode remains balanced normally. Ascension is a mastery challenge: Black AI keeps its full setup while White climbs through harder tiers.</p>
-              <ul>
-                <li>Ascension I → No Knight.</li>
-                <li>Ascension II → No Knight + Bishop.</li>
-                <li>Ascension III → Queen and King only.</li>
-              </ul>
-              <p>The same daily seed is reused for every Ascension tier, so each climb tests how far you can push today&apos;s setup.</p>
+              <h3>AI Challenge</h3>
+              <p>Playing against the AI is the main daily challenge. As you improve, the default AI mode can remove some of your White pieces to make each seed harder, more fun, and more interesting.</p>
+              <p>Those lighter setups are designed as a challenge, not a penalty. They create fresh tactical puzzles, force new plans, and help you discover surprising ways to win with fewer resources.</p>
+              <p>Black AI keeps its full setup, and today&apos;s seed remains the same so you can keep exploring new tactics from the same board.</p>
             </section>
           </div>
         </div>
