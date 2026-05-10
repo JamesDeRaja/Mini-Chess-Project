@@ -38,6 +38,8 @@ type MeetPieceCardPosition = {
 
 const POPUP_GAP = 12;
 const POPUP_INSET = 8;
+const SELECTED_OVERLAP_PENALTY = 200000;
+const CAPTURE_OVERLAP_PENALTY = 100000;
 
 function clamp(value: number, min: number, max: number): number {
   if (max < min) return min;
@@ -46,6 +48,19 @@ function clamp(value: number, min: number, max: number): number {
 
 function toPixelStyle(value: number): string {
   return `${Math.round(value)}px`;
+}
+
+type PlacementCandidate = {
+  placement: MeetPiecePlacement;
+  left: number;
+  top: number;
+  fits: boolean;
+};
+
+function getOverlapArea(first: { left: number; top: number; right: number; bottom: number }, second: { left: number; top: number; right: number; bottom: number }): number {
+  const width = Math.max(0, Math.min(first.right, second.right) - Math.max(first.left, second.left));
+  const height = Math.max(0, Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top));
+  return width * height;
 }
 
 export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRankCode, onTryDaily }: HomepageInteractiveBoardProps) {
@@ -85,38 +100,81 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
       const squareRight = squareRect.right - frameRect.left;
       const squareBottom = squareRect.bottom - frameRect.top;
       const squareLeft = squareRect.left - frameRect.left;
-      const maxLeft = frameRect.width - cardWidth - POPUP_INSET;
-      const maxTop = frameRect.height - cardHeight - POPUP_INSET;
+      const minLeft = POPUP_INSET - frameRect.left;
+      const minTop = POPUP_INSET - frameRect.top;
+      const maxLeft = window.innerWidth - frameRect.left - cardWidth - POPUP_INSET;
+      const maxTop = window.innerHeight - frameRect.top - cardHeight - POPUP_INSET;
       const centeredLeft = squareCenterX - cardWidth / 2;
-      const fitsAbove = squareTop - POPUP_GAP - cardHeight >= POPUP_INSET;
-      const fitsBelow = squareBottom + POPUP_GAP + cardHeight <= frameRect.height - POPUP_INSET;
-      const fitsRight = squareRight + POPUP_GAP + cardWidth <= frameRect.width - POPUP_INSET;
-      const fitsLeft = squareLeft - POPUP_GAP - cardWidth >= POPUP_INSET;
-      let placement: MeetPiecePlacement;
-      let left = clamp(centeredLeft, POPUP_INSET, maxLeft);
-      let top: number;
-
-      if (fitsAbove) {
-        placement = 'above';
-        top = squareTop - POPUP_GAP - cardHeight;
-      } else if (fitsBelow) {
-        placement = 'below';
-        top = squareBottom + POPUP_GAP;
-      } else if (fitsRight) {
-        placement = 'right';
-        left = squareRight + POPUP_GAP;
-        top = squareCenterY - cardHeight / 2;
-      } else if (fitsLeft) {
-        placement = 'left';
-        left = squareLeft - POPUP_GAP - cardWidth;
-        top = squareCenterY - cardHeight / 2;
-      } else {
-        placement = squareCenterY < frameRect.height / 2 ? 'below' : 'above';
-        top = placement === 'below' ? squareBottom + POPUP_GAP : squareTop - POPUP_GAP - cardHeight;
-      }
-
-      left = clamp(left, POPUP_INSET, maxLeft);
-      top = clamp(top, POPUP_INSET, maxTop);
+      const centeredTop = squareCenterY - cardHeight / 2;
+      const selectedSquareRect = {
+        left: squareLeft,
+        top: squareTop,
+        right: squareRight,
+        bottom: squareBottom,
+      };
+      const captureRects = [...highlightedSquares.captures]
+        .map((captureIndex) => frame.querySelector<HTMLElement>(`[data-square-index="${captureIndex}"]`))
+        .filter((captureSquare): captureSquare is HTMLElement => Boolean(captureSquare))
+        .map((captureSquare) => {
+          const captureRect = captureSquare.getBoundingClientRect();
+          return {
+            left: captureRect.left - frameRect.left,
+            top: captureRect.top - frameRect.top,
+            right: captureRect.right - frameRect.left,
+            bottom: captureRect.bottom - frameRect.top,
+          };
+        });
+      const candidates: PlacementCandidate[] = [
+        {
+          placement: 'above',
+          left: centeredLeft,
+          top: squareTop - POPUP_GAP - cardHeight,
+          fits: squareTop - POPUP_GAP - cardHeight >= minTop,
+        },
+        {
+          placement: 'right',
+          left: squareRight + POPUP_GAP,
+          top: centeredTop,
+          fits: squareRight + POPUP_GAP + cardWidth <= maxLeft + cardWidth,
+        },
+        {
+          placement: 'left',
+          left: squareLeft - POPUP_GAP - cardWidth,
+          top: centeredTop,
+          fits: squareLeft - POPUP_GAP - cardWidth >= minLeft,
+        },
+        {
+          placement: 'below',
+          left: centeredLeft,
+          top: squareBottom + POPUP_GAP,
+          fits: squareBottom + POPUP_GAP + cardHeight <= maxTop + cardHeight,
+        },
+      ];
+      const scoredCandidates = candidates.map((candidate, index) => {
+        const clampedLeft = clamp(candidate.left, minLeft, maxLeft);
+        const clampedTop = clamp(candidate.top, minTop, maxTop);
+        const cardBounds = {
+          left: clampedLeft,
+          top: clampedTop,
+          right: clampedLeft + cardWidth,
+          bottom: clampedTop + cardHeight,
+        };
+        const selectedOverlap = getOverlapArea(cardBounds, selectedSquareRect);
+        const captureOverlap = captureRects.reduce((total, captureRect) => total + getOverlapArea(cardBounds, captureRect), 0);
+        const clampDistance = Math.abs(clampedLeft - candidate.left) + Math.abs(clampedTop - candidate.top);
+        return {
+          ...candidate,
+          index,
+          left: clampedLeft,
+          top: clampedTop,
+          score: (candidate.fits ? 0 : 10000) + selectedOverlap * SELECTED_OVERLAP_PENALTY + captureOverlap * CAPTURE_OVERLAP_PENALTY + clampDistance,
+        };
+      });
+      scoredCandidates.sort((first, second) => first.score - second.score || first.index - second.index);
+      const bestCandidate = scoredCandidates[0];
+      const placement = bestCandidate.placement;
+      const left = bestCandidate.left;
+      const top = bestCandidate.top;
 
       const nextPosition: MeetPieceCardPosition = {
         placement,
@@ -146,7 +204,7 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
       window.cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', updateCardPosition);
     };
-  }, [dialogueStep, selectedIndex, selectedPiece]);
+  }, [dialogueStep, highlightedSquares.captures, selectedIndex, selectedPiece]);
 
   function selectPiece(squareIndex: number) {
     if (!board[squareIndex].piece) return;
