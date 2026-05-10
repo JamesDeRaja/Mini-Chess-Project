@@ -1,5 +1,5 @@
 import { BACK_RANK_PIECES, BOARD_FILES } from './constants.js';
-import type { Board, MoveRecord, PieceType } from './types.js';
+import type { Board, Color, PieceType } from './types.js';
 
 export const DIRECT_BACK_RANK_CODE_PATTERN = /^[KQRBN]{5}$/i;
 
@@ -92,7 +92,9 @@ export function deriveBackRankCodeFromBoard(board: Board): string | null {
   return backRankCodeFromPieceOrder(whiteBackRank as PieceType[]);
 }
 
-export function estimateMaterialScores(moveHistory: MoveRecord[] | null | undefined): { whiteScore: number; blackScore: number } {
+type MaterialMove = { color: Color; captured?: PieceType | null };
+
+export function estimateMaterialScores(moveHistory: MaterialMove[] | null | undefined): { whiteScore: number; blackScore: number } {
   const values: Record<PieceType, number> = {
     king: 0,
     queen: 9,

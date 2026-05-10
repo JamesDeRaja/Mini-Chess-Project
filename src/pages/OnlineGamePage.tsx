@@ -11,7 +11,8 @@ import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../game/seed.js';
 import { playCheckSound, playMoveSound } from '../game/sound.js';
-import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types.js';
+import { applyMoveDelta, isMoveDelta, moveDeltaToMove, rebuildBoardFromHistory } from '../game/moveDelta.js';
+import type { Board as ChessBoard, Color, GameStatus, Move, MoveDelta, MoveRecord } from '../game/types.js';
 import { createOnlineGame, joinOnlineGame, submitOnlineMove } from '../multiplayer/gameApi.js';
 import type { OnlineGameRecord } from '../multiplayer/gameApi.js';
 import { getPlayerId } from '../multiplayer/playerSession.js';
@@ -39,9 +40,41 @@ function generateClientMoveId() {
   return `move-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function getLatestMove(game: OnlineGameRecord): MoveRecord | null {
-  const history = game.move_history ?? [];
-  return history.at(-1) ?? null;
+function getLatestMove(game: OnlineGameRecord): MoveDelta | MoveRecord | null {
+  return game.last_move ?? game.move_history?.at(-1) ?? null;
+}
+
+function moveToIndex(move: MoveDelta | MoveRecord): number {
+  return isMoveDelta(move) ? move.to.file + move.to.rank * 5 : move.to;
+}
+
+function moveKey(move: MoveDelta | MoveRecord, index: number): string {
+  return isMoveDelta(move) ? `${move.id}-${index}` : `${move.timestamp}-${index}`;
+}
+
+function moveFromIndex(move: MoveDelta | MoveRecord): number {
+  return isMoveDelta(move) ? move.from.file + move.from.rank * 5 : move.from;
+}
+
+function toDisplayMove(move: MoveDelta | MoveRecord): Move {
+  return {
+    from: moveFromIndex(move),
+    to: moveToIndex(move),
+    piece: { id: `${move.color}-${move.piece}`, type: move.piece, color: move.color, hasMoved: true },
+    capturedPiece: null,
+    isCapture: Boolean(move.captured),
+    isPromotion: isMoveDelta(move) ? Boolean(move.promotion) : false,
+    promotionPiece: isMoveDelta(move) ? move.promotion ?? undefined : undefined,
+  };
+}
+
+function sameMove(a: MoveDelta | MoveRecord | null | undefined, b: MoveDelta | MoveRecord | null | undefined) {
+  if (!a || !b) return false;
+  const aFrom = moveFromIndex(a);
+  const aTo = moveToIndex(a);
+  const bFrom = moveFromIndex(b);
+  const bTo = moveToIndex(b);
+  return aFrom === bFrom && aTo === bTo && a.color === b.color;
 }
 
 export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome, onNewOnlineGame }: OnlineGamePageProps) {
@@ -59,7 +92,7 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   const [selectedSquare, setSelectedSquare] = useState<number | null>(null);
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<Move | null>(null);
-  const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
+  const [moveHistory, setMoveHistory] = useState<Array<MoveDelta | MoveRecord>>([]);
   const [seedLabel, setSeedLabel] = useState('Random');
   const [backRankCode, setBackRankCode] = useState<string | null>(null);
   const [roundNumber, setRoundNumber] = useState(1);
@@ -72,6 +105,8 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   const historyListRef = useRef<HTMLOListElement | null>(null);
   const confirmedGameRef = useRef<OnlineGameRecord | null>(null);
   const pendingClientMoveIdsRef = useRef(pendingClientMoveIds);
+  const boardRef = useRef(board);
+  const moveHistoryRef = useRef<Array<MoveDelta | MoveRecord>>(moveHistory);
   const hasPendingMove = pendingClientMoveIds.size > 0;
   const inviteLink = effectiveGameId ? buildInviteLink(effectiveGameId, matchMode) : null;
   const canNativeShare = typeof navigator !== 'undefined' && 'share' in navigator;
@@ -137,20 +172,17 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   function applyGameRecord(game: OnlineGameRecord, options: { preserveLocalMove?: boolean } = {}) {
     const safeMoveHistory = game.move_history ?? [];
     const derivedBackRankCode = game.back_rank_code ?? deriveBackRankCodeFromBoard(game.board);
+    const rebuiltBoard = rebuildBoardFromHistory(safeMoveHistory, { backRankCode: derivedBackRankCode, fallbackBoard: game.board });
     const estimatedScores = estimateMaterialScores(safeMoveHistory);
     confirmedGameRef.current = game;
     if (!options.preserveLocalMove) {
-      setBoard(game.board);
+      setBoard(rebuiltBoard);
+      boardRef.current = rebuiltBoard;
       setMoveHistory(safeMoveHistory);
-      const latestMove = safeMoveHistory.at(-1);
+      moveHistoryRef.current = safeMoveHistory;
+      const latestMove = getLatestMove(game);
       if (latestMove) {
-        setLastMove({
-          from: latestMove.from,
-          to: latestMove.to,
-          piece: { id: `${latestMove.color}-${latestMove.piece}`, type: latestMove.piece, color: latestMove.color, hasMoved: true },
-          capturedPiece: null,
-          isCapture: Boolean(latestMove.captured),
-        });
+        setLastMove(toDisplayMove(latestMove));
       }
     }
     setTurn(game.turn);
@@ -186,6 +218,14 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
   useEffect(() => {
     pendingClientMoveIdsRef.current = pendingClientMoveIds;
   }, [pendingClientMoveIds]);
+
+  useEffect(() => {
+    boardRef.current = board;
+  }, [board]);
+
+  useEffect(() => {
+    moveHistoryRef.current = moveHistory;
+  }, [moveHistory]);
 
   useEffect(() => {
     const historyList = historyListRef.current;
@@ -241,25 +281,49 @@ export function OnlineGamePage({ gameId, matchMode, theme, onToggleTheme, onHome
     const channel = subscribeToGame(effectiveGameId, (game) => {
       setIsRealtimeConnected(true);
       const latestMove = getLatestMove(game);
-      if (latestMove?.clientMoveId && pendingClientMoveIdsRef.current.has(latestMove.clientMoveId)) {
-        setPendingIds((ids) => {
-          ids.delete(latestMove.clientMoveId ?? '');
-          return ids;
-        });
+      const serverMoveCount = game.move_count ?? game.total_moves ?? game.move_history?.length ?? 0;
+      const localHistory = moveHistoryRef.current;
+      const localMoveCount = localHistory.length;
+      const localLatestMove = localHistory.at(-1);
+
+      if (latestMove && pendingClientMoveIdsRef.current.size > 0 && sameMove(latestMove, localLatestMove) && serverMoveCount === localMoveCount) {
+        setPendingIds(() => new Set());
         applyGameRecord(game, { preserveLocalMove: true });
         setSelectedSquare(null);
         setLegalMoves([]);
         return;
       }
 
-      applyGameRecord(game);
+      if (latestMove && isMoveDelta(latestMove) && latestMove.moveNumber === localMoveCount + 1) {
+        const currentBoard = boardRef.current;
+        const displayMove = moveDeltaToMove(currentBoard, latestMove);
+        const nextBoard = applyMoveDelta(currentBoard, latestMove);
+        const nextHistory = [...localHistory, latestMove];
+        setBoard(nextBoard);
+        boardRef.current = nextBoard;
+        setMoveHistory(nextHistory);
+        moveHistoryRef.current = nextHistory;
+        setLastMove(displayMove);
+        setTurn(game.turn);
+        setStatus(game.status);
+        setWhitePlayerId(game.white_player_id);
+        setBlackPlayerId(game.black_player_id);
+        setScores(estimateMaterialScores(nextHistory));
+        updateInviteStateFromGame(game);
+        confirmedGameRef.current = game;
+        setSelectedSquare(null);
+        setLegalMoves([]);
+        return;
+      }
+
+      if (!latestMove || serverMoveCount !== localMoveCount) applyGameRecord(game);
       setSelectedSquare(null);
       setLegalMoves([]);
     });
 
     if (!channel) setIsRealtimeConnected(false);
     return () => unsubscribeFromGame(channel);
-  // applyGameRecord intentionally reads pending move refs while this subscription is keyed by game identity.
+  // applyGameRecord intentionally reads refs while this subscription is keyed by game identity.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveGameId]);
 
@@ -391,14 +455,12 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
       playMoveSound(selectedMove.isCapture);
       if (isKingInCheck(nextBoard, nextTurn)) playCheckSound();
 
-      submitOnlineMove(effectiveGameId, playerId, selectedMove, {
-        clientMoveId,
-        moveNumber: previousStateVersion + 1,
-        previousStateVersion,
-      })
+      submitOnlineMove(effectiveGameId, playerId, selectedMove)
         .then(({ game }) => {
           const latestMove = getLatestMove(game);
-          if (latestMove?.clientMoveId === clientMoveId || (!latestMove?.clientMoveId && latestMove?.from === selectedMove.from && latestMove?.to === selectedMove.to && latestMove?.color === role && (game.move_history?.length ?? 0) === previousStateVersion + 1)) {
+          const optimisticMove = optimisticHistory.at(-1);
+          const serverMoveCount = game.move_count ?? game.total_moves ?? game.move_history?.length ?? 0;
+          if (sameMove(latestMove, optimisticMove) && serverMoveCount === previousStateVersion + 1) {
             setPendingIds((ids) => {
               ids.delete(clientMoveId);
               return ids;
@@ -517,12 +579,12 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
               <li className="empty-history"><span>No moves yet.</span><span>{isCompleted ? 'Game over.' : isOnlineGameReady ? 'White can make the first move.' : 'Waiting for opponent.'}</span></li>
             ) : (
               moveHistory.map((move, index) => (
-                <li key={`${move.timestamp}-${index}`}>
+                <li key={moveKey(move, index)}>
                   <button type="button" className="history-move" aria-disabled="true">
                     <span>{index + 1}.</span>
                     <strong>{move.color}</strong>
                     <span>{move.piece}</span>
-                    <span>{squareLabel(move.to % 5, Math.floor(move.to / 5))}</span>
+                    <span>{squareLabel(moveToIndex(move) % 5, Math.floor(moveToIndex(move) / 5))}</span>
                   </button>
                 </li>
               ))
