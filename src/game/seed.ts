@@ -1,7 +1,8 @@
-import { BACK_RANK_PIECES, BOARD_FILES } from './constants.js';
+import { BACK_RANK_PIECES, BOARD_FILES, RANDOM_BACK_RANK_PIECES } from './constants.js';
 import type { Board, Color, PieceType } from './types.js';
 
 export const DIRECT_BACK_RANK_CODE_PATTERN = /^[KQRBN]{5}$/i;
+export const FLEXIBLE_BACK_RANK_CODE_PATTERN = /^[KQRBNP]{5}$/i;
 export const TEXT_SEED_PATTERN = /^[A-Za-z0-9-]{1,32}$/;
 
 export const INVALID_SEED_HELP = 'Invalid seed. Use exactly K, Q, R, B, N once each, like QBKNR, or enter a simple text seed like boss-battle-1.';
@@ -17,6 +18,7 @@ const codeToPiece: Record<string, PieceType> = {
   R: 'rook',
   B: 'bishop',
   N: 'knight',
+  P: 'pawn',
 };
 
 const pieceToCode: Record<PieceType, string> = {
@@ -63,6 +65,11 @@ export function isBackRankCode(code: string): boolean {
   return ['K', 'Q', 'R', 'B', 'N'].every((pieceCode) => normalized.filter((value) => value === pieceCode).length === 1);
 }
 
+export function isFlexibleBackRankCode(code: string): boolean {
+  if (!FLEXIBLE_BACK_RANK_CODE_PATTERN.test(code)) return false;
+  return code.toUpperCase().split('').filter((pieceCode) => pieceCode === 'K').length === 1;
+}
+
 export function isValidTextSeed(seed: string): boolean {
   return TEXT_SEED_PATTERN.test(seed);
 }
@@ -76,7 +83,7 @@ export function validateSeedInput(seed: string): SeedValidationResult {
     return { ok: true, normalizedSeed: backRankCode, backRankCode, seedType: 'backRankCode' };
   }
 
-  if (/^[KQRBN]{1,}$/i.test(trimmedSeed) || /^[A-Za-z]{5}$/.test(trimmedSeed) || (/^[KQRBN]{5}/i.test(trimmedSeed) && !isBackRankCode(trimmedSeed))) {
+  if (/^[KQRBNP]{1,}$/i.test(trimmedSeed) || /^[A-Za-z]{5}$/.test(trimmedSeed) || (/^[KQRBNP]{5}/i.test(trimmedSeed) && !isBackRankCode(trimmedSeed))) {
     return { ok: false, error: INVALID_SEED_HELP };
   }
 
@@ -97,7 +104,7 @@ export function createSeedFromInput(seed: string): SeedValidationResult {
 }
 
 export function isValidBackRankCode(code: string): boolean {
-  return isBackRankCode(code);
+  return isFlexibleBackRankCode(code);
 }
 
 export function pieceOrderFromBackRankCode(backRankCode: string): PieceType[] {
@@ -122,6 +129,13 @@ export function backRankCodeFromSeed(seed: string): string {
   return backRankCodeFromPieceOrder(pieces);
 }
 
+export function randomBackRankCodeFromSeed(seed: string): string {
+  const random = seededRandom(seed);
+  const pieces = Array.from({ length: BOARD_FILES }, () => RANDOM_BACK_RANK_PIECES[Math.floor(random() * RANDOM_BACK_RANK_PIECES.length)]);
+  pieces[Math.floor(random() * pieces.length)] = 'king';
+  return backRankCodeFromPieceOrder(pieces);
+}
+
 export function resolveBackRankCode(seed: string): string {
   const validatedSeed = validateSeedInput(seed);
   if (!validatedSeed.ok) throw new Error(validatedSeed.error);
@@ -139,7 +153,7 @@ export function getDailySeed(dateKey = getUtcDateKey()): string {
 export function deriveBackRankCodeFromBoard(board: Board): string | null {
   if (!Array.isArray(board) || board.length < BOARD_FILES) return null;
   const whiteBackRank = board.slice(0, BOARD_FILES).map((square) => square.piece?.type);
-  if (whiteBackRank.some((piece) => !piece || piece === 'pawn')) return null;
+  if (whiteBackRank.some((piece) => !piece)) return null;
   return backRankCodeFromPieceOrder(whiteBackRank as PieceType[]);
 }
 
