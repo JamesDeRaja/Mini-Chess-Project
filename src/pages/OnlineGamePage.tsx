@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
@@ -95,6 +95,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [selectedSquare, setSelectedSquare] = useState<number | null>(null);
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<Move | null>(null);
+  const [isBoardReady, setIsBoardReady] = useState(false);
   const [moveHistory, setMoveHistory] = useState<Array<MoveDelta | MoveRecord>>([]);
   const [moveAnnouncement, setMoveAnnouncement] = useState('Online board ready.');
   const [seedLabel, setSeedLabel] = useState('Random');
@@ -120,9 +121,12 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const isFlipped = manualBoardFlip ?? role === 'black';
   const displayBoard = useMemo(() => (isPreviewing ? replayMoves(initialReplayBoard, moveHistory.slice(0, previewPly)) : board), [board, initialReplayBoard, isPreviewing, moveHistory, previewPly]);
   const displayMove = isPreviewing && previewPly !== null && previewPly > 0 ? toDisplayMove(moveHistory[previewPly - 1]) : lastMove;
-  const activeLegalMoves = isPreviewing ? [] : legalMoves;
+  const activeLegalMoves = isPreviewing || !isBoardReady ? [] : legalMoves;
   const inviteLink = effectiveGameId ? buildInviteLink(effectiveGameId, matchMode) : null;
   const canNativeShare = typeof navigator !== 'undefined' && 'share' in navigator;
+  const handleBoardSpawnComplete = useCallback(() => {
+    setIsBoardReady(true);
+  }, []);
   const checkedKingIndex = useMemo(
     () => (!isPreviewing && displayBoard.length && isKingInCheck(displayBoard, turn) ? findKingIndex(displayBoard, turn) : null),
     [displayBoard, isPreviewing, turn],
@@ -135,7 +139,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const isCompleted = isFinishedGame || isLifecycleTerminal;
   const isOnlineGameReady = !isLifecycleTerminal && (status === 'active' || bothPlayersJoined);
   const shouldShowWaitingOverlay = !isCompleted && inviteState !== 'error' && !isOnlineGameReady;
-  const canInteractWithBoard = !isPreviewing && !shouldShowWaitingOverlay && !isCompleted && role === turn && !hasPendingMove;
+  const canInteractWithBoard = isBoardReady && !isPreviewing && !shouldShowWaitingOverlay && !isCompleted && role === turn && !hasPendingMove;
   const displayStatus: GameStatus = isOnlineGameReady && status === 'waiting' ? 'active' : status;
   const primaryStatus = useMemo(() => {
     if (inviteState === 'creating_game') return 'Creating game...';
@@ -227,6 +231,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     if (isNewGameRecord) {
       setManualBoardFlip(null);
       setPreviewPly(null);
+      setIsBoardReady(false);
     }
     confirmedGameRef.current = game;
     setInitialReplayBoard(initialBoard);
@@ -406,6 +411,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     if (isNewGameRecord) {
       setManualBoardFlip(null);
       setPreviewPly(null);
+      setIsBoardReady(false);
     }
     confirmedGameRef.current = game;
         setSelectedSquare(null);
@@ -704,6 +710,7 @@ Can you beat it?`;
             <>
               <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
               <Board
+                key={`${effectiveGameId || 'new'}-${roundNumber}-${backRankCode ?? 'pending'}`}
                 ariaLabel={`Pocket Shuffle Chess online board. ${role === 'white' || role === 'black' ? `You are ${role}.` : 'Spectator view.'}`}
                 board={displayBoard}
                 selectedSquare={isPreviewing ? null : selectedSquare}
@@ -716,6 +723,7 @@ Can you beat it?`;
                 onDragStart={handleDragStart}
                 onDrop={handleDrop}
                 onDragCancel={() => { setSelectedSquare(null); setLegalMoves([]); }}
+                onSpawnComplete={handleBoardSpawnComplete}
               />
             </>
           )}
