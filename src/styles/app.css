@@ -3431,13 +3431,12 @@ button:focus-visible,
   backdrop-filter: blur(18px);
 }
 .not-found-nav,
-.not-found-links,
 .not-found-brand {
   display: flex;
   align-items: center;
 }
 .not-found-nav {
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 18px;
   padding-bottom: 28px;
   border-bottom: 1px solid rgba(45, 43, 40, 0.08);
@@ -3449,17 +3448,6 @@ button:focus-visible,
   font-weight: 950;
   letter-spacing: 0.25em;
   text-decoration: none;
-}
-.not-found-links { gap: clamp(12px, 2vw, 34px); }
-.not-found-links a {
-  color: var(--text-primary);
-  font-weight: 800;
-  text-decoration: none;
-}
-.not-found-nav-button {
-  padding: 12px 22px;
-  border-radius: 18px;
-  background: var(--button-secondary-bg);
 }
 .not-found-content {
   display: grid;
@@ -3532,31 +3520,29 @@ button:focus-visible,
   background: var(--square-light);
 }
 .not-found-board-grid span:nth-child(even) { background: var(--square-dark); }
-.lost-king,
-.lost-pawn,
-.fallen-king {
+.lost-piece {
   position: absolute;
   filter: drop-shadow(0 12px 8px rgba(45, 43, 40, 0.18));
+  opacity: 1;
   user-select: none;
 }
-.lost-king {
+.lost-piece-main {
   left: 35%;
   top: 33%;
   width: 28%;
   transform: rotate(-5deg);
 }
-.lost-pawn {
+.lost-piece-side {
   right: 12%;
   bottom: 17%;
   width: 22%;
   transform: rotate(3deg);
 }
-.fallen-king {
+.lost-piece-fallen {
   right: -9%;
   bottom: -12%;
   width: 27%;
   transform: rotate(74deg);
-  opacity: 0.86;
 }
 .not-found-speech {
   position: absolute;
@@ -3611,7 +3597,6 @@ button:focus-visible,
 @media (max-width: 900px) {
   .not-found-card { min-height: auto; }
   .not-found-nav { align-items: flex-start; flex-direction: column; }
-  .not-found-links { flex-wrap: wrap; }
   .not-found-content { grid-template-columns: 1fr; }
   .not-found-board-scene { min-height: 420px; }
   .not-found-mini-board { left: 4%; right: auto; width: min(92%, 460px); }
@@ -3619,7 +3604,6 @@ button:focus-visible,
 }
 
 @media (max-width: 560px) {
-  .not-found-links a:not(.not-found-nav-button) { display: none; }
   .not-found-actions { display: grid; }
   .button-link { width: 100%; }
   .not-found-board-scene { min-height: 310px; }

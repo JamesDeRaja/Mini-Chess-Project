@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react';
+import { useMemo, type MouseEvent } from 'react';
 import { Bot, CalendarDays, Home, Sparkles } from 'lucide-react';
 
 type NotFoundPageProps = {
@@ -7,12 +7,42 @@ type NotFoundPageProps = {
   onDaily: () => void;
 };
 
+type LostPiece = {
+  id: string;
+  src: string;
+  alt: string;
+  line: string;
+};
+
+const lostPieces: LostPiece[] = [
+  { id: 'white-queen', src: '/pieces/white-queen.png', alt: 'White queen', line: 'The queen checked the map and still took a wrong turn.' },
+  { id: 'black-queen', src: '/pieces/black-queen.png', alt: 'Black queen', line: 'The queen tried a power move and left the board.' },
+  { id: 'white-rook', src: '/pieces/white-rook.png', alt: 'White rook', line: 'The rook marched straight into the address bar.' },
+  { id: 'black-rook', src: '/pieces/black-rook.png', alt: 'Black rook', line: 'The rook found a file, but not this page.' },
+  { id: 'white-bishop', src: '/pieces/white-bishop.png', alt: 'White bishop', line: 'The bishop went diagonal and missed the route.' },
+  { id: 'black-bishop', src: '/pieces/black-bishop.png', alt: 'Black bishop', line: 'The bishop spotted a shortcut that was not legal.' },
+  { id: 'white-knight', src: '/pieces/white-knight.png', alt: 'White knight', line: 'The knight hopped in an L and landed nowhere.' },
+  { id: 'black-knight', src: '/pieces/black-knight.png', alt: 'Black knight', line: 'The knight jumped the line and lost the square.' },
+  { id: 'white-pawn', src: '/pieces/white-pawn.png', alt: 'White pawn', line: 'The pawn advanced bravely into a missing page.' },
+  { id: 'black-pawn', src: '/pieces/black-pawn.png', alt: 'Black pawn', line: 'The pawn took one small step outside the board.' },
+  { id: 'white-king', src: '/pieces/white-king.png', alt: 'White king', line: 'The king is safe, but this square is not real.' },
+  { id: 'black-king', src: '/pieces/black-king.png', alt: 'Black king', line: 'The king called check, but the page was gone.' },
+];
+
 function stopAndRun(event: MouseEvent<HTMLAnchorElement>, action: () => void) {
   event.preventDefault();
   action();
 }
 
+function randomizeLostPieces(): LostPiece[] {
+  return [...lostPieces]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3);
+}
+
 export function NotFoundPage({ onHome, onBot, onDaily }: NotFoundPageProps) {
+  const [mainPiece, sidePiece, fallenPiece] = useMemo(() => randomizeLostPieces(), []);
+
   return (
     <main className="not-found-page" aria-labelledby="not-found-title">
       <section className="not-found-card">
@@ -21,11 +51,6 @@ export function NotFoundPage({ onHome, onBot, onDaily }: NotFoundPageProps) {
             <span className="brand-icon-tile" aria-hidden="true"><img src="/Icon.png" alt="" draggable={false} /></span>
             <span>POCKET SHUFFLE CHESS</span>
           </a>
-          <nav className="not-found-links" aria-label="404 actions">
-            <a href="/how-it-works">How It Works</a>
-            <a href="/daily" onClick={(event) => stopAndRun(event, onDaily)}>Daily Setup</a>
-            <a className="not-found-nav-button" href="/bot" onClick={(event) => stopAndRun(event, onBot)}>Play Now</a>
-          </nav>
         </header>
 
         <div className="not-found-content">
@@ -50,11 +75,11 @@ export function NotFoundPage({ onHome, onBot, onDaily }: NotFoundPageProps) {
                 {Array.from({ length: 25 }, (_, index) => <span key={index} />)}
               </div>
               <div className="not-found-file-labels bottom"><span>Q</span><span>B</span><span>K</span><span>N</span><span>R</span></div>
-              <img className="lost-king" src="/pieces/white-king.png" alt="" draggable={false} />
-              <img className="lost-pawn" src="/pieces/black-pawn.png" alt="" draggable={false} />
-              <img className="fallen-king" src="/pieces/black-king.png" alt="" draggable={false} />
+              <img className="lost-piece lost-piece-main" src={mainPiece.src} alt={mainPiece.alt} draggable={false} />
+              <img className="lost-piece lost-piece-side" src={sidePiece.src} alt={sidePiece.alt} draggable={false} />
+              <img className="lost-piece lost-piece-fallen" src={fallenPiece.src} alt={fallenPiece.alt} draggable={false} />
             </div>
-            <div className="not-found-speech"><strong>Oops!</strong><span>Looks like this page got lost.</span></div>
+            <div className="not-found-speech"><strong>Oops!</strong><span>{mainPiece.line}</span><span>{sidePiece.line}</span><span>{fallenPiece.line}</span></div>
           </div>
         </div>
       </section>
