@@ -16,6 +16,7 @@ type BoardProps = {
   checkedKingIndex: number | null;
   isFlipped?: boolean;
   isInteractive?: boolean;
+  spawnKey?: string | number;
   onSquareClick: (squareIndex: number) => void;
   onDragStart?: (squareIndex: number) => Move[] | null;
   onDrop?: (squareIndex: number, move: Move) => void;
@@ -105,6 +106,7 @@ export function Board({
   checkedKingIndex,
   isFlipped = false,
   isInteractive = true,
+  spawnKey,
   onSquareClick,
   onDragStart,
   onDrop,
@@ -131,7 +133,7 @@ export function Board({
       window.clearTimeout(spawnTimer);
       dragStateRef.current = null;
     };
-  }, [onSpawnComplete]);
+  }, [onSpawnComplete, spawnKey]);
 
   useLayoutEffect(() => {
     if (!lastMove || getMotionPreference()) return;

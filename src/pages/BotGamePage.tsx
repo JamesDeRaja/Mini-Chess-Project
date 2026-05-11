@@ -72,6 +72,50 @@ function getAscensionMissingNote(tier: AscensionTier): string | null {
   return `Missing your ${missingPieces}? Not a bug. You climbed the daily ladder, so we politely confiscated ${tier === 1 ? 'it' : 'them'} to make the bot feel important. Keep winning and yes, we may borrow more.`;
 }
 
+
+type AscensionPopupTier = Exclude<AscensionTier, 0>;
+
+type AscensionPopupCopy = {
+  title: string;
+  body: string;
+  detail: string;
+};
+
+const ascensionPopupCopy: Record<AscensionPopupTier, AscensionPopupCopy> = {
+  1: {
+    title: 'Knight removed',
+    body: 'Your knight is sitting out this daily AI round because you earned your first star.',
+    detail: 'The bot keeps its full army, so look for pawn breaks and queen activity to make up for the missing jumper.',
+  },
+  2: {
+    title: 'Bishop removed',
+    body: 'Your bishop is now removed too after your second daily AI star.',
+    detail: 'You are playing without your knight and bishop. Keep lanes open and trade carefully before the bot uses its extra minor pieces.',
+  },
+  3: {
+    title: 'Knight, bishop, and rook removed',
+    body: 'You reached the final daily boss: your knight, bishop, and rook are all removed from your side.',
+    detail: 'This is intentional ascension difficulty. The bot still starts complete, so every tempo and capture matters.',
+  },
+};
+
+function ascensionPopupStorageKey(tier: AscensionPopupTier) {
+  return `daily-ai-ascension-removal-popup-seen-${tier}`;
+}
+
+function hasSeenAscensionPopup(tier: AscensionPopupTier) {
+  return typeof localStorage !== 'undefined' && localStorage.getItem(ascensionPopupStorageKey(tier)) === 'true';
+}
+
+function markAscensionPopupSeen(tier: AscensionPopupTier) {
+  if (typeof localStorage !== 'undefined') localStorage.setItem(ascensionPopupStorageKey(tier), 'true');
+}
+
+function getPendingAscensionPopupTier(isDailyAI: boolean, tier: AscensionTier): AscensionPopupTier | null {
+  if (!isDailyAI || tier === 0) return null;
+  return hasSeenAscensionPopup(tier) ? null : tier;
+}
+
 const modeConfig: Record<MatchMode, { label: string; maxGames: number; winsRequired: number }> = {
   single: { label: 'One Match', maxGames: 1, winsRequired: 1 },
   'best-of-3': { label: 'Best 2 / 3', maxGames: 3, winsRequired: 2 },
@@ -193,9 +237,12 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [matchWinner, setMatchWinner] = useState<Color | null>(null);
   const [isFlipped, setIsFlipped] = useState(() => playerColor === 'black');
   const [isBoardReady, setIsBoardReady] = useState(false);
+  const [ascensionPopupTier, setAscensionPopupTier] = useState<AscensionPopupTier | null>(() => getPendingAscensionPopupTier(isDailyAI, dailyAscensionTier));
   const [previewPly, setPreviewPly] = useState<number | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const historyListRef = useRef<HTMLOListElement | null>(null);
+  const botMoveTimerRef = useRef<number | null>(null);
+  const lastQueuedBotMoveKeyRef = useRef('');
   const config = modeConfig[matchMode];
   const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber);
   const latestPly = boardTimeline.length - 1;
@@ -210,6 +257,14 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   useEffect(() => {
     if (isDailyAI) setDailyAIProgress(resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   }, [dailySeedInfo.dateKey, isDailyAI]);
+
+  useEffect(() => {
+    setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, dailyAscensionTier));
+  }, [dailyAscensionTier, isDailyAI]);
+
+  useEffect(() => () => {
+    if (botMoveTimerRef.current !== null) window.clearTimeout(botMoveTimerRef.current);
+  }, []);
 
   useEffect(() => {
     const historyList = historyListRef.current;
@@ -308,6 +363,11 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setPreviewPly(null);
     setIsFlipped(playerColor === 'black');
     setIsBoardReady(false);
+    lastQueuedBotMoveKeyRef.current = '';
+    if (botMoveTimerRef.current !== null) {
+      window.clearTimeout(botMoveTimerRef.current);
+      botMoveTimerRef.current = null;
+    }
     setRoundResetId((resetId) => resetId + 1);
     setRoundNumber(nextRoundNumber);
   }
@@ -398,15 +458,30 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }
 
   useEffect(() => {
-    if (!isBoardReady || status !== 'active' || turn !== botColor || isPreviewing) return;
+    if (botMoveTimerRef.current !== null) {
+      window.clearTimeout(botMoveTimerRef.current);
+      botMoveTimerRef.current = null;
+    }
 
-    const timeoutId = window.setTimeout(() => {
+    if (!isBoardReady || status !== 'active' || turn !== botColor || isPreviewing) return undefined;
+
+    const botMoveKey = `${roundResetId}-${moveHistory.length}-${turn}`;
+    if (lastQueuedBotMoveKeyRef.current === botMoveKey) return undefined;
+    lastQueuedBotMoveKeyRef.current = botMoveKey;
+
+    botMoveTimerRef.current = window.setTimeout(() => {
+      botMoveTimerRef.current = null;
       const botMove = getBotMoveByLevel(board, botColor, botLevel);
       if (botMove) completeMove(botMove);
     }, 300);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [board, botColor, botLevel, completeMove, isBoardReady, isPreviewing, status, turn]);
+    return () => {
+      if (botMoveTimerRef.current !== null) {
+        window.clearTimeout(botMoveTimerRef.current);
+        botMoveTimerRef.current = null;
+      }
+    };
+  }, [board, botColor, botLevel, completeMove, isBoardReady, isPreviewing, moveHistory.length, roundResetId, status, turn]);
 
   const handleBoardSpawnComplete = useCallback(() => {
     setIsBoardReady(true);
@@ -476,6 +551,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             checkedKingIndex={checkedKingIndex}
             isFlipped={isFlipped}
             isInteractive={!isPreviewing && isBoardReady && status === 'active'}
+            spawnKey={roundResetId}
             onSquareClick={handleSquareClick}
             onDragStart={handleDragStart}
             onDrop={handleDrop}
@@ -533,6 +609,27 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             </>
           )}
         />
+      )}
+      {ascensionPopupTier && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="ascension-removal-title">
+          <div className="confirm-card ascension-removal-card">
+            <p className="eyebrow">Daily ascension</p>
+            <h2 id="ascension-removal-title">{ascensionPopupCopy[ascensionPopupTier].title}</h2>
+            <p>{ascensionPopupCopy[ascensionPopupTier].body}</p>
+            <p>{ascensionPopupCopy[ascensionPopupTier].detail}</p>
+            <div className="panel-actions centered-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  markAscensionPopupSeen(ascensionPopupTier);
+                  setAscensionPopupTier(null);
+                }}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {pendingAction && (
         <div className="confirm-overlay" role="dialog" aria-modal="true">
