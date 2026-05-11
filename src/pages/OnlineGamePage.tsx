@@ -12,7 +12,7 @@ import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../game/seed.js';
 import { playCheckSound, playMoveSound } from '../game/sound.js';
-import { applyMoveDelta, isMoveDelta, moveDeltaToMove, rebuildBoardFromHistory } from '../game/moveDelta.js';
+import { applyMoveDelta, isMoveDelta, moveDeltaToMove, rebuildBoardFromHistory, replayMoves } from '../game/moveDelta.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveDelta, MoveRecord } from '../game/types.js';
 import { createOnlineGame, createSeededGame, joinOnlineGame, submitOnlineGameAction, submitOnlineMove } from '../multiplayer/gameApi.js';
 import type { OnlineGameRecord } from '../multiplayer/gameApi.js';
@@ -83,13 +83,15 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const isCreatingInvite = gameId === 'new';
   const [effectiveGameId, setEffectiveGameId] = useState(isCreatingInvite ? '' : gameId);
   const [board, setBoard] = useState<ChessBoard>(() => (isCreatingInvite ? createInitialBoard() : []));
+  const [initialReplayBoard, setInitialReplayBoard] = useState<ChessBoard>(() => createInitialBoard());
   const [turn, setTurn] = useState<Color>('white');
   const [status, setStatus] = useState<GameStatus>(isCreatingInvite ? 'waiting' : 'waiting');
   const [inviteState, setInviteState] = useState<InviteState>(isCreatingInvite ? 'creating_game' : 'waiting_for_link');
   const [role, setRole] = useState<Color | 'spectator'>(isCreatingInvite ? 'white' : 'spectator');
   const [whitePlayerId, setWhitePlayerId] = useState<string | null>(isCreatingInvite ? playerId : null);
   const [blackPlayerId, setBlackPlayerId] = useState<string | null>(null);
-  const [isFlipped, setIsFlipped] = useState(false);
+  const [manualBoardFlip, setManualBoardFlip] = useState<boolean | null>(null);
+  const [previewPly, setPreviewPly] = useState<number | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<number | null>(null);
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<Move | null>(null);
@@ -107,15 +109,23 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [copied, setCopied] = useState(false);
   const [pendingClientMoveIds, setPendingClientMoveIds] = useState<Set<string>>(() => new Set());
   const historyListRef = useRef<HTMLOListElement | null>(null);
-  const hasAppliedRoleFlipRef = useRef(false);
   const confirmedGameRef = useRef<OnlineGameRecord | null>(null);
   const pendingClientMoveIdsRef = useRef(pendingClientMoveIds);
   const boardRef = useRef(board);
   const moveHistoryRef = useRef<Array<MoveDelta | MoveRecord>>(moveHistory);
   const hasPendingMove = pendingClientMoveIds.size > 0;
+  const latestPly = moveHistory.length;
+  const isPreviewing = previewPly !== null && previewPly < latestPly;
+  const isFlipped = manualBoardFlip ?? role === 'black';
+  const displayBoard = useMemo(() => (isPreviewing ? replayMoves(initialReplayBoard, moveHistory.slice(0, previewPly)) : board), [board, initialReplayBoard, isPreviewing, moveHistory, previewPly]);
+  const displayMove = isPreviewing && previewPly !== null && previewPly > 0 ? toDisplayMove(moveHistory[previewPly - 1]) : lastMove;
+  const activeLegalMoves = isPreviewing ? [] : legalMoves;
   const inviteLink = effectiveGameId ? buildInviteLink(effectiveGameId, matchMode) : null;
   const canNativeShare = typeof navigator !== 'undefined' && 'share' in navigator;
-  const checkedKingIndex = useMemo(() => (board.length && isKingInCheck(board, turn) ? findKingIndex(board, turn) : null), [board, turn]);
+  const checkedKingIndex = useMemo(
+    () => (!isPreviewing && displayBoard.length && isKingInCheck(displayBoard, turn) ? findKingIndex(displayBoard, turn) : null),
+    [displayBoard, isPreviewing, turn],
+  );
   const hasWhite = Boolean(whitePlayerId);
   const hasBlack = Boolean(blackPlayerId);
   const bothPlayersJoined = hasWhite && hasBlack;
@@ -124,7 +134,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const isCompleted = isFinishedGame || isLifecycleTerminal;
   const isOnlineGameReady = !isLifecycleTerminal && (status === 'active' || bothPlayersJoined);
   const shouldShowWaitingOverlay = !isCompleted && inviteState !== 'error' && !isOnlineGameReady;
-  const canInteractWithBoard = !shouldShowWaitingOverlay && !isCompleted && role === turn && !hasPendingMove;
+  const canInteractWithBoard = !isPreviewing && !shouldShowWaitingOverlay && !isCompleted && role === turn && !hasPendingMove;
   const displayStatus: GameStatus = isOnlineGameReady && status === 'waiting' ? 'active' : status;
   const primaryStatus = useMemo(() => {
     if (inviteState === 'creating_game') return 'Creating game...';
@@ -197,12 +207,25 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     setInviteState(effectiveGameId || game.id ? 'waiting_for_opponent' : 'waiting_for_link');
   }
 
+  function resolveRoleFromGame(game: OnlineGameRecord): Color | 'spectator' {
+    if (game.white_player_id === playerId) return 'white';
+    if (game.black_player_id === playerId) return 'black';
+    return 'spectator';
+  }
+
   function applyGameRecord(game: OnlineGameRecord, options: { preserveLocalMove?: boolean } = {}) {
     const safeMoveHistory = game.move_history ?? [];
     const derivedBackRankCode = game.back_rank_code ?? deriveBackRankCodeFromBoard(game.board);
+    const initialBoard = derivedBackRankCode ? createInitialBoard({ backRankCode: derivedBackRankCode }) : safeMoveHistory.length === 0 ? game.board : createInitialBoard();
     const rebuiltBoard = rebuildBoardFromHistory(safeMoveHistory, { backRankCode: derivedBackRankCode, fallbackBoard: game.board });
     const estimatedScores = estimateMaterialScores(safeMoveHistory);
+    const isNewGameRecord = confirmedGameRef.current?.id !== game.id;
+    if (isNewGameRecord) {
+      setManualBoardFlip(null);
+      setPreviewPly(null);
+    }
     confirmedGameRef.current = game;
+    setInitialReplayBoard(initialBoard);
     if (!options.preserveLocalMove) {
       setBoard(rebuiltBoard);
       boardRef.current = rebuiltBoard;
@@ -211,12 +234,15 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
       const latestMove = getLatestMove(game);
       if (latestMove) {
         setLastMove(toDisplayMove(latestMove));
+      } else {
+        setLastMove(null);
       }
     }
     setTurn(game.turn);
     setStatus(game.status);
     setWhitePlayerId(game.white_player_id);
     setBlackPlayerId(game.black_player_id);
+    setRole(resolveRoleFromGame(game));
     setSeedLabel(game.seed ?? 'Random');
     setBackRankCode(derivedBackRankCode);
     setRoundNumber(game.round_number ?? 1);
@@ -244,18 +270,6 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
       })
       .catch((syncError: Error) => setError(syncError.message));
   }
-
-  useEffect(() => {
-    hasAppliedRoleFlipRef.current = false;
-  }, [effectiveGameId]);
-
-  useEffect(() => {
-    if (!isOnlineGameReady) return;
-    if (role !== 'white' && role !== 'black') return;
-    if (hasAppliedRoleFlipRef.current) return;
-    setIsFlipped(role === 'black');
-    hasAppliedRoleFlipRef.current = true;
-  }, [isOnlineGameReady, role]);
 
   useEffect(() => {
     pendingClientMoveIdsRef.current = pendingClientMoveIds;
@@ -307,8 +321,8 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     if (!effectiveGameId) return;
     joinOnlineGame(effectiveGameId, playerId)
       .then(({ game, role: joinedRole }) => {
-        applyGameRecord(game);
         setRole(joinedRole);
+        applyGameRecord(game);
       })
       .catch((joinError: Error) => {
         setInviteState('error');
@@ -352,7 +366,12 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
         setBlackPlayerId(game.black_player_id);
         setScores(estimateMaterialScores(nextHistory));
         updateInviteStateFromGame(game);
-        confirmedGameRef.current = game;
+        const isNewGameRecord = confirmedGameRef.current?.id !== game.id;
+    if (isNewGameRecord) {
+      setManualBoardFlip(null);
+      setPreviewPly(null);
+    }
+    confirmedGameRef.current = game;
         setSelectedSquare(null);
         setLegalMoves([]);
         return;
@@ -375,8 +394,8 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     const pollId = window.setInterval(() => {
       joinOnlineGame(effectiveGameId, playerId)
         .then(({ game, role: refreshedRole }) => {
-          applyGameRecord(game);
           setRole(refreshedRole);
+          applyGameRecord(game);
         })
         .catch(() => undefined);
     }, 2000);
@@ -395,8 +414,8 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
           const confirmedGame = confirmedGameRef.current;
           const confirmedVersion = confirmedGame?.updated_at ?? `${confirmedGame?.move_history?.length ?? 0}:${confirmedGame?.turn}:${confirmedGame?.status}`;
           const nextVersion = game.updated_at ?? `${game.move_history?.length ?? 0}:${game.turn}:${game.status}`;
-          if (nextVersion !== confirmedVersion) applyGameRecord(game);
           setRole(refreshedRole);
+          if (nextVersion !== confirmedVersion) applyGameRecord(game);
         })
         .catch(() => undefined);
     }, 2000);
@@ -607,7 +626,7 @@ Can you beat it?`;
           <p className="panel-note">{isOnlineGameReady ? (drawOfferBy ? `${drawOfferBy === role ? 'You offered a draw.' : 'Opponent offered a draw.'}` : 'Share remains available.') : shareIsLoading ? 'Share the invite link. Your friend joins when they open it.' : 'Send this link to a friend. The game starts when they join.'}</p>
           <div className="match-actions">
             <button type="button" className="wide-action primary-action" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : isOnlineGameReady ? 'Share' : 'Share Invite'}</button>
-            <button type="button" className="wide-action secondary-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
+            <button type="button" className="wide-action secondary-action" onClick={() => setManualBoardFlip((flipped) => !(flipped ?? role === 'black'))}><RotateCcw size={18} /> Flip Board</button>
           </div>
         </aside>
 
@@ -617,10 +636,10 @@ Can you beat it?`;
               <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
               <Board
               ariaLabel={`Pocket Shuffle Chess online board. ${role === 'white' || role === 'black' ? `You are ${role}.` : 'Spectator view.'}`}
-              board={board}
-              selectedSquare={selectedSquare}
-              legalMoves={legalMoves}
-              lastMove={lastMove}
+              board={displayBoard}
+              selectedSquare={isPreviewing ? null : selectedSquare}
+              legalMoves={activeLegalMoves}
+              lastMove={displayMove}
               checkedKingIndex={checkedKingIndex}
               isFlipped={isFlipped}
               isInteractive={canInteractWithBoard}
@@ -655,22 +674,24 @@ Can you beat it?`;
               <p className="eyebrow">Move History</p>
               <h2>Move history</h2>
             </div>
-            <p className="panel-note">{isOnlineGameReady ? 'Select a piece to see legal moves.' : 'The game starts when both players are in.'}</p>
+            <p className="panel-note">{isOnlineGameReady ? 'Click a move to review. Use controls to return Live.' : 'The game starts when both players are in.'}</p>
           </div>
           <ol className="move-history move-list history-list" ref={historyListRef}>
             <MoveHistory
               moves={moveHistory}
               emptyPrimary="No moves yet."
               emptySecondary={isCompleted ? 'Game over.' : isOnlineGameReady ? 'White can make the first move.' : 'Waiting for opponent.'}
+              activePly={previewPly}
+              onSelectPly={(ply) => setPreviewPly(ply >= latestPly ? null : ply)}
             />
           </ol>
           <div className="review-footer history-actions">
             <div className="review-controls">
-              <button type="button" disabled>⏮</button>
-              <button type="button" disabled>‹</button>
-              <button type="button" disabled>Live</button>
-              <button type="button" disabled>›</button>
-              <button type="button" disabled>⏭</button>
+              <button type="button" onClick={() => setPreviewPly(0)} disabled={latestPly === 0 || previewPly === 0}>⏮</button>
+              <button type="button" onClick={() => setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0))} disabled={latestPly === 0 || previewPly === 0}>‹</button>
+              <button type="button" className={isPreviewing ? 'live-review-pending' : undefined} onClick={() => setPreviewPly(null)} disabled={!isPreviewing}>Live</button>
+              <button type="button" onClick={() => setPreviewPly((ply) => { const nextPly = Math.min((ply ?? 0) + 1, latestPly); return nextPly >= latestPly ? null : nextPly; })} disabled={latestPly === 0 || !isPreviewing}>›</button>
+              <button type="button" onClick={() => setPreviewPly(null)} disabled={latestPly === 0 || !isPreviewing}>⏭</button>
             </div>
             <div className="panel-actions stacked-actions">
               <button type="button" className="danger-action" onClick={() => handleOnlineGameAction('resign')} disabled={!canUseGameActions}>Resign</button>

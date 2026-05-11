@@ -272,6 +272,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .history-actions { flex: 0 0 auto; margin-top: auto; }
 .review-controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 0 0 14px; }
 .review-controls button { padding: 10px; }
+.live-review-pending { outline: 2px solid rgba(242, 208, 99, 0.82); outline-offset: 2px; background: #f4dd9b; color: var(--ink); }
 .stacked-actions { display: grid; grid-template-columns: 1fr 1fr; }
 .stacked-actions button { width: 100%; }
 
@@ -3920,5 +3921,82 @@ button:focus-visible,
 
   .chess-shell {
     --play-area-height: min(calc(100svh - clamp(205px, 28svh, 248px)), 650px);
+  }
+}
+
+/* Medium-height laptop fitting: modestly tighten vertical rhythm without changing mobile layouts. */
+@media (min-width: 1181px) and (max-height: 1020px) {
+  .home-page,
+  .game-page { padding-block: clamp(10px, 1.5svh, 18px); }
+
+  .home-hero-shell {
+    gap: clamp(24px, 4vw, 58px);
+    min-height: calc(100svh - clamp(24px, 4vw, 56px));
+    padding-top: clamp(10px, 1.6svh, 18px);
+    padding-bottom: clamp(44px, 7svh, 86px);
+  }
+
+  .home-hero-shell .hero-copy { gap: clamp(11px, 1.55svh, 17px); }
+  .hero-title { font-size: clamp(60px, 7.2vw, 104px); }
+  .today-pill { padding: 10px 12px 10px 10px; }
+  .today-pill-icon { width: 44px; height: 44px; }
+  .home-action-grid { gap: 12px; margin-top: 0; }
+  .home-action-card { min-height: clamp(166px, 17.5vw, 198px); padding: 16px; }
+  .action-piece { top: 16px; height: 100px; }
+  .secondary-home-actions button { min-height: 44px; }
+
+  .today-setup-showcase {
+    gap: clamp(12px, 1.6vw, 18px);
+    width: min(100%, 500px);
+    padding: clamp(18px, 2.4vw, 28px);
+  }
+
+  .preview-board-frame { width: min(100%, 350px); }
+  .setup-summary-panel { gap: 14px; padding: 14px; }
+  .decorative-home-pieces { width: clamp(130px, 13vw, 210px); height: clamp(100px, 12vw, 180px); }
+
+  .game-page { gap: clamp(8px, 1.1svh, 12px); }
+  .game-page h1 { font-size: clamp(2.7rem, 6.2vw, 5.4rem); }
+  .game-details { margin-top: 8px; line-height: 1.35; }
+
+  .chess-shell {
+    --play-area-height: min(100%, calc(100svh - clamp(154px, 19svh, 220px)));
+    gap: clamp(10px, 1.35vw, 20px);
+  }
+
+  .side-panel,
+  .invite-panel { padding: 18px; border-radius: 28px; }
+  .match-panel { gap: 11px; }
+  .score-stack { gap: 8px; margin: 10px 0; }
+  .score-stack span { padding: 10px 12px; }
+  .info-stack { gap: 8px; padding-top: 10px; }
+  .info-stack p { padding-block: 6px; }
+  .panel-note { line-height: 1.45; }
+  .review-footer { padding-top: 10px; }
+  .review-controls { gap: 7px; margin-bottom: 10px; }
+  .review-controls button { padding: 8px 9px; }
+  .stacked-actions { gap: 9px; }
+}
+
+@media (min-width: 1181px) and (max-height: 900px) {
+  .home-hero-shell { padding-bottom: clamp(28px, 5svh, 56px); }
+  .today-setup-showcase { width: min(100%, 470px); }
+  .preview-board-frame { width: min(100%, 320px); padding: 8px; border-width: 6px; }
+  .game-page h1 { font-size: clamp(2.45rem, 5.5vw, 4.8rem); }
+  .chess-shell { --play-area-height: min(100%, calc(100svh - clamp(140px, 17svh, 190px))); }
+}
+
+/* 14-inch / intermediate laptop gameplay layout: keep the same side-rail design
+   as larger laptops, but tune the columns dynamically so the board stays prominent. */
+@media (min-width: 1181px) and (max-width: 1600px) and (max-height: 1050px) {
+  .game-header,
+  .game-layout {
+    width: min(100%, 1500px);
+  }
+
+  .chess-shell {
+    --play-area-height: min(calc(100svh - clamp(158px, 18.5svh, 204px)), 760px);
+    grid-template-columns: minmax(270px, 330px) minmax(0, min(calc(var(--play-area-height) * 5 / 6), 41vw, 630px)) minmax(320px, 360px);
+    gap: clamp(10px, 1.2vw, 18px);
   }
 }
