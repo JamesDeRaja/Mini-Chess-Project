@@ -55,6 +55,7 @@
   outline-offset: -5px;
   z-index: 2;
   box-shadow: inset 0 0 0 999px rgba(247, 207, 114, 0.18);
+  animation: selected-shimmer 1.9s ease-in-out infinite;
 }
 
 .legal-target-square::after,
@@ -67,8 +68,7 @@
 .legal-target-square::after { background: rgba(255, 169, 149, 0.16); }
 
 .king-in-check {
-  box-shadow: inset 0 0 0 999px rgba(255, 169, 149, 0.34), inset 0 0 0 6px rgba(184, 91, 77, 0.8);
-  animation: check-pulse 1s ease-in-out infinite alternate;
+  animation: check-pulse-dramatic 0.72s ease-in-out infinite alternate;
 }
 
 .piece,
@@ -172,6 +172,7 @@
   height: 17px;
   background: rgba(247, 207, 114, 0.9);
   box-shadow: 0 0 0 9px rgba(247, 207, 114, 0.2);
+  animation: move-dot-breathe 1.55s ease-in-out infinite;
 }
 
 .capture-dot {
@@ -179,11 +180,15 @@
   height: 20px;
   background: rgba(255, 169, 149, 0.94);
   box-shadow: 0 0 0 10px rgba(255, 169, 149, 0.2), 0 0 0 2px rgba(45, 43, 40, 0.14);
+  animation: capture-dot-throb 0.95s ease-in-out infinite;
 }
 
 @keyframes piece-land {
-  from { opacity: 0.4; transform: scale(0.86); }
-  to { opacity: 1; transform: scale(1); }
+  0%   { opacity: 0.4; transform: scale(0.72) translateY(14px); }
+  52%  { opacity: 1;   transform: scale(1.12) translateY(-3px); }
+  74%  { transform: scaleX(1.16) scaleY(0.76); }
+  88%  { transform: scaleX(0.93) scaleY(1.09); }
+  100% { opacity: 1;   transform: scale(1); }
 }
 @keyframes piece-slide-land {
   from { opacity: 0.45; transform: translateY(-16px) scale(0.9) rotate(-4deg); }
@@ -211,7 +216,7 @@
   .piece::after { display: none; }
 }
 
-.square:active { transform: scale(0.98); }
+.square:active { transform: scale(0.92) !important; }
 
 /* Shared scalable framed board */
 .board-shell {
@@ -602,4 +607,189 @@
   animation: none;
   opacity: 0.98;
   transform: none;
+}
+
+/* =====================================================
+   JUICY ANIMATION SYSTEM
+   ===================================================== */
+
+/* --- Piece flight + squish landing --- */
+.piece-flying {
+  animation: piece-fly-land 420ms cubic-bezier(0.2, 1, 0.3, 1) forwards !important;
+  will-change: transform;
+  z-index: 10 !important;
+}
+
+@keyframes piece-fly-land {
+  0% {
+    transform: translate(var(--fly-dx, 0px), var(--fly-dy, 0px)) scale(1.1);
+    filter: drop-shadow(0 28px 22px rgba(45, 43, 40, 0.52));
+    animation-timing-function: cubic-bezier(0.38, 0, 0.6, 1);
+  }
+  36% {
+    transform:
+      translate(
+        calc(var(--fly-dx, 0px) * 0.42),
+        calc(var(--fly-dy, 0px) * 0.42 - 46px)
+      ) scale(1.2);
+    filter: drop-shadow(0 38px 28px rgba(45, 43, 40, 0.24));
+    animation-timing-function: cubic-bezier(0.5, 0, 1, 0.6);
+  }
+  68% {
+    transform:
+      translate(
+        calc(var(--fly-dx, 0px) * 0.03),
+        calc(var(--fly-dy, 0px) * 0.03 + 9px)
+      ) scale(1.06);
+    filter: drop-shadow(0 12px 10px rgba(45, 43, 40, 0.42));
+    animation-timing-function: cubic-bezier(0.1, 0, 0.2, 1);
+  }
+  80% {
+    transform: translate(0, 0) scaleX(1.38) scaleY(0.56);
+    filter: drop-shadow(0 2px 2px rgba(45, 43, 40, 0.3));
+  }
+  90% {
+    transform: translate(0, -7px) scaleX(0.86) scaleY(1.18);
+  }
+  96% {
+    transform: translate(0, 2px) scaleX(1.05) scaleY(0.96);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    filter: drop-shadow(0 9px 7px rgba(54, 48, 39, 0.24));
+  }
+}
+
+/* --- Pulsing legal move dots --- */
+@keyframes move-dot-breathe {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 9px rgba(247, 207, 114, 0.22); }
+  50%       { transform: scale(1.38); box-shadow: 0 0 0 16px rgba(247, 207, 114, 0.06); }
+}
+
+/* --- Throbbing capture dots --- */
+@keyframes capture-dot-throb {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 10px rgba(255, 169, 149, 0.22), 0 0 0 2px rgba(45, 43, 40, 0.14); }
+  50%       { transform: scale(1.36); box-shadow: 0 0 0 18px rgba(255, 169, 149, 0.06), 0 0 0 2px rgba(45, 43, 40, 0.14); }
+}
+
+/* --- Shimmering selected square --- */
+@keyframes selected-shimmer {
+  0%, 100% {
+    outline-color: rgba(247, 207, 114, 0.96);
+    box-shadow: inset 0 0 0 999px rgba(247, 207, 114, 0.18);
+  }
+  50% {
+    outline-color: rgba(255, 222, 55, 1);
+    box-shadow: inset 0 0 0 999px rgba(247, 207, 114, 0.36), 0 0 20px rgba(247, 207, 114, 0.4);
+  }
+}
+
+/* --- Dramatic check pulse --- */
+@keyframes check-pulse-dramatic {
+  from {
+    filter: brightness(1);
+    box-shadow: inset 0 0 0 999px rgba(255, 100, 70, 0.3), inset 0 0 0 5px rgba(180, 70, 60, 0.75);
+  }
+  to {
+    filter: brightness(1.24);
+    box-shadow:
+      inset 0 0 0 999px rgba(255, 42, 20, 0.6),
+      inset 0 0 0 8px rgba(210, 36, 16, 0.98),
+      0 0 32px rgba(220, 48, 22, 0.6);
+  }
+}
+
+/* --- Capture flash on square --- */
+.square.capture-flash {
+  animation: square-capture-flash 0.5s cubic-bezier(0, 0.9, 0.3, 1) forwards !important;
+}
+@keyframes square-capture-flash {
+  0%   { filter: brightness(2.6) saturate(2.4); }
+  22%  { filter: brightness(1.8) saturate(1.7); }
+  100% { filter: brightness(1)   saturate(1); }
+}
+
+/* --- Particles for captures --- */
+.capture-particle {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+}
+@keyframes particle-burst {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.6) rotate(0deg);
+  }
+  60% { opacity: 0.88; }
+  100% {
+    opacity: 0;
+    transform:
+      translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, 0px)))
+      scale(0.1)
+      rotate(var(--rot, 180deg));
+  }
+}
+
+/* --- Shockwave ring on capture --- */
+.capture-shockwave {
+  position: fixed;
+  z-index: 9998;
+  pointer-events: none;
+  border-radius: 50%;
+}
+@keyframes shockwave-ring {
+  0%   { transform: translate(-50%, -50%) scale(0.15); opacity: 0.95; }
+  100% { transform: translate(-50%, -50%) scale(4.5);  opacity: 0; }
+}
+
+/* --- Drag hover: elevated glow --- */
+.drag-hover-square {
+  z-index: 4;
+  transform: translateY(-2px) scale(1.02) !important;
+  transition: transform 80ms ease !important;
+}
+.drag-hover-square::after {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  content: '';
+  pointer-events: none;
+  box-shadow: inset 0 0 0 5px rgba(247, 207, 114, 0.8), 0 12px 24px rgba(74, 70, 58, 0.2);
+  animation: drag-hover-pulse 0.7s ease-in-out infinite alternate;
+}
+@keyframes drag-hover-pulse {
+  from { box-shadow: inset 0 0 0 4px rgba(247, 207, 114, 0.72), 0 8px 16px rgba(74, 70, 58, 0.14); }
+  to   { box-shadow: inset 0 0 0 6px rgba(255, 222, 50, 0.95), 0 14px 26px rgba(74, 70, 58, 0.28); }
+}
+
+/* --- Button ripple element (spawned by JS) --- */
+.btn-ripple-el {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.38);
+  transform: translate(-50%, -50%) scale(0);
+  animation: btn-ripple-expand 540ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: transform, opacity;
+}
+@keyframes btn-ripple-expand {
+  to {
+    transform: translate(-50%, -50%) scale(4);
+    opacity: 0;
+  }
+}
+
+/* --- Piece hover lift (interactive pieces) --- */
+.piece-wrapper[data-draggable='true']:hover .piece-img,
+.piece-wrapper[data-draggable='true']:hover .piece-fallback {
+  transform: translateY(calc(var(--piece-y, 0px) - 4px)) scale(calc(var(--piece-scale, 1) * 1.06));
+  filter: drop-shadow(0 14px 12px rgba(45, 43, 40, 0.3));
+  transition: transform 160ms cubic-bezier(0.2, 1.4, 0.4, 1), filter 160ms ease;
+}
+
+/* --- Drag ghost piece grows more dramatically --- */
+.board-drag-preview {
+  transform: translate(-50%, -50%) scale(1.14) !important;
+  filter: drop-shadow(0 24px 20px rgba(45, 43, 40, 0.36)) !important;
 }
