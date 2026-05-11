@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createInitialBoard } from '../../src/game/createInitialBoard.js';
-import { validateSeedInput } from '../../src/game/seed.js';
+import { isValidBackRankCode, validateSeedInput } from '../../src/game/seed.js';
 import { safeSupabaseInsert } from '../../src/multiplayer/safeSupabaseInsert.js';
 import { cleanupOldGames, getNewGameLifecycleFields } from './lifecycle.js';
 import { getServerSupabase } from './serverSupabase.js';
@@ -23,8 +23,14 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return;
   }
 
+  const requestedBackRankCode = typeof request.body?.backRankCode === 'string' ? request.body.backRankCode.toUpperCase() : null;
+  if (requestedBackRankCode && !isValidBackRankCode(requestedBackRankCode)) {
+    response.status(400).send('Invalid backRankCode');
+    return;
+  }
+
   const seed = seedValidation.normalizedSeed;
-  const backRankCode = seedValidation.backRankCode;
+  const backRankCode = requestedBackRankCode ?? seedValidation.backRankCode;
   const supabase = getServerSupabase();
   await cleanupOldGames(supabase);
   const lifecycleFields = getNewGameLifecycleFields();

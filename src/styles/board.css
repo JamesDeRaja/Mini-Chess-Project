@@ -461,3 +461,145 @@
 @media (min-width: 1181px) and (max-width: 1600px) and (max-height: 900px) {
   .board-shell { width: min(40.5vw, 610px, calc(var(--play-area-height, 700px) * 5 / 6)); }
 }
+
+/* Responsive board frame: board dimensions drive coordinate grids. */
+.board-frame {
+  --rank-label-size: clamp(18px, 2.2vw, 24px);
+  --file-label-size: clamp(23px, 2.4vw, 28px);
+  --board-max-width: min(660px, calc(var(--play-area-height, 706px) * 5 / 6));
+  width: min(100%, calc(var(--board-max-width) + var(--rank-label-size)));
+  max-width: 100%;
+}
+
+.board-stage {
+  display: grid;
+  grid-template-columns: var(--rank-label-size) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) var(--file-label-size);
+  align-items: stretch;
+  width: 100%;
+  max-width: 100%;
+}
+
+.board-frame .board {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  aspect-ratio: 5 / 6;
+  box-sizing: border-box;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+}
+
+.board-rank-labels {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  align-items: center;
+  justify-items: center;
+  min-width: 0;
+  height: 100%;
+}
+
+.board-file-labels {
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  justify-items: center;
+  min-width: 0;
+  width: 100%;
+}
+
+.board-rank-labels span,
+.board-file-labels span {
+  min-width: 0;
+  line-height: 1;
+  text-align: center;
+}
+
+@media (min-width: 1200px) {
+  .board-frame {
+    --board-max-width: min(660px, calc(var(--play-area-height, 706px) * 5 / 6), calc(100vw - var(--left-panel-width, 300px) - var(--right-panel-width, 340px) - var(--gameplay-gap, 32px) - var(--gameplay-gap, 32px) - var(--rank-label-size)));
+  }
+}
+
+@media (max-width: 1199px) {
+  .board-frame {
+    --board-max-width: min(590px, calc(100vw - var(--rank-label-size) - 32px), calc(var(--play-area-height, 708px) * 5 / 6));
+  }
+}
+
+@media (max-width: 799px) {
+  .board-frame {
+    --rank-label-size: 18px;
+    --file-label-size: 24px;
+    --board-max-width: min(480px, calc(100vw - var(--rank-label-size) - 28px), calc(var(--play-area-height, 620px) * 5 / 6));
+  }
+
+  .board-frame .board {
+    gap: 3px;
+    padding: 9px;
+    border-radius: 27px;
+  }
+}
+
+/* Pointer drag feedback for gameplay pieces. */
+.board-frame { position: relative; }
+.board.dragging-board,
+.board.dragging-board .square {
+  touch-action: none;
+  user-select: none;
+}
+
+.piece-wrapper { cursor: default; }
+.piece-wrapper[data-draggable='true'] { cursor: grab; touch-action: none; }
+.board.dragging-board .piece-wrapper[data-draggable='true'],
+.board-drag-preview .piece-wrapper { cursor: grabbing; }
+
+.drag-source-square {
+  z-index: 3;
+}
+
+.drag-source-square::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  content: '';
+  pointer-events: none;
+  box-shadow: inset 0 0 0 999px rgba(247, 207, 114, 0.12);
+}
+
+.drag-hover-square {
+  z-index: 4;
+  transform: translateY(-1px);
+}
+
+.drag-hover-square::after {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  content: '';
+  pointer-events: none;
+  box-shadow: inset 0 0 0 4px rgba(247, 207, 114, 0.7), 0 8px 16px rgba(74, 70, 58, 0.14);
+}
+
+.board-drag-preview {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(1.06);
+  filter: drop-shadow(0 18px 16px rgba(45, 43, 40, 0.26));
+  will-change: left, top, transform;
+}
+
+.board-drag-preview .piece-wrapper {
+  animation: none;
+  opacity: 0.98;
+  transform: none;
+}

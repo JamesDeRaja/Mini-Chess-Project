@@ -1,10 +1,11 @@
-import type { DragEvent } from 'react';
+import type { PointerEvent } from 'react';
 import type { Square as ChessSquare } from '../game/types.js';
 import { Piece } from './Piece.js';
 import { MoveHint } from './MoveHint.js';
 
 type SquareProps = {
   square: ChessSquare;
+  squareIndex: number;
   isSelected: boolean;
   isLegalMove: boolean;
   isCapture: boolean;
@@ -12,14 +13,16 @@ type SquareProps = {
   isKingInCheck: boolean;
   isInteractive: boolean;
   isBoardSelected: boolean;
+  isDragSource: boolean;
+  isDragHoveredLegal: boolean;
   coordinateLabel: string;
   onClick: () => void;
-  onDragStart?: () => boolean;
-  onDrop?: () => void;
+  onPointerDragStart?: (event: PointerEvent<HTMLButtonElement>, squareIndex: number) => void;
 };
 
 export function Square({
   square,
+  squareIndex,
   isSelected,
   isLegalMove,
   isCapture,
@@ -27,10 +30,11 @@ export function Square({
   isKingInCheck,
   isInteractive,
   isBoardSelected,
+  isDragSource,
+  isDragHoveredLegal,
   coordinateLabel,
   onClick,
-  onDragStart,
-  onDrop,
+  onPointerDragStart,
 }: SquareProps) {
   const pieceLabel = square.piece ? `${square.piece.color === 'white' ? 'White' : 'Black'} ${square.piece.type} at ${coordinateLabel}` : `Empty square ${coordinateLabel}`;
   const stateLabel = [isSelected ? 'selected' : '', isLegalMove ? (isCapture ? 'capture available' : 'legal move available') : '', isLastMove ? 'last move' : '', isKingInCheck ? 'king in check' : ''].filter(Boolean).join(', ');
@@ -43,50 +47,33 @@ export function Square({
     isCapture ? 'capture-target-square' : '',
     isLastMove ? 'last-move-square' : '',
     isKingInCheck ? 'king-in-check' : '',
+    isDragSource ? 'drag-source-square' : '',
+    isDragHoveredLegal ? 'drag-hover-square' : '',
   ]
     .filter(Boolean)
     .join(' ');
 
-  function handlePieceDragStart(event: DragEvent<HTMLSpanElement>) {
-    if (!isInteractive || !onDragStart || !onDragStart()) {
-      event.preventDefault();
-      return;
-    }
-    event.currentTarget.classList.add('piece-dragging');
-    event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', `${square.file},${square.rank}`);
-  }
-
-  function handleDragOver(event: DragEvent<HTMLButtonElement>) {
-    if (!isInteractive || !onDrop) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = isLegalMove ? 'move' : 'none';
-  }
-
-  function handleDrop(event: DragEvent<HTMLButtonElement>) {
-    if (!isInteractive || !onDrop) return;
-    event.preventDefault();
-    onDrop();
+  function handlePointerDown(event: PointerEvent<HTMLButtonElement>) {
+    if (!square.piece || !isInteractive || !onPointerDragStart) return;
+    onPointerDragStart(event, squareIndex);
   }
 
   return (
     <button
       className={className}
+      data-square-index={squareIndex}
       onClick={onClick}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
+      onPointerDown={handlePointerDown}
       role="gridcell"
       tabIndex={isInteractive || isBoardSelected || square.piece ? 0 : -1}
       aria-label={stateLabel ? `${pieceLabel}, ${stateLabel}` : pieceLabel}
       aria-pressed={isSelected}
     >
-      {square.piece && (
+      {square.piece && !isDragSource && (
         <Piece
           piece={square.piece}
           isDraggable={isInteractive}
           isSelected={isSelected}
-          onDragStart={handlePieceDragStart}
-          onDragEnd={() => setTimeout(() => document.querySelector('.piece-dragging')?.classList.remove('piece-dragging'), 0)}
         />
       )}
       {isLegalMove && <MoveHint isCapture={isCapture} />}

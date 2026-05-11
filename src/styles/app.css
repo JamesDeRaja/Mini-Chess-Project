@@ -4205,3 +4205,106 @@ button:focus-visible,
     gap: clamp(10px, 1.2vw, 18px);
   }
 }
+
+/* Responsive gameplay shell: board-first layout with side panels adapting around it. */
+.chess-shell {
+  --left-panel-width: clamp(270px, 19vw, 340px);
+  --right-panel-width: clamp(300px, 21vw, 380px);
+  --gameplay-gap: clamp(18px, 2.4vw, 44px);
+  --play-area-height: min(calc(100svh - clamp(178px, 21vh, 252px)), 706px);
+  display: grid;
+  grid-template-columns: minmax(0, var(--left-panel-width)) minmax(0, 1fr) minmax(0, var(--right-panel-width));
+  grid-template-areas: "match board history";
+  align-items: start;
+  justify-content: center;
+  gap: var(--gameplay-gap);
+  width: min(100%, 1720px);
+  max-width: 1720px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.board-column {
+  grid-area: board;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+  justify-items: center;
+  align-content: start;
+}
+
+.match-panel {
+  grid-area: match;
+  width: 100%;
+  min-width: 0;
+}
+
+.review-panel {
+  grid-area: history;
+  width: 100%;
+  min-width: 0;
+}
+
+.history-panel .history-list {
+  overflow-y: auto;
+}
+
+@media (max-width: 1199px) {
+  body { overflow-x: hidden; }
+
+  .game-page {
+    height: auto;
+    min-height: 100svh;
+    overflow-x: hidden;
+  }
+
+  .chess-shell {
+    --play-area-height: min(72svh, 708px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "board board"
+      "match history";
+    align-items: start;
+    gap: clamp(16px, 3vw, 28px);
+    width: min(100%, 920px);
+  }
+
+  .board-column {
+    justify-self: center;
+  }
+
+  .match-panel,
+  .review-panel {
+    height: auto;
+    max-height: none;
+  }
+
+  .history-panel .history-list {
+    max-height: 320px;
+  }
+}
+
+@media (max-width: 799px) {
+  .chess-shell {
+    --play-area-height: min(70svh, 620px);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "board"
+      "match"
+      "history";
+    width: 100%;
+    gap: 14px;
+  }
+
+  .side-panel,
+  .invite-panel,
+  .error-card,
+  .sync-toast {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .history-panel .history-list {
+    max-height: 280px;
+  }
+}

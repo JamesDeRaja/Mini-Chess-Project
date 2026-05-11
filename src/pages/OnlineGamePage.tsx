@@ -498,7 +498,7 @@ Can you beat it?`;
     setError(null);
     setInviteState('creating_game');
     try {
-      const createdGame = seedLabel && seedLabel !== 'Random' ? await createSeededGame(playerId, seedLabel) : await createOnlineGame(playerId);
+      const createdGame = seedLabel && seedLabel !== 'Random' ? await createSeededGame(playerId, seedLabel, backRankCode ?? undefined) : await createOnlineGame(playerId);
       setEffectiveGameId(createdGame.gameId);
       setInviteState('waiting_for_link');
       window.history.replaceState(null, '', `/game/${createdGame.gameId}?mode=${matchMode}`);
@@ -537,69 +537,94 @@ Can you beat it?`;
     }
   }
 
-  async function handleSquareClick(squareIndex: number) {
-    if (!canInteractWithBoard) return;
-
-    const selectedMove = legalMoves.find((move) => move.to === squareIndex);
-    if (selectedMove) {
-      const clientMoveId = generateClientMoveId();
-      const previousStateVersion = moveHistory.length;
-      const nextBoard = applyMove(board, selectedMove);
-      const nextTurn = getOpponent(turn);
-      const nextStatus = getStatusForTurn(nextBoard, nextTurn);
-      const optimisticHistory = [...moveHistory, createMoveRecord(selectedMove, { clientMoveId, playerId })];
-      const materialScores = estimateMaterialScores(optimisticHistory);
-      setBoard(nextBoard);
-      setTurn(nextTurn);
-      setStatus(nextStatus);
-      setMoveHistory(optimisticHistory);
-      setScores(materialScores);
-      setLastMove(selectedMove);
-      setMoveAnnouncement(`${selectedMove.piece.color === 'white' ? 'White' : 'Black'} ${selectedMove.piece.type} moved from ${squareLabel(selectedMove.from % 5, Math.floor(selectedMove.from / 5))} to ${squareLabel(selectedMove.to % 5, Math.floor(selectedMove.to / 5))}${selectedMove.isCapture ? ' and captured a piece' : ''}.`);
-      setSelectedSquare(null);
-      setLegalMoves([]);
-      setPendingIds((ids) => ids.add(clientMoveId));
-      playMoveSound(selectedMove.isCapture);
-      if (isKingInCheck(nextBoard, nextTurn)) playCheckSound();
-
-      submitOnlineMove(effectiveGameId, playerId, selectedMove)
-        .then(({ game }) => {
-          const latestMove = getLatestMove(game);
-          const optimisticMove = optimisticHistory.at(-1);
-          const serverMoveCount = game.move_count ?? game.total_moves ?? game.move_history?.length ?? 0;
-          if (sameMove(latestMove, optimisticMove) && serverMoveCount === previousStateVersion + 1) {
-            setPendingIds((ids) => {
-              ids.delete(clientMoveId);
-              return ids;
-            });
-            applyGameRecord(game, { preserveLocalMove: true });
-            return;
-          }
-          setPendingIds((ids) => {
-            ids.delete(clientMoveId);
-            return ids;
-          });
-          applyGameRecord(game);
-        })
-        .catch(() => {
-          setPendingIds((ids) => {
-            ids.delete(clientMoveId);
-            return ids;
-          });
-          rollbackToConfirmedGame();
-        });
-      return;
-    }
-
-    const piece = board[squareIndex]?.piece;
-    if (piece?.color === role) {
-      setSelectedSquare(squareIndex);
-      setLegalMoves(getLegalMoves(board, squareIndex));
-      return;
-    }
-
+  function completeSelectedMove(selectedMove: Move) {
+    const clientMoveId = generateClientMoveId();
+    const previousStateVersion = moveHistory.length;
+    const nextBoard = applyMove(board, selectedMove);
+    const nextTurn = getOpponent(turn);
+    const nextStatus = getStatusForTurn(nextBoard, nextTurn);
+    const optimisticHistory = [...moveHistory, createMoveRecord(selectedMove, { clientMoveId, playerId })];
+    const materialScores = estimateMaterialScores(optimisticHistory);
+    setBoard(nextBoard);
+    setTurn(nextTurn);
+    setStatus(nextStatus);
+    setMoveHistory(optimisticHistory);
+    setScores(materialScores);
+    setLastMove(selectedMove);
+    setMoveAnnouncement(`${selectedMove.piece.color === 'white' ? 'White' : 'Black'} ${selectedMove.piece.type} moved from ${squareLabel(selectedMove.from % 5, Math.floor(selectedMove.from / 5))} to ${squareLabel(selectedMove.to % 5, Math.floor(selectedMove.to / 5))}${selectedMove.isCapture ? ' and captured a piece' : ''}.`);
     setSelectedSquare(null);
     setLegalMoves([]);
+    setPendingIds((ids) => ids.add(clientMoveId));
+    playMoveSound(selectedMove.isCapture);
+    if (isKingInCheck(nextBoard, nextTurn)) playCheckSound();
+
+    submitOnlineMove(effectiveGameId, playerId, selectedMove)
+      .then(({ game }) => {
+        const latestMove = getLatestMove(game);
+        const optimisticMove = optimisticHistory.at(-1);
+        const serverMoveCount = game.move_count ?? game.total_moves ?? game.move_history?.length ?? 0;
+        if (sameMove(latestMove, optimisticMove) && serverMoveCount === previousStateVersion + 1) {
+          setPendingIds((ids) => {
+            ids.delete(clientMoveId);
+            return ids;
+          });
+          applyGameRecord(game, { preserveLocalMove: true });
+          return;
+        }
+        setPendingIds((ids) => {
+          ids.delete(clientMoveId);
+          return ids;
+        });
+        applyGameRecord(game);
+      })
+      .catch(() => {
+        setPendingIds((ids) => {
+          ids.delete(clientMoveId);
+          return ids;
+        });
+        rollbackToConfirmedGame();
+      });
+  }
+
+  function tryMoveTo(squareIndex: number): boolean {
+    if (!canInteractWithBoard) return false;
+    const selectedMove = legalMoves.find((move) => move.to === squareIndex);
+    if (!selectedMove) return false;
+    completeSelectedMove(selectedMove);
+    return true;
+  }
+
+  function selectSquare(squareIndex: number): boolean {
+    if (!canInteractWithBoard) return false;
+    const piece = board[squareIndex]?.piece;
+    if (piece?.color !== role) return false;
+    setSelectedSquare(squareIndex);
+    setLegalMoves(getLegalMoves(board, squareIndex));
+    return true;
+  }
+
+  function handleSquareClick(squareIndex: number) {
+    if (tryMoveTo(squareIndex)) return;
+    if (selectSquare(squareIndex)) return;
+    setSelectedSquare(null);
+    setLegalMoves([]);
+  }
+
+  function handleDragStart(squareIndex: number): Move[] | null {
+    if (!canInteractWithBoard) return null;
+    const piece = board[squareIndex]?.piece;
+    if (piece?.color !== role) return null;
+    const moves = getLegalMoves(board, squareIndex);
+    setSelectedSquare(squareIndex);
+    setLegalMoves(moves);
+    return moves;
+  }
+
+  function handleDrop(squareIndex: number) {
+    if (!tryMoveTo(squareIndex)) {
+      setSelectedSquare(null);
+      setLegalMoves([]);
+    }
   }
 
   const shareIsLoading = inviteState === 'creating_game' || inviteState === 'waiting_for_link';
@@ -644,16 +669,19 @@ Can you beat it?`;
             <>
               <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
               <Board
-              ariaLabel={`Pocket Shuffle Chess online board. ${role === 'white' || role === 'black' ? `You are ${role}.` : 'Spectator view.'}`}
-              board={displayBoard}
-              selectedSquare={isPreviewing ? null : selectedSquare}
-              legalMoves={activeLegalMoves}
-              lastMove={displayMove}
-              checkedKingIndex={checkedKingIndex}
-              isFlipped={isFlipped}
-              isInteractive={canInteractWithBoard}
-              onSquareClick={handleSquareClick}
-            />
+                ariaLabel={`Pocket Shuffle Chess online board. ${role === 'white' || role === 'black' ? `You are ${role}.` : 'Spectator view.'}`}
+                board={displayBoard}
+                selectedSquare={isPreviewing ? null : selectedSquare}
+                legalMoves={activeLegalMoves}
+                lastMove={displayMove}
+                checkedKingIndex={checkedKingIndex}
+                isFlipped={isFlipped}
+                isInteractive={canInteractWithBoard}
+                onSquareClick={handleSquareClick}
+                onDragStart={handleDragStart}
+                onDrop={handleDrop}
+                onDragCancel={() => { setSelectedSquare(null); setLegalMoves([]); }}
+              />
             </>
           )}
           {shouldShowWaitingOverlay && (
