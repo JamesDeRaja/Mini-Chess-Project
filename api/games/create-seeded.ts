@@ -39,7 +39,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       move_history: [],
       ...lifecycleFields,
       seed,
-      seed_source: 'custom',
+      seed_source: seed.startsWith('random-') ? 'random' : 'custom',
       back_rank_code: backRankCode,
       round_number: 1,
       total_moves: 0,
