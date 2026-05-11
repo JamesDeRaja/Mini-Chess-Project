@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from 'react';
+import { useState } from 'react';
 import { getPieceFallbackSymbol, getPieceImageSrc } from '../game/pieceAssets.js';
 import type { Piece as ChessPiece } from '../game/types.js';
 
@@ -6,11 +6,9 @@ type PieceProps = {
   piece: ChessPiece;
   isDraggable?: boolean;
   isSelected?: boolean;
-  onDragStart?: (event: DragEvent<HTMLSpanElement>) => void;
-  onDragEnd?: () => void;
 };
 
-export function Piece({ piece, isDraggable = false, isSelected = false, onDragStart, onDragEnd }: PieceProps) {
+export function Piece({ piece, isDraggable = false, isSelected = false }: PieceProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const pieceImageSrc = getPieceImageSrc(piece);
   const ariaLabel = `${piece.color} ${piece.type}`;
@@ -18,10 +16,9 @@ export function Piece({ piece, isDraggable = false, isSelected = false, onDragSt
   return (
     <span
       className={`piece piece-wrapper piece-${piece.color} ${isSelected ? 'piece-selected' : ''}`}
-      draggable={isDraggable}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
+      draggable={false}
       aria-label={ariaLabel}
+      data-draggable={isDraggable ? 'true' : undefined}
     >
       {imageFailed ? (
         <span className="piece-fallback" data-piece={piece.type} aria-hidden="true">{getPieceFallbackSymbol(piece)}</span>

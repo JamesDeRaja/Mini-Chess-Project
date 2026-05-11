@@ -352,11 +352,21 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setLegalMoves([]);
   }
 
-  function handleDragStart(squareIndex: number): boolean {
-    return selectSquare(squareIndex);
+  function handleDragStart(squareIndex: number): Move[] | null {
+    if (status !== 'active' || turn !== playerColor || isPreviewing) return null;
+    const piece = board[squareIndex]?.piece;
+    if (piece?.color !== turn) return null;
+    const moves = getLegalMoves(board, squareIndex);
+    setSelectedSquare(squareIndex);
+    setLegalMoves(moves);
+    return moves;
   }
 
-  function handleDrop(squareIndex: number) {
+  function handleDrop(squareIndex: number, draggedMove?: Move) {
+    if (draggedMove) {
+      completeMove(draggedMove);
+      return;
+    }
     if (!tryMoveTo(squareIndex)) {
       setSelectedSquare(null);
       setLegalMoves([]);
@@ -460,6 +470,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             onSquareClick={handleSquareClick}
             onDragStart={handleDragStart}
             onDrop={handleDrop}
+            onDragCancel={() => { setSelectedSquare(null); setLegalMoves([]); }}
           />
         </section>
 
