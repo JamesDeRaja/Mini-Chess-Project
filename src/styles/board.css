@@ -175,13 +175,32 @@
 }
 
 .capture-dot {
-  width: 20px;
-  height: 20px;
-  background: rgba(255, 169, 149, 0.94);
-  box-shadow: 0 0 0 10px rgba(255, 169, 149, 0.2), 0 0 0 2px rgba(45, 43, 40, 0.14);
+  width: min(64%, 58px);
+  height: min(64%, 58px);
+  border: clamp(3px, 0.65vw, 5px) solid rgba(232, 117, 117, 0.86);
+  background: rgba(255, 248, 233, 0.14);
+  box-shadow: 0 0 0 9px rgba(255, 169, 149, 0.14), inset 0 0 16px rgba(255, 169, 149, 0.1);
 }
+.capture-dot::before,
+.capture-dot::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 34%;
+  height: 4px;
+  border-radius: 999px;
+  content: '';
+  background: rgba(232, 117, 117, 0.78);
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.capture-dot::after { transform: translate(-50%, -50%) rotate(-45deg); }
 
 /* Juicy, low-noise chess feedback */
+.piece-spawn-board .piece {
+  opacity: 0;
+  animation: piece-spawn-pop 520ms cubic-bezier(.16, 1.45, .3, 1) forwards;
+  animation-delay: calc(var(--spawn-order, 0) * 26ms);
+}
 .piece[data-draggable='true']:hover {
   transform: translateY(-3px) scale(1.035);
   filter: drop-shadow(0 13px 12px rgba(45, 43, 40, 0.18));
@@ -272,6 +291,12 @@
 }
 
 
+@keyframes piece-spawn-pop {
+  0% { opacity: 0; transform: translateY(18px) scale(0.64); filter: blur(1px); }
+  52% { opacity: 1; transform: translateY(-5px) scale(1.08, 0.94); filter: blur(0); }
+  76% { transform: translateY(2px) scale(0.96, 1.06); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
 @keyframes piece-ready-squish {
   0% { transform: scale(1); }
   36% { transform: translateY(-5px) scale(1.07, 0.94); }
@@ -554,7 +579,7 @@
 .last-move-square::before { background: rgba(242, 208, 99, 0.28); }
 .legal-target-square::after { background: rgba(241, 200, 193, 0.16); }
 .move-dot { background: rgba(242, 208, 99, 0.9); box-shadow: 0 0 0 8px rgba(242, 208, 99, 0.18); }
-.capture-dot { background: rgba(241, 200, 193, 0.95); box-shadow: 0 0 0 9px rgba(241, 200, 193, 0.22); }
+.capture-dot { background: rgba(255, 248, 233, 0.14); box-shadow: 0 0 0 9px rgba(241, 200, 193, 0.18), inset 0 0 16px rgba(241, 200, 193, 0.1); }
 
 @media (max-width: 1450px) {
   .board-shell { width: clamp(430px, 38vw, 590px); }

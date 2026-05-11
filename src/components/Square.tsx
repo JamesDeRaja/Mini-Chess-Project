@@ -1,4 +1,4 @@
-import type { PointerEvent } from 'react';
+import type { CSSProperties, PointerEvent } from 'react';
 import type { PieceType, Square as ChessSquare } from '../game/types.js';
 import { Piece } from './Piece.js';
 import { MoveHint } from './MoveHint.js';
@@ -13,6 +13,7 @@ type SquareProps = {
   isLastMoveDestination: boolean;
   didLastMoveCapture: boolean;
   movedPieceType: PieceType | null;
+  spawnOrder: number;
   isKingInCheck: boolean;
   isInteractive: boolean;
   isBoardSelected: boolean;
@@ -33,6 +34,7 @@ export function Square({
   isLastMoveDestination,
   didLastMoveCapture,
   movedPieceType,
+  spawnOrder,
   isKingInCheck,
   isInteractive,
   isBoardSelected,
@@ -62,6 +64,8 @@ export function Square({
     .filter(Boolean)
     .join(' ');
 
+  const squareStyle = { '--spawn-order': spawnOrder } as CSSProperties;
+
   function handlePointerDown(event: PointerEvent<HTMLButtonElement>) {
     if (!square.piece || !isInteractive || !onPointerDragStart) return;
     onPointerDragStart(event, squareIndex);
@@ -71,6 +75,7 @@ export function Square({
     <button
       className={className}
       data-square-index={squareIndex}
+      style={squareStyle}
       onClick={onClick}
       onPointerDown={handlePointerDown}
       role="gridcell"

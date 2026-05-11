@@ -114,14 +114,16 @@ export function Board({
   const suppressNextClickRef = useRef(false);
   const pendingMoveInputRef = useRef<MoveInputKind>('click');
   const [dragState, setDragState] = useState<DragState | null>(null);
+  const [isSpawningPieces, setIsSpawningPieces] = useState(true);
   const squares = [];
   const ranks = Array.from({ length: BOARD_RANKS }, (_, rank) => rank);
   const files = Array.from({ length: BOARD_FILES }, (_, file) => file);
   const visualRanks = isFlipped ? ranks : [...ranks].reverse();
   const visualFiles = isFlipped ? [...files].reverse() : files;
-
   useEffect(() => {
+    const spawnTimer = window.setTimeout(() => setIsSpawningPieces(false), 1100);
     return () => {
+      window.clearTimeout(spawnTimer);
       dragStateRef.current = null;
     };
   }, []);
@@ -152,8 +154,6 @@ export function Board({
         easing: 'cubic-bezier(.16, 1.35, .32, 1)',
       },
     );
-    animation.addEventListener('finish', () => pieceElement.classList.remove('piece-tweening'), { once: true });
-    animation.addEventListener('cancel', () => pieceElement.classList.remove('piece-tweening'), { once: true });
     return () => animation.cancel();
   }, [board, lastMove]);
 
@@ -306,6 +306,7 @@ export function Board({
       const legalMove = visibleLegalMoves.find((move) => move.to === squareIndex);
       const isLastMoveDestination = lastMove?.to === squareIndex;
       const movedPieceType = isLastMoveDestination ? board[squareIndex]?.piece?.type ?? null : null;
+      const spawnOrder = rank * BOARD_FILES + file;
       squares.push(
         <Square
           key={squareIndex}
@@ -318,6 +319,7 @@ export function Board({
           isLastMoveDestination={isLastMoveDestination}
           didLastMoveCapture={Boolean(isLastMoveDestination && lastMove?.isCapture)}
           movedPieceType={movedPieceType}
+          spawnOrder={spawnOrder}
           isKingInCheck={checkedKingIndex === squareIndex}
           isInteractive={isInteractive}
           isBoardSelected={selectedSquare === squareIndex}
@@ -340,7 +342,7 @@ export function Board({
         <div className="board-rank-labels" aria-hidden="true">
           {rankLabels.map((rank) => <span key={rank}>{rank}</span>)}
         </div>
-        <div ref={boardElementRef} className={`board ${dragState?.hasMoved ? 'dragging-board' : ''}`} role="grid" aria-label={ariaLabel}>{squares}</div>
+        <div ref={boardElementRef} className={`board ${dragState?.hasMoved ? 'dragging-board' : ''} ${isSpawningPieces ? 'piece-spawn-board' : ''}`} role="grid" aria-label={ariaLabel}>{squares}</div>
         <div className="board-file-labels" aria-hidden="true">
           {fileLabels.map((file) => <span key={file}>{file}</span>)}
         </div>
