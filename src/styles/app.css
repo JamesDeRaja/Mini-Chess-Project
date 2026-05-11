@@ -3995,8 +3995,8 @@ button:focus-visible,
   }
 
   .chess-shell {
-    --play-area-height: min(calc(100svh - clamp(142px, 17svh, 186px)), 790px);
-    grid-template-columns: minmax(270px, 330px) minmax(0, min(calc(var(--play-area-height) * 5 / 6), 43vw, 660px)) minmax(320px, 360px);
+    --play-area-height: min(calc(100svh - clamp(158px, 18.5svh, 204px)), 760px);
+    grid-template-columns: minmax(270px, 330px) minmax(0, min(calc(var(--play-area-height) * 5 / 6), 41vw, 630px)) minmax(320px, 360px);
     gap: clamp(10px, 1.2vw, 18px);
   }
 }
