@@ -1,11 +1,10 @@
 import { BACK_RANK_PIECES, BOARD_FILES, RANDOM_BACK_RANK_PIECES } from './constants.js';
 import type { Board, Color, PieceType } from './types.js';
 
-export const DIRECT_BACK_RANK_CODE_PATTERN = /^[KQRBN]{5}$/i;
-export const FLEXIBLE_BACK_RANK_CODE_PATTERN = /^[KQRBNP]{5}$/i;
+export const BACK_RANK_CODE_PATTERN = /^[KQRBNP]{5}$/i;
 export const TEXT_SEED_PATTERN = /^[A-Za-z0-9-]{1,32}$/;
 
-export const INVALID_SEED_HELP = 'Invalid seed. Use exactly K, Q, R, B, N once each, like QBKNR, or enter a simple text seed like boss-battle-1.';
+export const INVALID_SEED_HELP = 'Invalid seed. Use a 5-piece code with exactly one K (Q, R, B, N, and P can repeat), like PPKPP, or enter a simple text seed like boss-battle-1.';
 export const INVALID_SEED_CHARACTERS = 'Use letters, numbers, and hyphens only.';
 
 export type SeedValidationResult =
@@ -60,13 +59,7 @@ export function normalizeSeed(seed: string): string {
 }
 
 export function isBackRankCode(code: string): boolean {
-  if (!DIRECT_BACK_RANK_CODE_PATTERN.test(code)) return false;
-  const normalized = code.toUpperCase().split('');
-  return ['K', 'Q', 'R', 'B', 'N'].every((pieceCode) => normalized.filter((value) => value === pieceCode).length === 1);
-}
-
-export function isFlexibleBackRankCode(code: string): boolean {
-  if (!FLEXIBLE_BACK_RANK_CODE_PATTERN.test(code)) return false;
+  if (!BACK_RANK_CODE_PATTERN.test(code)) return false;
   return code.toUpperCase().split('').filter((pieceCode) => pieceCode === 'K').length === 1;
 }
 
@@ -104,7 +97,7 @@ export function createSeedFromInput(seed: string): SeedValidationResult {
 }
 
 export function isValidBackRankCode(code: string): boolean {
-  return isFlexibleBackRankCode(code);
+  return isBackRankCode(code);
 }
 
 export function pieceOrderFromBackRankCode(backRankCode: string): PieceType[] {

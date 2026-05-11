@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { Color } from '../game/types.js';
 
 export type GameResult = 'win' | 'loss' | 'draw' | 'spectator';
@@ -10,6 +10,7 @@ type GameResultPanelProps = {
   title: string;
   summary: string;
   progressionMessage?: string;
+  details?: ReactNode;
   actions: ReactNode;
 };
 
@@ -36,18 +37,31 @@ function ResultAvatar({ winner }: { winner: Color | null }) {
   );
 }
 
-export function GameResultPanel({ result, winner, eyebrow, title, summary, progressionMessage, actions }: GameResultPanelProps) {
+export function GameResultPanel({ result, winner, eyebrow, title, summary, progressionMessage, details, actions }: GameResultPanelProps) {
+  const [dismissedResultKey, setDismissedResultKey] = useState<string | null>(null);
   const didWin = result === 'win';
+  const resultKey = `${result}:${winner ?? 'none'}:${title}:${summary}`;
+
+  if (dismissedResultKey === resultKey) return null;
 
   return (
     <div className="winner-overlay" role="status">
       {didWin && <div className="confetti" />}
       <div className={didWin ? 'winner-card player-winner-card' : 'winner-card calm-result-card'}>
+        <button
+          type="button"
+          className="result-close-button"
+          aria-label="Close result panel"
+          onClick={() => setDismissedResultKey(resultKey)}
+        >
+          ×
+        </button>
         <ResultAvatar winner={winner} />
         <p className="eyebrow">{eyebrow}</p>
         <h2>{title}</h2>
         <p>{summary}</p>
         {progressionMessage && <p className="panel-note">{progressionMessage}</p>}
+        {details}
         <div className="panel-actions centered-actions">{actions}</div>
       </div>
     </div>

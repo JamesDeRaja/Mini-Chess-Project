@@ -34,7 +34,7 @@ Pocket Shuffle Chess keeps the recognizable chess pieces and tactical decisions,
 - **Mirror match setup** - both sides receive equivalent randomized back ranks for fairness.
 - **Ascension mode** - daily AI progress adds lightweight challenge escalation.
 - **Mobile-friendly** - designed for portrait screens, touch input, and native sharing.
-- **Custom seeds** - share a specific setup with routes like `/seed/QBKNR`.
+- **Custom seeds** - share a specific setup with routes like `/seed/PPKPP`.
 - **Search-ready pages** - route metadata, structured data, sitemap, robots rules, and social cards are included.
 
 ## Screenshots
@@ -53,7 +53,7 @@ Add production screenshots here when capturing final marketing assets:
 
 Pocket Shuffle Chess uses familiar chess movement with a smaller board and shuffled starting position.
 
-1. A seed resolves to a five-piece back rank containing one bishop, rook, king, knight, and queen.
+1. A seed resolves to a five-piece back rank with exactly one king; queens, rooks, bishops, knights, and pawns can repeat.
 2. Black receives the mirrored setup so neither side gets a hidden opening advantage.
 3. Pawns start in front of the back rank.
 4. Players move using standard piece movement adapted to the 5x6 board.
@@ -74,12 +74,14 @@ Custom seeds can be entered as a direct back-rank code or as a deterministic tex
 Valid direct seed:
 
 ```text
-QBKNR
+PPKPP
 ```
 
 Direct seed rules:
 
-- Must contain exactly one K, Q, R, B, and N.
+- Must contain exactly five piece codes.
+- Must contain exactly one K.
+- Q, R, B, N, and P can repeat in any combination.
 - Uppercase and lowercase entries are accepted and normalized to uppercase.
 
 Valid text seed:
@@ -97,7 +99,7 @@ Invalid:
 
 ```text
 INVALID_SEED_XYZ
-QBKNN
+PPPPP
 QBKNRX
 ```
 

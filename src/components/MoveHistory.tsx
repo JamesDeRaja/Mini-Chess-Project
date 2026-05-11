@@ -1,4 +1,5 @@
 import { formatMoveNotation, groupMoveHistory, moveDestination, pieceNames, type HistoryMove } from '../game/moveNotation.js';
+import { getMoveCaptureRecord } from '../game/scoring.js';
 
 type MoveHistoryProps = {
   moves: HistoryMove[];
@@ -34,10 +35,11 @@ function MoveCell({
   const isActive = activePly === ply;
   const className = isActive ? 'history-move active-history-move' : 'history-move';
   const label = moveA11yLabel(move, notation);
+  const captureRecord = getMoveCaptureRecord(move, ply - 1);
   const content = (
     <>
       <img className="history-piece-icon" src={notation.pieceIcon} alt="" aria-hidden="true" draggable="false" />
-      <span className="history-notation-text">{notation.text}</span>
+      <span className="history-notation-text">{notation.text}{captureRecord && <span className="history-capture-score"> +{captureRecord.scoreValue}</span>}</span>
     </>
   );
 
