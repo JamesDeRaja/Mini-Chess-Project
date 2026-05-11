@@ -41,6 +41,10 @@ function spacedCode(backRankCode: string): string {
   return backRankCode.split('').join(' ');
 }
 
+function modeFromSeed(seed: string): ShuffleMode {
+  return seed.startsWith('daily-') ? 'daily' : 'random';
+}
+
 function monthKeyFromDateKey(dateKey: string): string {
   return dateKey.slice(0, 7);
 }
@@ -264,14 +268,17 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
     else await onSeeded(activeSeedSource.seed, activeSeedSource.backRankCode);
   }
 
-  async function requestMatchFor(seed: string, backRankCode: string, mode: ShuffleMode = seed.startsWith('random-') ? 'random' : 'daily') {
+  async function requestMatchFor(seed: string, backRankCode: string, mode: ShuffleMode = modeFromSeed(seed)) {
     trackEvent('homepage_cta_click', { cta: 'find_match', seed, mode });
     setMatchTarget({ seed, backRankCode, mode });
     setModal('matchmaking');
     setMatchmaking((current) => ({ status: 'finding', queueId: current.status === 'finding' ? current.queueId : undefined }));
     try {
       const result = await onFindMatch(seed, backRankCode);
-      if (result.status === 'waiting') setMatchmaking({ status: 'finding', queueId: result.queueId });
+      if (result.status === 'waiting') {
+        setMatchTarget({ seed: result.seed, backRankCode: result.backRankCode, mode: modeFromSeed(result.seed) });
+        setMatchmaking({ status: 'finding', queueId: result.queueId });
+      }
       if (result.status === 'unavailable') setMatchmaking({ status: 'failed', message: result.message });
     } catch (error) {
       setMatchmaking({ status: 'failed', message: error instanceof Error ? error.message : 'Unable to start matchmaking.' });
@@ -331,7 +338,10 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
     const pollId = window.setInterval(() => {
       onFindMatch(matchTarget.seed, matchTarget.backRankCode)
         .then((result) => {
-          if (result.status === 'waiting') setMatchmaking((current) => (current.status === 'finding' ? { ...current, queueId: result.queueId } : current));
+          if (result.status === 'waiting') {
+            setMatchTarget({ seed: result.seed, backRankCode: result.backRankCode, mode: modeFromSeed(result.seed) });
+            setMatchmaking((current) => (current.status === 'finding' ? { ...current, queueId: result.queueId } : current));
+          }
           if (result.status === 'unavailable') setMatchmaking({ status: 'failed', message: result.message });
         })
         .catch((error: Error) => setMatchmaking({ status: 'failed', message: error.message }));
@@ -402,7 +412,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             <button type="button" className="home-action-card home-action-match" onClick={() => { void requestActiveMatch(); }}>
               <span className="card-sparkle card-sparkle-two" aria-hidden="true" />
               <img className="action-piece action-piece-rook" src="/pieces/white-rook.png" alt="White rook" draggable={false} />
-              <span className="action-card-copy"><strong>Find Match</strong><small>{shuffleMode === 'daily' ? 'Match today’s seed' : 'Use displayed setup'}</small></span>
+              <span className="action-card-copy"><strong>Find Match</strong><small>Join any open player</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
             <button type="button" className="home-action-card home-action-invite" onClick={() => { void inviteActiveMode(); }}>
@@ -629,8 +639,9 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             <button type="button" className="modal-close" onClick={cancelMatch} aria-label="Cancel matchmaking"><X size={18} /></button>
             <p className="eyebrow">Find Match</p>
             <h2 id="matchmaking-modal-title">{matchmaking.status === 'timeout' ? 'No opponent found yet.' : matchmaking.status === 'failed' ? 'Matchmaking unavailable' : 'Finding opponent...'}</h2>
-            <p>{matchTarget.mode === 'daily' ? 'Daily seed' : 'Random seed'}: <strong>{matchTarget.seed}</strong></p>
+            <p>Queued seed: <strong>{matchTarget.seed}</strong></p>
             <p>Back rank: {matchTarget.backRankCode}</p>
+            <p className="panel-note">Your setup stays open online. The next player who taps Find Match joins this board, and colors are picked at random.</p>
             {matchmaking.status === 'failed' && <p className="error-message inline-message">{matchmaking.message}</p>}
             {matchmaking.status === 'timeout' && <p>No one matched within about a minute. You can keep waiting or send an invite link.</p>}
             <div className="panel-actions centered-actions">

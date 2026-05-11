@@ -18,6 +18,8 @@ type MatchmakingGameRow = {
   status: 'waiting' | 'active';
   white_player_id: string | null;
   black_player_id: string | null;
+  seed?: string | null;
+  back_rank_code?: string | null;
 };
 
 type ServerSupabase = ReturnType<typeof getServerSupabase>;
@@ -26,13 +28,13 @@ function getString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-function getGamePayload(playerId: string, seed: string, backRankCode: string) {
+function getGamePayload(whitePlayerId: string, seed: string, backRankCode: string, blackPlayerId: string | null = null, status: 'waiting' | 'active' = 'waiting') {
   return {
     board: createInitialBoard({ backRankCode }),
     turn: 'white',
-    status: 'waiting',
-    white_player_id: playerId,
-    black_player_id: null,
+    status,
+    white_player_id: whitePlayerId,
+    black_player_id: blackPlayerId,
     move_history: [],
     seed,
     seed_source: seed.startsWith('daily-') ? 'daily_matchmaking' : seed.startsWith('random-') ? 'random_matchmaking' : 'custom_matchmaking',
@@ -47,10 +49,8 @@ function getGamePayload(playerId: string, seed: string, backRankCode: string) {
 async function findMatchUsingGamesTable(supabase: ServerSupabase, playerId: string, seed: string, backRankCode: string) {
   const { data: existingRows, error: existingError } = await supabase
     .from('games')
-    .select('id, status, white_player_id, black_player_id')
-    .eq('white_player_id', playerId)
-    .eq('seed', seed)
-    .eq('back_rank_code', backRankCode)
+    .select('id, status, white_player_id, black_player_id, seed, back_rank_code')
+    .or(`white_player_id.eq.${playerId},black_player_id.eq.${playerId}`)
     .in('status', ['waiting', 'active'])
     .order('created_at', { ascending: false })
     .limit(1);
@@ -64,14 +64,12 @@ async function findMatchUsingGamesTable(supabase: ServerSupabase, playerId: stri
     return { status: 'matched' as const, gameId: existing.id };
   }
   if (existing?.status === 'waiting') {
-    return { status: 'waiting' as const, queueId: existing.id, seed, backRankCode };
+    return { status: 'waiting' as const, queueId: existing.id, seed: existing.seed ?? seed, backRankCode: existing.back_rank_code ?? backRankCode };
   }
 
   const { data: opponentRows, error: opponentError } = await supabase
     .from('games')
-    .select('id')
-    .eq('seed', seed)
-    .eq('back_rank_code', backRankCode)
+    .select('id, white_player_id, seed, back_rank_code')
     .eq('status', 'waiting')
     .is('black_player_id', null)
     .neq('white_player_id', playerId)
@@ -82,11 +80,16 @@ async function findMatchUsingGamesTable(supabase: ServerSupabase, playerId: stri
     return { status: 'unavailable' as const, message: 'Matchmaking is not available. Use Invite Friend for now.' };
   }
 
-  const opponent = opponentRows?.[0] as Pick<MatchmakingGameRow, 'id'> | undefined;
-  if (opponent) {
+  const opponent = opponentRows?.[0] as MatchmakingGameRow | undefined;
+  if (opponent?.white_player_id && opponent.seed && opponent.back_rank_code) {
+    const openerPlaysWhite = Math.random() < 0.5;
     const { data: matchedGame, error: matchError } = await supabase
       .from('games')
-      .update({ black_player_id: playerId, status: 'active' })
+      .update({
+        white_player_id: openerPlaysWhite ? opponent.white_player_id : playerId,
+        black_player_id: openerPlaysWhite ? playerId : opponent.white_player_id,
+        status: 'active',
+      })
       .eq('id', opponent.id)
       .eq('status', 'waiting')
       .is('black_player_id', null)
@@ -143,8 +146,6 @@ export default async function handler(request: VercelRequest, response: VercelRe
     .from('matchmaking_queue')
     .select('*')
     .eq('player_id', playerId)
-    .eq('seed', seed)
-    .eq('back_rank_code', backRankCode)
     .in('status', ['waiting', 'matched'])
     .order('created_at', { ascending: false })
     .limit(1);
@@ -163,8 +164,6 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const { data: opponent, error: opponentError } = await supabase
     .from('matchmaking_queue')
     .select('*')
-    .eq('seed', seed)
-    .eq('back_rank_code', backRankCode)
     .eq('status', 'waiting')
     .neq('player_id', playerId)
     .order('created_at', { ascending: true })
@@ -178,12 +177,13 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   if (opponent) {
     const opponentRow = opponent as QueueRow;
+    const openerPlaysWhite = Math.random() < 0.5;
+    const whitePlayerId = openerPlaysWhite ? opponentRow.player_id : playerId;
+    const blackPlayerId = openerPlaysWhite ? playerId : opponentRow.player_id;
     const { data: game, error: gameError } = await safeSupabaseInsert<{ id: string }>(
       supabase,
       {
-        ...getGamePayload(opponentRow.player_id, seed, backRankCode),
-        status: 'active',
-        black_player_id: playerId,
+        ...getGamePayload(whitePlayerId, opponentRow.seed, opponentRow.back_rank_code, blackPlayerId, 'active'),
         match_id: opponentRow.id,
       },
       'id',
@@ -198,7 +198,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (existing) {
       await supabase.from('matchmaking_queue').update({ status: 'matched', game_id: game.id }).eq('id', existing.id);
     } else {
-      await supabase.from('matchmaking_queue').insert({ player_id: playerId, seed, back_rank_code: backRankCode, status: 'matched', game_id: game.id });
+      await supabase.from('matchmaking_queue').insert({ player_id: playerId, seed: opponentRow.seed, back_rank_code: opponentRow.back_rank_code, status: 'matched', game_id: game.id });
     }
 
     response.status(200).json({ status: 'matched', gameId: game.id });
@@ -206,7 +206,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
   }
 
   if (existing?.status === 'waiting') {
-    response.status(200).json({ status: 'waiting', queueId: existing.id, seed, backRankCode });
+    response.status(200).json({ status: 'waiting', queueId: existing.id, seed: existing.seed, backRankCode: existing.back_rank_code });
     return;
   }
 
