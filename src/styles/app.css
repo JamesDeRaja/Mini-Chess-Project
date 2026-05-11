@@ -616,11 +616,40 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .daily-calendar-weekdays span { text-align: center; color: var(--muted); font-size: 0.72rem; font-weight: 950; }
 .daily-calendar-day,
 .daily-calendar-blank { min-width: 0; min-height: 32px; border-radius: 10px; }
-.daily-calendar-day { padding: 0; color: var(--text); background: rgba(141, 191, 175, 0.16); box-shadow: none; font-weight: 850; }
+.daily-calendar-day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--text);
+  background: rgba(141, 191, 175, 0.16);
+  box-shadow: none;
+  font-weight: 850;
+}
 .daily-calendar-day:hover:not(:disabled) { background: rgba(139, 184, 232, 0.18); }
 .daily-calendar-day.selected-day { color: var(--ink); background: #f7d47c; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16); }
 .daily-calendar-day.today-day { outline: 2px solid rgba(139, 184, 232, 0.56); outline-offset: 1px; }
+.daily-calendar-day.starred-day { background: rgba(255, 216, 115, 0.22); }
+.daily-calendar-day.rainbow-day {
+  background: linear-gradient(135deg, rgba(255, 222, 111, 0.34), rgba(127, 223, 255, 0.26), rgba(192, 139, 255, 0.26));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35), 0 0 14px rgba(139, 184, 232, 0.24);
+}
 .daily-calendar-day:disabled { opacity: 0.22; pointer-events: none; }
+.daily-calendar-day-number { align-self: start; margin-top: 4px; line-height: 1; }
+.daily-calendar-stars {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  display: inline-flex;
+  gap: 0;
+  font-size: 0.52rem;
+  line-height: 1;
+  letter-spacing: -0.18em;
+}
+.daily-ai-calendar-rainbow-star {
+  font-size: 0.9rem;
+  letter-spacing: 0;
+}
 .modal-close {
   position: absolute;
   top: 14px;
@@ -656,21 +685,57 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .daily-ai-card { position: relative; }
 .daily-ai-stars {
   position: absolute;
-  top: 10px;
-  right: 12px;
+  top: 16px;
+  right: 16px;
+  z-index: 3;
   display: inline-flex;
-  gap: 1px;
-  color: rgba(45, 43, 40, 0.64);
-  font-size: 0.82rem;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 76px;
+  min-height: 30px;
+  color: rgba(45, 43, 40, 0.42);
+  font-size: 1.18rem;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.04em;
   pointer-events: none;
 }
-.magic-star-active {
-  color: #7c6ee6;
-  text-shadow: 0 0 8px rgba(124, 110, 230, 0.38), 0 0 12px rgba(247, 212, 124, 0.32);
+.daily-ai-star-earned {
+  color: #ffd873;
+  text-shadow: 0 1px 0 rgba(120, 78, 20, 0.35), 0 0 8px rgba(255, 209, 92, 0.38);
+  -webkit-text-stroke: 1px rgba(197, 132, 35, 0.72);
+}
+.daily-ai-star-empty {
+  color: rgba(77, 88, 78, 0.2);
+  -webkit-text-stroke: 1px rgba(77, 88, 78, 0.18);
+}
+.daily-ai-rainbow-star,
+.daily-ai-calendar-rainbow-star {
+  display: inline-block;
+  color: #ffcf66;
+  background: linear-gradient(120deg, #ff5fa2, #ffd86a, #65e58d, #5fcfff, #9b68ff, #ff5fa2);
+  background-size: 240% 240%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 6px rgba(255, 216, 106, 0.88)) drop-shadow(0 0 12px rgba(117, 207, 255, 0.54));
+  animation: rainbow-star-shift 2.8s linear infinite, rainbow-star-pulse 1.6s ease-in-out infinite;
+}
+.daily-ai-rainbow-star {
+  font-size: 2.36rem;
+  transform-origin: center;
 }
 .daily-ai-status { font-size: 0.78rem; opacity: 0.82; }
+
+@keyframes rainbow-star-shift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 240% 50%; }
+}
+
+@keyframes rainbow-star-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
 
 .online-match-panel {
   min-height: 0;
