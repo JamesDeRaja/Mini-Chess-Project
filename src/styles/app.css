@@ -3155,80 +3155,96 @@ input:focus-visible {
   }
 }
 
-/* Compact the online status panel so invite/share controls fit without an inner scroll. */
+/* Dynamically size the online status panel so controls stay near the content without causing an inner scroll. */
 .online-match-panel {
-  gap: clamp(8px, 1.1vh, 12px);
+  gap: clamp(8px, 1.25svh, 16px);
   overflow: hidden;
 }
 
 .online-match-panel .panel-title-row { align-items: center; }
-.online-match-panel h2 { font-size: clamp(1.22rem, 1.45vw, 1.55rem); }
-.online-match-panel .mode-badge { padding: 5px 9px; font-size: 0.82rem; }
-.online-match-panel .score-stack { gap: 6px; }
+.online-match-panel h2 { font-size: clamp(1.24rem, 1.4vw + 0.55rem, 1.78rem); }
+.online-match-panel .mode-badge {
+  padding: clamp(5px, 0.8svh, 7px) clamp(9px, 1vw, 12px);
+  font-size: clamp(0.8rem, 0.7vw + 0.55rem, 0.95rem);
+}
+
+.online-match-panel .score-stack { gap: clamp(6px, 1svh, 10px); }
 .online-match-panel .score-stack span {
-  min-height: 38px;
-  padding: 6px 10px;
-  border-radius: 14px;
-  gap: 8px;
-  font-size: 0.92rem;
+  min-height: clamp(36px, 5.7svh, 56px);
+  padding: clamp(6px, 1.1svh, 12px) clamp(10px, 1.4vw, 14px);
+  border-radius: clamp(14px, 1.4vw, 18px);
+  gap: clamp(8px, 1vw, 12px);
+  font-size: clamp(0.88rem, 0.7vw + 0.65rem, 1.04rem);
 }
 
 .online-match-panel .piece-score-icon {
-  --piece-scale: 1.25;
-  width: 30px;
-  height: 30px;
+  --piece-scale: 1.45;
+  width: clamp(28px, 4.5svh, 48px);
+  height: clamp(28px, 4.5svh, 48px);
   padding: 0;
 }
 
 .online-match-panel .info-stack {
-  gap: 6px;
-  padding-top: 8px;
+  gap: clamp(5px, 0.85svh, 10px);
+  padding-top: clamp(8px, 1.2svh, 14px);
 }
 
 .online-match-panel .info-stack p {
-  font-size: 0.84rem;
-  line-height: 1.15;
+  font-size: clamp(0.8rem, 0.45vw + 0.65rem, 0.92rem);
+  line-height: 1.18;
 }
 
 .online-match-panel .panel-note {
   margin: 0;
-  font-size: 0.84rem;
-  line-height: 1.25;
+  font-size: clamp(0.8rem, 0.45vw + 0.65rem, 0.92rem);
+  line-height: 1.28;
 }
 
 .online-match-panel .match-actions {
-  gap: 8px;
-  padding-top: 6px;
+  gap: clamp(8px, 1.1svh, 12px);
+  margin-top: clamp(10px, 2.4svh, 28px);
+  padding-top: 0;
 }
 
 .online-match-panel .wide-action {
-  min-height: 42px;
-  border-radius: 16px;
+  min-height: clamp(40px, 6svh, 54px);
+  border-radius: clamp(14px, 1.4vw, 18px);
+}
+
+@media (max-height: 760px) and (min-width: 769px) {
+  .online-match-panel {
+    gap: 8px;
+    padding: clamp(16px, 1.8vw, 24px);
+  }
+
+  .online-match-panel .eyebrow { font-size: 0.68rem; }
+  .online-match-panel .info-stack { gap: 5px; }
+  .online-match-panel .match-actions { margin-top: 8px; }
 }
 
 @media (max-width: 768px) {
   .online-match-panel {
-    gap: 8px;
+    gap: clamp(7px, 1svh, 10px);
     overflow: visible;
     padding: 12px;
   }
 
-  .online-match-panel h2 { font-size: 1.12rem; }
+  .online-match-panel h2 { font-size: clamp(1.08rem, 4.4vw, 1.22rem); }
   .online-match-panel .eyebrow { font-size: 0.62rem; }
   .online-match-panel .mode-badge { padding: 4px 8px; font-size: 0.72rem; }
   .online-match-panel .score-stack { gap: 6px; }
   .online-match-panel .score-stack span {
-    min-height: 32px;
+    min-height: clamp(32px, 4.8svh, 42px);
     padding: 5px 7px;
     border-radius: 12px;
     gap: 6px;
-    font-size: 0.78rem;
+    font-size: clamp(0.76rem, 3vw, 0.88rem);
   }
 
   .online-match-panel .piece-score-icon {
     --piece-scale: 1.12;
-    width: 24px;
-    height: 24px;
+    width: clamp(24px, 3.8svh, 34px);
+    height: clamp(24px, 3.8svh, 34px);
   }
 
   .online-match-panel .info-stack {
@@ -3244,19 +3260,20 @@ input:focus-visible {
     padding: 7px 8px;
     border-radius: 12px;
     gap: 3px;
-    font-size: 0.72rem;
+    font-size: clamp(0.72rem, 2.6vw, 0.82rem);
   }
 
-  .online-match-panel .info-stack strong { font-size: 0.82rem; }
-  .online-match-panel .panel-note { font-size: 0.76rem; }
+  .online-match-panel .info-stack strong { font-size: clamp(0.82rem, 3vw, 0.94rem); }
+  .online-match-panel .panel-note { font-size: clamp(0.76rem, 2.7vw, 0.86rem); }
   .online-match-panel .match-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 7px;
+    margin-top: clamp(8px, 1.4svh, 14px);
   }
 
   .online-match-panel .wide-action {
-    min-height: 38px;
+    min-height: clamp(38px, 5.6svh, 46px);
     padding: 8px 10px;
     border-radius: 14px;
   }
