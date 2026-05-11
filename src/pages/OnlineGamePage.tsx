@@ -98,6 +98,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [moveHistory, setMoveHistory] = useState<Array<MoveDelta | MoveRecord>>([]);
   const [moveAnnouncement, setMoveAnnouncement] = useState('Online board ready.');
   const [seedLabel, setSeedLabel] = useState('Random');
+  const [seedSource, setSeedSource] = useState<string | null>(null);
   const [backRankCode, setBackRankCode] = useState<string | null>(null);
   const [roundNumber, setRoundNumber] = useState(1);
   const [scores, setScores] = useState({ whiteScore: 0, blackScore: 0 });
@@ -162,6 +163,9 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
           : winner === role
             ? 'You won!'
             : 'You lost';
+  const isDailySeed = seedLabel.startsWith('daily-') || seedSource?.startsWith('daily');
+  const isRandomSeed = seedLabel.startsWith('random-') || seedSource?.startsWith('random');
+  const shareSetupLine = isDailySeed ? 'I beat today’s Pocket Shuffle Chess setup.' : isRandomSeed ? 'I survived this random shuffle setup.' : 'Play this Pocket Shuffle Chess seed with me.';
   const onlineResultSummary = status === 'expired'
     ? 'Challenge links expire after 60 minutes. Create a new challenge to keep playing.'
     : status === 'timeout'
@@ -244,6 +248,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     setBlackPlayerId(game.black_player_id);
     setRole(resolveRoleFromGame(game));
     setSeedLabel(game.seed ?? 'Random');
+    setSeedSource(game.seed_source ?? null);
     setBackRankCode(derivedBackRankCode);
     setRoundNumber(game.round_number ?? 1);
     setResultType(game.result_type ?? null);
@@ -430,9 +435,10 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     trackEvent('share_button_click', { type: 'invite', seed: seedLabel });
     const shareData = {
       title: 'Play Pocket Shuffle Chess With Friends',
-      text: `Play this Pocket Shuffle Chess seed with me.
+      text: `${shareSetupLine}
 
-Seed: ${backRankCode ?? seedLabel}
+Seed: ${seedLabel}
+Back rank: ${backRankCode ?? 'Setup pending'}
 
 Fast chess without memorized openings.
 Can you beat it?`,
@@ -459,9 +465,12 @@ ${inviteLink}`);
     trackEvent('share_button_click', { type: 'result', seed: seedLabel, result: onlineResultTitle });
     const resultText = `${onlineResultTitle} in Pocket Shuffle Chess.
 
+${shareSetupLine}
+
 ${onlineResultSummary}
 
-Seed: ${backRankCode ?? seedLabel}
+Seed: ${seedLabel}
+Back rank: ${backRankCode ?? 'Setup pending'}
 
 Fast chess without memorized openings.
 Can you beat it?`;
