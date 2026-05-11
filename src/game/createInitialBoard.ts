@@ -3,13 +3,12 @@ import { pieceOrderFromBackRankCode } from './seed.js';
 import { index } from './coordinates.js';
 import type { Board, Color, Piece, PieceType } from './types.js';
 
-function shufflePieces(pieces: PieceType[]): PieceType[] {
-  const shuffled = [...pieces];
-  for (let i = shuffled.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+function randomBackRankPieces(): PieceType[] {
+  const pieces = Array.from({ length: BOARD_FILES }, () => BACK_RANK_PIECES[Math.floor(Math.random() * BACK_RANK_PIECES.length)]);
+  if (!pieces.includes('king')) {
+    pieces[Math.floor(Math.random() * pieces.length)] = 'king';
   }
-  return shuffled;
+  return pieces;
 }
 
 function makePiece(type: PieceType, color: Color, file: number, rank: number): Piece {
@@ -33,12 +32,12 @@ type CreateInitialBoardOptions = {
   backRankCode?: string;
 };
 
-export function createInitialBoard(optionsOrWhiteOrder: CreateInitialBoardOptions | PieceType[] = shufflePieces(BACK_RANK_PIECES)): Board {
+export function createInitialBoard(optionsOrWhiteOrder: CreateInitialBoardOptions | PieceType[] = randomBackRankPieces()): Board {
   const whiteOrder = Array.isArray(optionsOrWhiteOrder)
     ? optionsOrWhiteOrder
     : optionsOrWhiteOrder.backRankCode
       ? pieceOrderFromBackRankCode(optionsOrWhiteOrder.backRankCode)
-      : shufflePieces(BACK_RANK_PIECES);
+      : randomBackRankPieces();
   const board = createEmptyBoard();
   const blackOrder = [...whiteOrder].reverse();
 
