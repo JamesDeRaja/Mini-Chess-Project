@@ -302,6 +302,37 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   }, [toast]);
 
   useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setSelectedSquare(null);
+        setLegalMoves([]);
+        return;
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0));
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setPreviewPly((ply) => {
+          const nextPly = Math.min((ply ?? latestPly) + 1, latestPly);
+          return nextPly >= latestPly ? null : nextPly;
+        });
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setPreviewPly(null);
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setPreviewPly(0);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [latestPly]);
+
+  useEffect(() => {
     if (!isCreatingInvite) return undefined;
     let isMounted = true;
     createOnlineGame(playerId)
@@ -715,7 +746,7 @@ Can you beat it?`;
               <p className="eyebrow">Move History</p>
               <h2>Move history</h2>
             </div>
-            <p className="panel-note">{isOnlineGameReady ? 'Click a move to review. Use controls to return Live.' : 'The game starts when both players are in.'}</p>
+            <p className="panel-note">{isOnlineGameReady ? 'Click a move to review. Use ←/→ to step, ↑ for live, Esc to cancel.' : 'The game starts when both players are in.'}</p>
           </div>
           <ol className="move-history move-list history-list" ref={historyListRef}>
             <MoveHistory
