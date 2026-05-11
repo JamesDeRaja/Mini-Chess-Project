@@ -440,3 +440,14 @@
     padding: clamp(10px, 1.35vw, 13px);
   }
 }
+
+@media (min-width: 1181px) and (max-height: 1020px) {
+  .board-shell { width: min(38vw, calc(var(--play-area-height, 706px) * 5 / 6)); }
+  .board-stage { grid-template-columns: 22px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 25px; }
+  .board-shell .board { gap: 4px; padding: 11px; border-width: 5px; }
+}
+
+@media (min-width: 1181px) and (max-height: 900px) {
+  .board-shell { width: min(37vw, calc(var(--play-area-height, 660px) * 5 / 6)); }
+  .board-stage { grid-template-columns: 20px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 23px; }
+}
