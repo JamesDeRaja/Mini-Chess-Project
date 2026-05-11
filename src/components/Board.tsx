@@ -56,74 +56,29 @@ function isPrimaryPointer(event: ReactPointerEvent<HTMLButtonElement>) {
 }
 
 function spawnCaptureParticles(cx: number, cy: number) {
-  const colors = [
-    '#f7cf72', '#ffa995', '#ffffff', '#ffc840',
-    '#8dbfaf', '#ff6932', '#ffec64', '#ff4422',
-    '#ffdc00', '#ff9e00', '#ffe082', '#ff7043',
-  ];
-
-  // Main burst: 26 particles
-  const count = 26;
+  const colors = ['#f7cf72', '#ffa995', '#ffffff', '#ffc840', '#ff6932', '#ffec64'];
+  const count = 8;
   for (let i = 0; i < count; i++) {
     const el = document.createElement('div');
     el.className = 'capture-particle';
-
-    const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
-    const speed = 65 + Math.random() * 120;
+    const angle = (i / count) * Math.PI * 2;
+    const speed = 35 + Math.random() * 55;
     const tx = Math.sin(angle) * speed;
-    const ty = -Math.cos(angle) * speed - Math.random() * 20; // slight upward bias
-    const size = 4 + Math.random() * 14;
-    const dur = 480 + Math.random() * 420;
+    const ty = -Math.cos(angle) * speed;
+    const size = 5 + Math.random() * 7;
+    const dur = 340 + Math.random() * 180;
     const color = colors[Math.floor(Math.random() * colors.length)];
-    const rot = (Math.random() - 0.5) * 560;
-    const r = Math.random();
-    let borderRadius = '50%';
-    let w = size, h = size;
-    if (r > 0.65) { borderRadius = '2px'; } // square chunk
-    if (r > 0.82) { w = size * 0.35; h = size * 2.2; borderRadius = '1px'; } // shard
-
+    const rot = (Math.random() - 0.5) * 240;
     el.style.cssText = [
       `left:${cx}px`, `top:${cy}px`,
-      `width:${w}px`, `height:${h}px`,
-      `background:${color}`,
-      `border-radius:${borderRadius}`,
-      `--tx:${tx}px`, `--ty:${ty}px`, `--rot:${rot}deg`,
-      `animation:particle-burst ${dur}ms cubic-bezier(0.12,0.8,0.22,1) forwards`,
-    ].join(';');
-
-    document.body.appendChild(el);
-    window.setTimeout(() => el.remove(), dur + 100);
-  }
-
-  // 3 expanding shockwave rings
-  const ringColors = ['rgba(255,180,60,0.95)', 'rgba(255,255,180,0.85)', 'rgba(255,120,40,0.7)'];
-  for (let i = 0; i < 3; i++) {
-    const ring = document.createElement('div');
-    ring.className = 'capture-shockwave';
-    const dur = 360 + i * 90;
-    const delay = i * 60;
-    const size = 14 + i * 10;
-
-    ring.style.cssText = [
-      `left:${cx}px`, `top:${cy}px`,
       `width:${size}px`, `height:${size}px`,
-      `border:${3 - i * 0.5}px solid ${ringColors[i]}`,
-      `animation:shockwave-ring ${dur}ms ${delay}ms cubic-bezier(0,0.5,0.2,1) forwards`,
+      `background:${color}`, `border-radius:50%`,
+      `--tx:${tx}px`, `--ty:${ty}px`, `--rot:${rot}deg`,
+      `animation:particle-burst ${dur}ms ease-out forwards`,
     ].join(';');
-
-    document.body.appendChild(ring);
-    window.setTimeout(() => ring.remove(), dur + delay + 150);
+    document.body.appendChild(el);
+    window.setTimeout(() => el.remove(), dur + 60);
   }
-
-  // Subtle screen flash
-  const flash = document.createElement('div');
-  flash.style.cssText = [
-    'position:fixed', 'inset:0', 'pointer-events:none',
-    'z-index:9997', 'background:rgba(255,200,80,0.13)',
-    'animation:capture-screen-flash 240ms ease-out forwards',
-  ].join(';');
-  document.body.appendChild(flash);
-  window.setTimeout(() => flash.remove(), 260);
 }
 
 export function Board({
@@ -192,8 +147,8 @@ export function Board({
     if (!piece) return;
 
     const distance = Math.hypot(endDx, endDy);
-    const arcHeight = Math.max(Math.min(distance * 0.55, 90), 52);
-    const duration = Math.min(Math.max(distance * 0.6, 340), 480);
+    const arcHeight = Math.max(Math.min(distance * 0.35, 55), 28);
+    const duration = Math.min(Math.max(distance * 0.45, 260), 380);
 
     const animKey = `${moveKey}-${Date.now()}`;
     flyKeyRef.current = animKey;
@@ -245,15 +200,7 @@ export function Board({
     const rect = toEl.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
-
-    toEl.classList.add('capture-flash');
     spawnCaptureParticles(cx, cy);
-
-    const flashTimer = window.setTimeout(() => toEl.classList.remove('capture-flash'), 520);
-    return () => {
-      window.clearTimeout(flashTimer);
-      toEl.classList.remove('capture-flash');
-    };
   }, [lastMove]);
 
   function updateDragState(nextDragState: DragState | null) {
