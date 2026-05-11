@@ -66,7 +66,7 @@ export function Board({
   const fileLabels = visualFiles.map((file) => fileLabel(file));
 
   return (
-    <div className="board-shell">
+    <div className="board-frame board-shell">
       <div className="board-stage">
         <div className="board-rank-labels" aria-hidden="true">
           {rankLabels.map((rank) => <span key={rank}>{rank}</span>)}
