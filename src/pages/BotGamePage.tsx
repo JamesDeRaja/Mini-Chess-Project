@@ -7,7 +7,7 @@ import { GameResultPanel } from '../components/GameResultPanel.js';
 import { MoveHistory } from '../components/MoveHistory.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
-import { type BotLevel, getBotMoveByLevel } from '../game/bot.js';
+import { type BotLevel, getBotMoveByLevel, getMoveIdentity } from '../game/bot.js';
 import {
   type DailyAIDifficulty,
   type DailyAIProgress,
@@ -243,6 +243,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const historyListRef = useRef<HTMLOListElement | null>(null);
   const botMoveTimerRef = useRef<number | null>(null);
   const lastQueuedBotMoveKeyRef = useRef('');
+  const recentBotMoveKeysRef = useRef<string[]>([]);
   const config = modeConfig[matchMode];
   const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber);
   const latestPly = boardTimeline.length - 1;
@@ -471,8 +472,11 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
     botMoveTimerRef.current = window.setTimeout(() => {
       botMoveTimerRef.current = null;
-      const botMove = getBotMoveByLevel(board, botColor, botLevel);
-      if (botMove) completeMove(botMove);
+      const botMove = getBotMoveByLevel(board, botColor, botLevel, { avoidMoveKeys: new Set(recentBotMoveKeysRef.current) });
+      if (botMove) {
+        recentBotMoveKeysRef.current = [...recentBotMoveKeysRef.current.slice(-11), getMoveIdentity(botMove)];
+        completeMove(botMove);
+      }
     }, 300);
 
     return () => {
