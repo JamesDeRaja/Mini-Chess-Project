@@ -422,3 +422,21 @@
   background: #c5d7c0;
   box-shadow: inset 0 -3px 0 rgba(80, 109, 80, 0.14), 0 4px 7px rgba(92, 91, 77, 0.04);
 }
+
+/* Medium tablet and square-window board sizing: prioritize a fully visible board
+   without applying mobile sizing or changing wide desktop behavior. */
+@media (min-width: 769px) and (max-width: 1200px) {
+  .board-shell {
+    width: min(82vw, 590px, calc(var(--play-area-height, 708px) * 5 / 6));
+  }
+
+  .board-stage {
+    grid-template-columns: 22px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 26px;
+  }
+
+  .board-shell .board {
+    max-width: 100%;
+    padding: clamp(10px, 1.35vw, 13px);
+  }
+}
