@@ -3986,60 +3986,17 @@ button:focus-visible,
   .chess-shell { --play-area-height: min(100%, calc(100svh - clamp(140px, 17svh, 190px))); }
 }
 
-/* 14-inch / intermediate laptop gameplay layout: prioritize a larger board and
-   place the two panels underneath it. Tall 16-inch+ layouts keep the side rails,
-   and phones continue to use the existing stacked mobile rules. */
+/* 14-inch / intermediate laptop gameplay layout: keep the same side-rail design
+   as larger laptops, but tune the columns dynamically so the board stays prominent. */
 @media (min-width: 1181px) and (max-width: 1600px) and (max-height: 1050px) {
-  .game-page {
-    height: auto;
-    min-height: 100svh;
-    overflow-x: hidden;
-    overflow-y: auto;
-  }
-
   .game-header,
   .game-layout {
-    width: min(100%, 1440px);
-  }
-
-  .game-header {
-    align-items: center;
+    width: min(100%, 1500px);
   }
 
   .chess-shell {
-    --play-area-height: min(78svh, 780px);
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-areas:
-      "board board"
-      "match history";
-    align-items: start;
-    justify-content: center;
-    gap: clamp(14px, 1.8vw, 22px);
-    height: auto;
-  }
-
-  .board-column {
-    grid-area: board;
-    justify-self: center;
-    overflow: visible;
-  }
-
-  .match-panel { grid-area: match; }
-  .review-panel { grid-area: history; }
-
-  .match-panel,
-  .review-panel {
-    width: 100%;
-    height: auto;
-    max-height: none;
-  }
-
-  .history-panel {
-    min-height: 0;
-  }
-
-  .history-list {
-    max-height: 220px;
+    --play-area-height: min(calc(100svh - clamp(142px, 17svh, 186px)), 790px);
+    grid-template-columns: minmax(270px, 330px) minmax(0, min(calc(var(--play-area-height) * 5 / 6), 43vw, 660px)) minmax(320px, 360px);
+    gap: clamp(10px, 1.2vw, 18px);
   }
 }

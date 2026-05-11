@@ -455,14 +455,9 @@
 /* MacBook 14-inch class correction: keep the board generous on intermediate laptops
    while leaving 16-inch/tall desktop and phone layouts on their existing rules. */
 @media (min-width: 1181px) and (max-width: 1600px) and (max-height: 1020px) {
-  .board-shell { width: min(42vw, 620px, calc(var(--play-area-height, 706px) * 5 / 6)); }
+  .board-shell { width: min(43vw, 660px, calc(var(--play-area-height, 790px) * 5 / 6)); }
 }
 
 @media (min-width: 1181px) and (max-width: 1600px) and (max-height: 900px) {
-  .board-shell { width: min(41.5vw, 600px, calc(var(--play-area-height, 660px) * 5 / 6)); }
-}
-
-@media (min-width: 1181px) and (max-width: 1600px) and (max-height: 1050px) {
-  .board-shell { width: min(70vw, 650px); }
-  .board-shell .board { max-width: 100%; }
+  .board-shell { width: min(42.5vw, 640px, calc(var(--play-area-height, 720px) * 5 / 6)); }
 }
