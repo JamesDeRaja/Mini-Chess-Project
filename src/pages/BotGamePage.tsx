@@ -21,7 +21,7 @@ import { createInitialBoard } from '../game/createInitialBoard.js';
 import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
-import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
+import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, validateSeedInput } from '../game/seed.js';
 import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord, PieceType } from '../game/types.js';
 
@@ -31,6 +31,7 @@ type BotGamePageProps = {
   matchMode: MatchMode;
   dateKey?: string;
   customSeed?: string;
+  customBackRankCode?: string;
   onHome: () => void;
   onCustomSeed: () => void;
   onDaily: () => void;
@@ -154,16 +155,17 @@ export function BotGamePage(props: BotGamePageProps) {
   return <BotGameContent {...props} seedValidation={seedValidation} />;
 }
 
-function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, onHome, seedValidation }: BotGameContentProps) {
+function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, customBackRankCode, onHome, seedValidation }: BotGameContentProps) {
   const dailySeedInfo = useMemo(() => {
     if (seedValidation?.ok) {
-      return { dateKey: 'Custom', seed: seedValidation.normalizedSeed, backRankCode: seedValidation.backRankCode };
+      const safeBackRankCode = customBackRankCode && isValidBackRankCode(customBackRankCode) ? customBackRankCode.toUpperCase() : seedValidation.backRankCode;
+      return { dateKey: 'Custom', seed: seedValidation.normalizedSeed, backRankCode: safeBackRankCode };
     }
     const todayKey = getUtcDateKey();
     const dateKey = requestedDateKey && requestedDateKey <= todayKey ? requestedDateKey : todayKey;
     const seed = getDailySeed(dateKey);
     return { dateKey, seed, backRankCode: backRankCodeFromSeed(seed) };
-  }, [requestedDateKey, seedValidation]);
+  }, [customBackRankCode, requestedDateKey, seedValidation]);
   const isDailyAI = !customSeed;
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;

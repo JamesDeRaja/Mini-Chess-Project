@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, Shuffle, Users, X, Zap } from 'lucide-react';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
-import { createRandomGameSeed, getCurrentShuffleMode, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
+import { getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { trackEvent } from '../app/analytics.js';
@@ -11,10 +11,10 @@ import { getShareUrl } from '../app/seo.js';
 type HomePageProps = {
   initialModal?: Exclude<ModalName, null>;
   onStartBot: (dateKey?: string) => void;
-  onStartSeededBot: (seed: string) => void;
+  onStartSeededBot: (seed: string, backRankCode?: string) => void;
   onInvite: () => void;
   onDaily: (dateKey?: string) => void;
-  onSeeded: (seed: string) => void;
+  onSeeded: (seed: string, backRankCode?: string) => void;
   onFindMatch: (seed: string, backRankCode: string) => Promise<MatchmakingResponse>;
   onCancelFindMatch: (queueId?: string) => Promise<void>;
 };
@@ -124,7 +124,7 @@ export function HomePage({
   const [modal, setModal] = useState<ModalName>(initialModal ?? null);
   const [matchmaking, setMatchmaking] = useState<MatchmakingState>({ status: 'idle' });
   const [shuffleMode, setShuffleModeState] = useState<ShuffleMode>(() => getCurrentShuffleMode());
-  const [randomPreviewSeed, setRandomPreviewSeed] = useState(() => createRandomGameSeed());
+  const [randomSetup] = useState(() => resolveSeedSourceForMode('random', { randomSeed: getPageSessionRandomGameSeed() }));
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
   const [matchTarget, setMatchTarget] = useState({ seed: getDailySeed(todayKey), backRankCode: backRankCodeFromSeed(getDailySeed(todayKey)), mode: 'daily' as ShuffleMode });
   const dailySeed = getDailySeed(todayKey);
@@ -133,11 +133,11 @@ export function HomePage({
   const selectedDailyBackRankCode = backRankCodeFromSeed(selectedDailySeed);
   const calendarCells = getCalendarCells(calendarMonthKey);
   const canGoNextMonth = shiftMonth(calendarMonthKey, 1) <= monthKeyFromDateKey(todayKey);
-  const activeSeedSource = resolveSeedSourceForMode(shuffleMode, { dateKey: todayKey, randomSeed: randomPreviewSeed });
+  const activeSeedSource = shuffleMode === 'daily' ? resolveSeedSourceForMode('daily', { dateKey: todayKey }) : randomSetup;
   const activeBackRankCode = activeSeedSource.backRankCode;
   const activeSeedLabel = shuffleMode === 'daily' ? `${dailySeed} • ${dailyBackRankCode}` : `Random Shuffle • ${activeBackRankCode}`;
   const activeHeaderLabel = shuffleMode === 'daily' ? 'Today’s Daily' : 'Random Shuffle Active';
-  const activeHeaderDescription = shuffleMode === 'daily' ? 'Everyone gets the same setup today.' : 'Every match gets a fresh setup.';
+  const activeHeaderDescription = shuffleMode === 'daily' ? 'Everyone gets the same setup today.' : 'This setup stays active until refresh.';
   const blackBackRankCode = [...activeBackRankCode].reverse().join('');
   const customSeedValidation = validateSeedInput(customSeed);
   const customSeedError = customSeedWasSubmitted && !customSeedValidation.ok ? customSeedValidation.error : null;
@@ -188,7 +188,6 @@ export function HomePage({
   function setShuffleMode(mode: ShuffleMode) {
     setCurrentShuffleMode(mode);
     setShuffleModeState(mode);
-    if (mode === 'random') setRandomPreviewSeed(createRandomGameSeed());
     trackEvent('homepage_cta_click', { cta: 'shuffle_mode_toggle', mode });
   }
 
@@ -248,25 +247,21 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
     await onSeeded(customSeedValidation.normalizedSeed);
   }
 
-  function resolveFreshSeedForActiveMode() {
-    return shuffleMode === 'random' ? resolveSeedSourceForMode('random') : activeSeedSource;
-  }
-
   function playActiveModeAgainstAi() {
     trackEvent('homepage_cta_click', { cta: 'play_ai', mode: shuffleMode });
     if (shuffleMode === 'daily') onStartBot(todayKey);
-    else onStartSeededBot(resolveSeedSourceForMode('random').seed);
+    else onStartSeededBot(activeSeedSource.seed, activeSeedSource.backRankCode);
   }
 
   async function requestActiveMatch() {
-    const seedSource = resolveFreshSeedForActiveMode();
+    const seedSource = activeSeedSource;
     await requestMatchFor(seedSource.seed, seedSource.backRankCode, seedSource.mode);
   }
 
   async function inviteActiveMode() {
     trackEvent('homepage_cta_click', { cta: 'invite_friend', mode: shuffleMode });
     if (shuffleMode === 'daily') onInvite();
-    else await onSeeded(resolveSeedSourceForMode('random').seed);
+    else await onSeeded(activeSeedSource.seed, activeSeedSource.backRankCode);
   }
 
   async function requestMatchFor(seed: string, backRankCode: string, mode: ShuffleMode = seed.startsWith('random-') ? 'random' : 'daily') {
@@ -289,10 +284,10 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
     setModal(null);
   }, [matchmaking, onCancelFindMatch]);
 
-  function playAiForSeed(seed: string) {
+  function playAiForSeed(seed: string, backRankCode?: string) {
     trackEvent('homepage_cta_click', { cta: 'play_ai_for_seed', seed });
     if (seed.startsWith('daily-')) onStartBot(seed.replace('daily-', ''));
-    else onStartSeededBot(seed);
+    else onStartSeededBot(seed, backRankCode);
   }
 
   async function switchFromMatchmaking(nextAction: () => void | Promise<void>) {
@@ -304,7 +299,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
 
   async function inviteMatchTarget() {
     if (matchTarget.seed.startsWith('daily-')) await onDaily(matchTarget.seed.replace('daily-', ''));
-    else await onSeeded(matchTarget.seed);
+    else await onSeeded(matchTarget.seed, matchTarget.backRankCode);
   }
 
   const closeModal = useCallback(() => {
@@ -401,13 +396,13 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               <span className="card-sparkle card-sparkle-one" aria-hidden="true" />
               <img className="action-piece action-piece-pawn" src="/pieces/white-pawn.png" alt="White pawn" draggable={false} />
               {shuffleMode === 'daily' && <span className="daily-ai-stars" aria-label={`Daily AI progress: ${getDailyAIProgressAria(dailyAIProgress)}`}><DailyAIStarMarks progress={dailyAIProgress} /></span>}
-              <span className="action-card-copy"><strong>Play AI</strong><small>{shuffleMode === 'daily' ? 'Instant daily game' : 'Fresh random setup'}</small>{shuffleMode === 'daily' && <small className="daily-ai-status">{dailyAIStatusLine}</small>}</span>
+              <span className="action-card-copy"><strong>Play AI</strong><small>{shuffleMode === 'daily' ? 'Instant daily game' : 'Use displayed setup'}</small>{shuffleMode === 'daily' && <small className="daily-ai-status">{dailyAIStatusLine}</small>}</span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
             <button type="button" className="home-action-card home-action-match" onClick={() => { void requestActiveMatch(); }}>
               <span className="card-sparkle card-sparkle-two" aria-hidden="true" />
               <img className="action-piece action-piece-rook" src="/pieces/white-rook.png" alt="White rook" draggable={false} />
-              <span className="action-card-copy"><strong>Find Match</strong><small>{shuffleMode === 'daily' ? 'Match today’s seed' : 'Fresh random match'}</small></span>
+              <span className="action-card-copy"><strong>Find Match</strong><small>{shuffleMode === 'daily' ? 'Match today’s seed' : 'Use displayed setup'}</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
             <button type="button" className="home-action-card home-action-invite" onClick={() => { void inviteActiveMode(); }}>
@@ -641,7 +636,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             <div className="panel-actions centered-actions">
               {matchmaking.status === 'timeout' && <button type="button" onClick={() => requestMatchFor(matchTarget.seed, matchTarget.backRankCode)}><Users size={18} /> Keep Waiting</button>}
               <button type="button" onClick={() => { void switchFromMatchmaking(inviteMatchTarget); }}><LinkIcon size={18} /> Invite Friend Instead</button>
-              <button type="button" onClick={() => { void switchFromMatchmaking(() => playAiForSeed(matchTarget.seed)); }}><Bot size={18} /> Play AI While Waiting</button>
+              <button type="button" onClick={() => { void switchFromMatchmaking(() => playAiForSeed(matchTarget.seed, matchTarget.backRankCode)); }}><Bot size={18} /> Play AI While Waiting</button>
               <button type="button" onClick={cancelMatch}>Cancel</button>
             </div>
           </div>

@@ -498,7 +498,7 @@ Can you beat it?`;
     setError(null);
     setInviteState('creating_game');
     try {
-      const createdGame = seedLabel && seedLabel !== 'Random' ? await createSeededGame(playerId, seedLabel) : await createOnlineGame(playerId);
+      const createdGame = seedLabel && seedLabel !== 'Random' ? await createSeededGame(playerId, seedLabel, backRankCode ?? undefined) : await createOnlineGame(playerId);
       setEffectiveGameId(createdGame.gameId);
       setInviteState('waiting_for_link');
       window.history.replaceState(null, '', `/game/${createdGame.gameId}?mode=${matchMode}`);
