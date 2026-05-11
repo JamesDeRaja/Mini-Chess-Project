@@ -620,7 +620,11 @@ Can you beat it?`;
     return moves;
   }
 
-  function handleDrop(squareIndex: number) {
+  function handleDrop(squareIndex: number, draggedMove?: Move) {
+    if (draggedMove) {
+      completeSelectedMove(draggedMove);
+      return;
+    }
     if (!tryMoveTo(squareIndex)) {
       setSelectedSquare(null);
       setLegalMoves([]);

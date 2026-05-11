@@ -362,7 +362,11 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     return moves;
   }
 
-  function handleDrop(squareIndex: number) {
+  function handleDrop(squareIndex: number, draggedMove?: Move) {
+    if (draggedMove) {
+      completeMove(draggedMove);
+      return;
+    }
     if (!tryMoveTo(squareIndex)) {
       setSelectedSquare(null);
       setLegalMoves([]);

@@ -18,7 +18,7 @@ type BoardProps = {
   isInteractive?: boolean;
   onSquareClick: (squareIndex: number) => void;
   onDragStart?: (squareIndex: number) => Move[] | null;
-  onDrop?: (squareIndex: number) => void;
+  onDrop?: (squareIndex: number, move: Move) => void;
   onDragCancel?: () => void;
 };
 
@@ -78,26 +78,41 @@ export function Board({
 
   function squareIndexFromPoint(clientX: number, clientY: number): number | null {
     const boardElement = boardElementRef.current;
-    const pointedElement = document.elementFromPoint(clientX, clientY);
-    if (!boardElement || !pointedElement || !boardElement.contains(pointedElement)) return null;
+    if (!boardElement) return null;
 
-    const squareElement = pointedElement.closest<HTMLButtonElement>('.square[data-square-index]');
-    if (!squareElement || !boardElement.contains(squareElement)) return null;
+    const rect = boardElement.getBoundingClientRect();
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null;
 
-    const squareIndex = Number(squareElement.dataset.squareIndex);
-    return Number.isInteger(squareIndex) ? squareIndex : null;
+    const styles = window.getComputedStyle(boardElement);
+    const borderLeft = parseFloat(styles.borderLeftWidth) || 0;
+    const borderRight = parseFloat(styles.borderRightWidth) || 0;
+    const borderTop = parseFloat(styles.borderTopWidth) || 0;
+    const borderBottom = parseFloat(styles.borderBottomWidth) || 0;
+    const paddingLeft = parseFloat(styles.paddingLeft) || 0;
+    const paddingRight = parseFloat(styles.paddingRight) || 0;
+    const paddingTop = parseFloat(styles.paddingTop) || 0;
+    const paddingBottom = parseFloat(styles.paddingBottom) || 0;
+    const boardLeft = rect.left + borderLeft + paddingLeft;
+    const boardRight = rect.right - borderRight - paddingRight;
+    const boardTop = rect.top + borderTop + paddingTop;
+    const boardBottom = rect.bottom - borderBottom - paddingBottom;
+    if (clientX < boardLeft || clientX > boardRight || clientY < boardTop || clientY > boardBottom) return null;
+
+    const visualFile = Math.min(BOARD_FILES - 1, Math.max(0, Math.floor(((clientX - boardLeft) / (boardRight - boardLeft)) * BOARD_FILES)));
+    const visualRank = Math.min(BOARD_RANKS - 1, Math.max(0, Math.floor(((clientY - boardTop) / (boardBottom - boardTop)) * BOARD_RANKS)));
+    return index(visualFiles[visualFile], visualRanks[visualRank]);
   }
 
   function finishDrag(targetSquare: number | null) {
     const currentDragState = dragStateRef.current;
     if (!currentDragState) return;
 
-    const legalDrop = targetSquare !== null && currentDragState.legalMoves.some((move) => move.to === targetSquare);
+    const droppedMove = targetSquare !== null ? currentDragState.legalMoves.find((move) => move.to === targetSquare) : undefined;
     suppressNextClickRef.current = currentDragState.hasMoved;
     updateDragState(null);
 
-    if (legalDrop) {
-      onDrop?.(targetSquare);
+    if (targetSquare !== null && droppedMove) {
+      onDrop?.(targetSquare, droppedMove);
       return;
     }
 
