@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { BOARD_FILES, BOARD_RANKS } from '../game/constants.js';
 import { fileLabel, index } from '../game/coordinates.js';
 import type { Board as ChessBoard, Move, Piece as ChessPiece } from '../game/types.js';
@@ -6,6 +7,19 @@ import { Piece } from './Piece.js';
 import { Square } from './Square.js';
 
 type LastMove = { from: number; to: number; isCapture?: boolean } | null;
+
+type FlyingPiece = {
+  piece: ChessPiece;
+  startX: number;
+  startY: number;
+  endDx: number;
+  endDy: number;
+  arcHeight: number;
+  size: number;
+  destSquare: number;
+  duration: number;
+  animKey: string;
+} | null;
 
 type BoardProps = {
   board: ChessBoard;
@@ -43,67 +57,73 @@ function isPrimaryPointer(event: ReactPointerEvent<HTMLButtonElement>) {
 
 function spawnCaptureParticles(cx: number, cy: number) {
   const colors = [
-    'rgba(247, 207, 114, 0.96)',
-    'rgba(255, 169, 149, 0.96)',
-    'rgba(255, 255, 255, 0.92)',
-    'rgba(255, 196, 64, 0.96)',
-    'rgba(141, 191, 175, 0.92)',
-    'rgba(255, 110, 50, 0.92)',
-    'rgba(255, 236, 100, 0.96)',
+    '#f7cf72', '#ffa995', '#ffffff', '#ffc840',
+    '#8dbfaf', '#ff6932', '#ffec64', '#ff4422',
+    '#ffdc00', '#ff9e00', '#ffe082', '#ff7043',
   ];
 
-  const count = 18;
+  // Main burst: 26 particles
+  const count = 26;
   for (let i = 0; i < count; i++) {
     const el = document.createElement('div');
     el.className = 'capture-particle';
 
-    const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.55;
-    const speed = 50 + Math.random() * 85;
+    const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+    const speed = 65 + Math.random() * 120;
     const tx = Math.sin(angle) * speed;
-    const ty = -Math.cos(angle) * speed;
-    const size = 5 + Math.random() * 11;
-    const dur = 360 + Math.random() * 360;
+    const ty = -Math.cos(angle) * speed - Math.random() * 20; // slight upward bias
+    const size = 4 + Math.random() * 14;
+    const dur = 480 + Math.random() * 420;
     const color = colors[Math.floor(Math.random() * colors.length)];
-    const rot = (Math.random() - 0.5) * 360;
-    const isSquare = Math.random() > 0.5;
+    const rot = (Math.random() - 0.5) * 560;
+    const r = Math.random();
+    let borderRadius = '50%';
+    let w = size, h = size;
+    if (r > 0.65) { borderRadius = '2px'; } // square chunk
+    if (r > 0.82) { w = size * 0.35; h = size * 2.2; borderRadius = '1px'; } // shard
 
     el.style.cssText = [
-      `left:${cx}px`,
-      `top:${cy}px`,
-      `width:${size}px`,
-      `height:${size}px`,
+      `left:${cx}px`, `top:${cy}px`,
+      `width:${w}px`, `height:${h}px`,
       `background:${color}`,
-      `border-radius:${isSquare ? '2px' : '50%'}`,
-      `--tx:${tx}px`,
-      `--ty:${ty}px`,
-      `--rot:${rot}deg`,
-      `animation:particle-burst ${dur}ms cubic-bezier(0.1,0.7,0.2,1) forwards`,
+      `border-radius:${borderRadius}`,
+      `--tx:${tx}px`, `--ty:${ty}px`, `--rot:${rot}deg`,
+      `animation:particle-burst ${dur}ms cubic-bezier(0.12,0.8,0.22,1) forwards`,
     ].join(';');
 
     document.body.appendChild(el);
-    window.setTimeout(() => el.remove(), dur + 120);
+    window.setTimeout(() => el.remove(), dur + 100);
   }
 
-  // Shockwave rings
-  for (let i = 0; i < 2; i++) {
+  // 3 expanding shockwave rings
+  const ringColors = ['rgba(255,180,60,0.95)', 'rgba(255,255,180,0.85)', 'rgba(255,120,40,0.7)'];
+  for (let i = 0; i < 3; i++) {
     const ring = document.createElement('div');
     ring.className = 'capture-shockwave';
-    const dur = 400 + i * 110;
-    const delay = i * 75;
-    const size = 20 + i * 10;
+    const dur = 360 + i * 90;
+    const delay = i * 60;
+    const size = 14 + i * 10;
 
     ring.style.cssText = [
-      `left:${cx}px`,
-      `top:${cy}px`,
-      `width:${size}px`,
-      `height:${size}px`,
-      `border:${2 + i}px solid rgba(255,155,65,${0.9 - i * 0.25})`,
+      `left:${cx}px`, `top:${cy}px`,
+      `width:${size}px`, `height:${size}px`,
+      `border:${3 - i * 0.5}px solid ${ringColors[i]}`,
       `animation:shockwave-ring ${dur}ms ${delay}ms cubic-bezier(0,0.5,0.2,1) forwards`,
     ].join(';');
 
     document.body.appendChild(ring);
     window.setTimeout(() => ring.remove(), dur + delay + 150);
   }
+
+  // Subtle screen flash
+  const flash = document.createElement('div');
+  flash.style.cssText = [
+    'position:fixed', 'inset:0', 'pointer-events:none',
+    'z-index:9997', 'background:rgba(255,200,80,0.13)',
+    'animation:capture-screen-flash 240ms ease-out forwards',
+  ].join(';');
+  document.body.appendChild(flash);
+  window.setTimeout(() => flash.remove(), 260);
 }
 
 export function Board({
@@ -124,6 +144,9 @@ export function Board({
   const dragStateRef = useRef<DragState | null>(null);
   const suppressNextClickRef = useRef(false);
   const [dragState, setDragState] = useState<DragState | null>(null);
+  const [flyingPiece, setFlyingPiece] = useState<FlyingPiece>(null);
+  const [hiddenPieceSquare, setHiddenPieceSquare] = useState<number | null>(null);
+  const flyKeyRef = useRef<string | null>(null);
   const squares = [];
   const ranks = Array.from({ length: BOARD_RANKS }, (_, rank) => rank);
   const files = Array.from({ length: BOARD_FILES }, (_, file) => file);
@@ -136,8 +159,11 @@ export function Board({
     };
   }, []);
 
-  // --- Piece flight animation (runs before paint to avoid flash) ---
+  // --- Flying piece ghost (runs before paint) ---
   const prevMoveKeyRef = useRef<string | null>(null);
+  const boardPropRef = useRef(board);
+  boardPropRef.current = board;
+
   useLayoutEffect(() => {
     const boardEl = boardElementRef.current;
     if (!boardEl || !lastMove) {
@@ -155,31 +181,59 @@ export function Board({
 
     const fromRect = fromEl.getBoundingClientRect();
     const toRect = toEl.getBoundingClientRect();
-    const dx = fromRect.left - toRect.left;
-    const dy = fromRect.top - toRect.top;
+    const startX = fromRect.left + fromRect.width / 2;
+    const startY = fromRect.top + fromRect.height / 2;
+    const endDx = (toRect.left + toRect.width / 2) - startX;
+    const endDy = (toRect.top + toRect.height / 2) - startY;
 
-    if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
+    if (Math.abs(endDx) < 2 && Math.abs(endDy) < 2) return;
 
-    toEl.style.setProperty('--fly-dx', `${dx}px`);
-    toEl.style.setProperty('--fly-dy', `${dy}px`);
+    const piece = boardPropRef.current[lastMove.to]?.piece;
+    if (!piece) return;
 
-    const pieceEl = toEl.querySelector<HTMLElement>('.piece-wrapper');
-    if (!pieceEl) return;
+    const distance = Math.hypot(endDx, endDy);
+    const arcHeight = Math.max(Math.min(distance * 0.55, 90), 52);
+    const duration = Math.min(Math.max(distance * 0.6, 340), 480);
 
-    pieceEl.classList.remove('piece-flying');
-    void pieceEl.offsetHeight;
-    pieceEl.classList.add('piece-flying');
+    const animKey = `${moveKey}-${Date.now()}`;
+    flyKeyRef.current = animKey;
 
-    const cleanup = window.setTimeout(() => {
-      pieceEl.classList.remove('piece-flying');
-      toEl.style.removeProperty('--fly-dx');
-      toEl.style.removeProperty('--fly-dy');
-    }, 520);
+    // Hide real piece at destination while ghost flies
+    setHiddenPieceSquare(lastMove.to);
+    setFlyingPiece({
+      piece,
+      startX,
+      startY,
+      endDx,
+      endDy,
+      arcHeight,
+      size: fromRect.width,
+      destSquare: lastMove.to,
+      duration,
+      animKey,
+    });
 
-    return () => window.clearTimeout(cleanup);
+    // Reveal real piece just before ghost fully fades
+    const REVEAL_AT = duration * 0.88;
+    const revealTimer = window.setTimeout(() => {
+      if (flyKeyRef.current === animKey) setHiddenPieceSquare(null);
+    }, REVEAL_AT);
+
+    // Clear ghost after animation completes
+    const clearTimer = window.setTimeout(() => {
+      if (flyKeyRef.current === animKey) {
+        setFlyingPiece(null);
+        flyKeyRef.current = null;
+      }
+    }, duration + 80);
+
+    return () => {
+      window.clearTimeout(revealTimer);
+      window.clearTimeout(clearTimer);
+    };
   }, [lastMove]);
 
-  // --- Capture particles and flash (after paint) ---
+  // --- Capture explosion (after paint) ---
   useEffect(() => {
     if (!lastMove?.isCapture) return;
     const boardEl = boardElementRef.current;
@@ -195,7 +249,7 @@ export function Board({
     toEl.classList.add('capture-flash');
     spawnCaptureParticles(cx, cy);
 
-    const flashTimer = window.setTimeout(() => toEl.classList.remove('capture-flash'), 560);
+    const flashTimer = window.setTimeout(() => toEl.classList.remove('capture-flash'), 520);
     return () => {
       window.clearTimeout(flashTimer);
       toEl.classList.remove('capture-flash');
@@ -361,6 +415,7 @@ export function Board({
           isBoardSelected={selectedSquare === squareIndex}
           isDragSource={Boolean(dragState?.hasMoved && dragState.fromSquare === squareIndex)}
           isDragHoveredLegal={dragHoveredLegalSquare === squareIndex}
+          isPieceHidden={hiddenPieceSquare === squareIndex}
           coordinateLabel={`${fileLabel(file)}${rank + 1}`}
           onClick={() => handleSquareClick(squareIndex)}
           onPointerDragStart={handlePointerDragStart}
@@ -396,6 +451,26 @@ export function Board({
         >
           <Piece piece={dragState.piece} isDraggable={false} isSelected />
         </div>
+      )}
+      {flyingPiece && createPortal(
+        <div
+          key={flyingPiece.animKey}
+          className="flying-piece-ghost"
+          aria-hidden="true"
+          style={{
+            left: flyingPiece.startX,
+            top: flyingPiece.startY,
+            width: flyingPiece.size * 1.38,
+            height: flyingPiece.size * 1.38,
+            '--end-dx': `${flyingPiece.endDx}px`,
+            '--end-dy': `${flyingPiece.endDy}px`,
+            '--arc': `${flyingPiece.arcHeight}px`,
+            '--fly-dur': `${flyingPiece.duration}ms`,
+          } as React.CSSProperties}
+        >
+          <Piece piece={flyingPiece.piece} isDraggable={false} />
+        </div>,
+        document.body,
       )}
     </div>
   );

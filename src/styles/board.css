@@ -613,66 +613,95 @@
    JUICY ANIMATION SYSTEM
    ===================================================== */
 
-/* --- Piece flight + squish landing --- */
-.piece-flying {
-  animation: piece-fly-land 420ms cubic-bezier(0.2, 1, 0.3, 1) forwards !important;
-  will-change: transform;
-  z-index: 10 !important;
+/* --- Flying piece ghost (portal-rendered, position:fixed, above everything) --- */
+.flying-piece-ghost {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  /* left/top/width/height set via inline style to source square center */
+  animation: ghost-fly var(--fly-dur, 460ms) cubic-bezier(0.18, 1, 0.26, 1) forwards;
+  will-change: transform, opacity;
 }
 
-@keyframes piece-fly-land {
+/* Suppress the piece-land animation inside the ghost */
+.flying-piece-ghost .piece-wrapper {
+  animation: none !important;
+}
+
+@keyframes ghost-fly {
   0% {
-    transform: translate(var(--fly-dx, 0px), var(--fly-dy, 0px)) scale(1.1);
-    filter: drop-shadow(0 28px 22px rgba(45, 43, 40, 0.52));
-    animation-timing-function: cubic-bezier(0.38, 0, 0.6, 1);
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+    filter: drop-shadow(0 24px 20px rgba(45, 43, 40, 0.54));
   }
-  36% {
-    transform:
-      translate(
-        calc(var(--fly-dx, 0px) * 0.42),
-        calc(var(--fly-dy, 0px) * 0.42 - 46px)
-      ) scale(1.2);
-    filter: drop-shadow(0 38px 28px rgba(45, 43, 40, 0.24));
-    animation-timing-function: cubic-bezier(0.5, 0, 1, 0.6);
+  34% {
+    /* Arc peak: up and partway across */
+    transform: translate(
+      calc(-50% + var(--end-dx, 0px) * 0.44),
+      calc(-50% + var(--end-dy, 0px) * 0.44 - var(--arc, 62px))
+    ) scale(1.22);
+    filter: drop-shadow(0 42px 32px rgba(45, 43, 40, 0.2));
+    opacity: 1;
   }
   68% {
-    transform:
-      translate(
-        calc(var(--fly-dx, 0px) * 0.03),
-        calc(var(--fly-dy, 0px) * 0.03 + 9px)
-      ) scale(1.06);
-    filter: drop-shadow(0 12px 10px rgba(45, 43, 40, 0.42));
-    animation-timing-function: cubic-bezier(0.1, 0, 0.2, 1);
+    /* Approaching destination, just above it */
+    transform: translate(
+      calc(-50% + var(--end-dx, 0px) * 0.96),
+      calc(-50% + var(--end-dy, 0px) * 0.96 + 10px)
+    ) scale(1.07);
+    filter: drop-shadow(0 14px 12px rgba(45, 43, 40, 0.42));
+    opacity: 1;
   }
-  80% {
-    transform: translate(0, 0) scaleX(1.38) scaleY(0.56);
-    filter: drop-shadow(0 2px 2px rgba(45, 43, 40, 0.3));
+  79% {
+    /* SQUISH — satisfying impact */
+    transform: translate(
+      calc(-50% + var(--end-dx, 0px)),
+      calc(-50% + var(--end-dy, 0px))
+    ) scaleX(1.46) scaleY(0.5);
+    filter: drop-shadow(0 2px 2px rgba(45, 43, 40, 0.24));
+    opacity: 1;
   }
-  90% {
-    transform: translate(0, -7px) scaleX(0.86) scaleY(1.18);
+  89% {
+    /* Single spring back — no more bouncing after this */
+    transform: translate(
+      calc(-50% + var(--end-dx, 0px)),
+      calc(-50% + var(--end-dy, 0px) - 5px)
+    ) scaleX(0.91) scaleY(1.1);
+    opacity: 1;
   }
   96% {
-    transform: translate(0, 2px) scaleX(1.05) scaleY(0.96);
+    /* Settle */
+    transform: translate(
+      calc(-50% + var(--end-dx, 0px)),
+      calc(-50% + var(--end-dy, 0px))
+    ) scale(1.01);
+    opacity: 1;
+    filter: drop-shadow(0 8px 7px rgba(45, 43, 40, 0.18));
   }
   100% {
-    transform: translate(0, 0) scale(1);
-    filter: drop-shadow(0 9px 7px rgba(54, 48, 39, 0.24));
+    /* Ghost fades out as real piece reveals */
+    transform: translate(
+      calc(-50% + var(--end-dx, 0px)),
+      calc(-50% + var(--end-dy, 0px))
+    ) scale(1);
+    opacity: 0;
+    filter: drop-shadow(0 8px 7px rgba(45, 43, 40, 0.18));
   }
 }
 
-/* --- Pulsing legal move dots --- */
+/* --- Pulsing legal move dots (gentler) --- */
 @keyframes move-dot-breathe {
   0%, 100% { transform: scale(1);    box-shadow: 0 0 0 9px rgba(247, 207, 114, 0.22); }
-  50%       { transform: scale(1.38); box-shadow: 0 0 0 16px rgba(247, 207, 114, 0.06); }
+  50%       { transform: scale(1.22); box-shadow: 0 0 0 13px rgba(247, 207, 114, 0.08); }
 }
 
-/* --- Throbbing capture dots --- */
+/* --- Throbbing capture dots (gentler) --- */
 @keyframes capture-dot-throb {
   0%, 100% { transform: scale(1);    box-shadow: 0 0 0 10px rgba(255, 169, 149, 0.22), 0 0 0 2px rgba(45, 43, 40, 0.14); }
-  50%       { transform: scale(1.36); box-shadow: 0 0 0 18px rgba(255, 169, 149, 0.06), 0 0 0 2px rgba(45, 43, 40, 0.14); }
+  50%       { transform: scale(1.26); box-shadow: 0 0 0 15px rgba(255, 169, 149, 0.07), 0 0 0 2px rgba(45, 43, 40, 0.14); }
 }
 
-/* --- Shimmering selected square --- */
+/* --- Shimmering selected square (subtle) --- */
 @keyframes selected-shimmer {
   0%, 100% {
     outline-color: rgba(247, 207, 114, 0.96);
@@ -680,32 +709,30 @@
   }
   50% {
     outline-color: rgba(255, 222, 55, 1);
-    box-shadow: inset 0 0 0 999px rgba(247, 207, 114, 0.36), 0 0 20px rgba(247, 207, 114, 0.4);
+    box-shadow: inset 0 0 0 999px rgba(247, 207, 114, 0.3), 0 0 14px rgba(247, 207, 114, 0.28);
   }
 }
 
-/* --- Dramatic check pulse --- */
+/* --- Check: smooth red glow (no brightness flash) --- */
 @keyframes check-pulse-dramatic {
   from {
-    filter: brightness(1);
-    box-shadow: inset 0 0 0 999px rgba(255, 100, 70, 0.3), inset 0 0 0 5px rgba(180, 70, 60, 0.75);
+    box-shadow: inset 0 0 0 999px rgba(255, 80, 50, 0.22), inset 0 0 0 4px rgba(180, 60, 50, 0.65);
   }
   to {
-    filter: brightness(1.24);
     box-shadow:
-      inset 0 0 0 999px rgba(255, 42, 20, 0.6),
-      inset 0 0 0 8px rgba(210, 36, 16, 0.98),
-      0 0 32px rgba(220, 48, 22, 0.6);
+      inset 0 0 0 999px rgba(255, 38, 16, 0.52),
+      inset 0 0 0 7px rgba(210, 30, 12, 0.95),
+      0 0 28px rgba(220, 45, 18, 0.5);
   }
 }
 
 /* --- Capture flash on square --- */
 .square.capture-flash {
-  animation: square-capture-flash 0.5s cubic-bezier(0, 0.9, 0.3, 1) forwards !important;
+  animation: square-capture-flash 0.48s cubic-bezier(0, 0.9, 0.3, 1) forwards !important;
 }
 @keyframes square-capture-flash {
-  0%   { filter: brightness(2.6) saturate(2.4); }
-  22%  { filter: brightness(1.8) saturate(1.7); }
+  0%   { filter: brightness(2.8) saturate(2.6); }
+  20%  { filter: brightness(1.9) saturate(1.8); }
   100% { filter: brightness(1)   saturate(1); }
 }
 
@@ -718,15 +745,15 @@
 @keyframes particle-burst {
   0% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.6) rotate(0deg);
+    transform: translate(-50%, -50%) scale(1.8) rotate(0deg);
   }
-  60% { opacity: 0.88; }
+  55% { opacity: 0.9; }
   100% {
     opacity: 0;
     transform:
       translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, 0px)))
-      scale(0.1)
-      rotate(var(--rot, 180deg));
+      scale(0.08)
+      rotate(var(--rot, 200deg));
   }
 }
 
@@ -738,8 +765,14 @@
   border-radius: 50%;
 }
 @keyframes shockwave-ring {
-  0%   { transform: translate(-50%, -50%) scale(0.15); opacity: 0.95; }
-  100% { transform: translate(-50%, -50%) scale(4.5);  opacity: 0; }
+  0%   { transform: translate(-50%, -50%) scale(0.12); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(5.5);  opacity: 0; }
+}
+
+/* --- Screen flash on capture --- */
+@keyframes capture-screen-flash {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* --- Drag hover: elevated glow --- */
@@ -755,7 +788,6 @@
   border-radius: inherit;
   content: '';
   pointer-events: none;
-  box-shadow: inset 0 0 0 5px rgba(247, 207, 114, 0.8), 0 12px 24px rgba(74, 70, 58, 0.2);
   animation: drag-hover-pulse 0.7s ease-in-out infinite alternate;
 }
 @keyframes drag-hover-pulse {
