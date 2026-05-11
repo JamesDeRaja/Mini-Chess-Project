@@ -188,6 +188,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [moveAnnouncement, setMoveAnnouncement] = useState('');
   const [score, setScore] = useState<MatchScore>({ white: 0, black: 0 });
   const [roundNumber, setRoundNumber] = useState(1);
+  const [roundResetId, setRoundResetId] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [matchWinner, setMatchWinner] = useState<Color | null>(null);
   const [isFlipped, setIsFlipped] = useState(() => playerColor === 'black');
@@ -307,6 +308,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setPreviewPly(null);
     setIsFlipped(playerColor === 'black');
     setIsBoardReady(false);
+    setRoundResetId((resetId) => resetId + 1);
     setRoundNumber(nextRoundNumber);
   }
 
@@ -465,7 +467,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         <section className="board-column">
           <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
           <Board
-            key={`${dailySeedInfo.seed}-${roundNumber}-${playerColor}`}
+            key={`${dailySeedInfo.seed}-${roundNumber}-${roundResetId}-${playerColor}`}
             ariaLabel={`Pocket Shuffle Chess ${dailySeedInfo.backRankCode} board. ${playerColor === 'white' ? 'White' : 'Black'} to play as you.`}
             board={displayBoard}
             selectedSquare={isPreviewing ? null : selectedSquare}
