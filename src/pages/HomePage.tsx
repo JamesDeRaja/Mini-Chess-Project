@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, Shuffle, Users, X, Zap } from 'lucide-react';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
+import { createRandomGameSeed, getCurrentShuffleMode, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { trackEvent } from '../app/analytics.js';
@@ -122,15 +123,22 @@ export function HomePage({
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [modal, setModal] = useState<ModalName>(initialModal ?? null);
   const [matchmaking, setMatchmaking] = useState<MatchmakingState>({ status: 'idle' });
+  const [shuffleMode, setShuffleModeState] = useState<ShuffleMode>(() => getCurrentShuffleMode());
+  const [randomPreviewSeed, setRandomPreviewSeed] = useState(() => createRandomGameSeed());
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
-  const [matchTarget, setMatchTarget] = useState({ seed: getDailySeed(todayKey), backRankCode: backRankCodeFromSeed(getDailySeed(todayKey)) });
+  const [matchTarget, setMatchTarget] = useState({ seed: getDailySeed(todayKey), backRankCode: backRankCodeFromSeed(getDailySeed(todayKey)), mode: 'daily' as ShuffleMode });
   const dailySeed = getDailySeed(todayKey);
   const dailyBackRankCode = backRankCodeFromSeed(dailySeed);
   const selectedDailySeed = getDailySeed(calendarDateKey);
   const selectedDailyBackRankCode = backRankCodeFromSeed(selectedDailySeed);
   const calendarCells = getCalendarCells(calendarMonthKey);
   const canGoNextMonth = shiftMonth(calendarMonthKey, 1) <= monthKeyFromDateKey(todayKey);
-  const blackBackRankCode = [...dailyBackRankCode].reverse().join('');
+  const activeSeedSource = resolveSeedSourceForMode(shuffleMode, { dateKey: todayKey, randomSeed: randomPreviewSeed });
+  const activeBackRankCode = activeSeedSource.backRankCode;
+  const activeSeedLabel = shuffleMode === 'daily' ? `${dailySeed} • ${dailyBackRankCode}` : `Random Shuffle • ${activeBackRankCode}`;
+  const activeHeaderLabel = shuffleMode === 'daily' ? 'Today’s Daily' : 'Random Shuffle Active';
+  const activeHeaderDescription = shuffleMode === 'daily' ? 'Everyone gets the same setup today.' : 'Every match gets a fresh setup.';
+  const blackBackRankCode = [...activeBackRankCode].reverse().join('');
   const customSeedValidation = validateSeedInput(customSeed);
   const customSeedError = customSeedWasSubmitted && !customSeedValidation.ok ? customSeedValidation.error : null;
   const customBackRankCode = customSeedValidation.ok ? customSeedValidation.backRankCode : null;
@@ -177,16 +185,34 @@ export function HomePage({
     });
   }
 
-  async function copyDailySeed() {
-    trackEvent('share_button_click', { type: 'daily_seed_copy', seed: dailySeed });
-    const copyText = `I’m playing today’s Pocket Shuffle Chess seed.
+  function setShuffleMode(mode: ShuffleMode) {
+    setCurrentShuffleMode(mode);
+    setShuffleModeState(mode);
+    if (mode === 'random') setRandomPreviewSeed(createRandomGameSeed());
+    trackEvent('homepage_cta_click', { cta: 'shuffle_mode_toggle', mode });
+  }
 
-Seed: ${dailyBackRankCode}
+  async function copyActiveSeed() {
+    trackEvent('share_button_click', { type: shuffleMode === 'daily' ? 'daily_seed_copy' : 'random_seed_copy', seed: activeSeedSource.seed });
+    const copyText = shuffleMode === 'daily'
+      ? `I beat today’s Pocket Shuffle Chess setup.
+
+Seed: ${dailySeed}
+Back rank: ${dailyBackRankCode}
 
 Fast chess without memorized openings.
 Can you beat it?
 
-${getShareUrl('/daily')}`;
+${getShareUrl('/daily')}`
+      : `I survived this random shuffle setup.
+
+Seed: ${activeSeedSource.seed}
+Back rank: ${activeBackRankCode}
+
+Fast chess without memorized openings.
+Can you beat it?
+
+${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
     try {
       await navigator.clipboard.writeText(copyText);
     } catch {
@@ -222,9 +248,30 @@ ${getShareUrl('/daily')}`;
     await onSeeded(customSeedValidation.normalizedSeed);
   }
 
-  async function requestMatchFor(seed: string, backRankCode: string) {
-    trackEvent('homepage_cta_click', { cta: 'find_match', seed });
-    setMatchTarget({ seed, backRankCode });
+  function resolveFreshSeedForActiveMode() {
+    return shuffleMode === 'random' ? resolveSeedSourceForMode('random') : activeSeedSource;
+  }
+
+  function playActiveModeAgainstAi() {
+    trackEvent('homepage_cta_click', { cta: 'play_ai', mode: shuffleMode });
+    if (shuffleMode === 'daily') onStartBot(todayKey);
+    else onStartSeededBot(resolveSeedSourceForMode('random').seed);
+  }
+
+  async function requestActiveMatch() {
+    const seedSource = resolveFreshSeedForActiveMode();
+    await requestMatchFor(seedSource.seed, seedSource.backRankCode, seedSource.mode);
+  }
+
+  async function inviteActiveMode() {
+    trackEvent('homepage_cta_click', { cta: 'invite_friend', mode: shuffleMode });
+    if (shuffleMode === 'daily') onInvite();
+    else await onSeeded(resolveSeedSourceForMode('random').seed);
+  }
+
+  async function requestMatchFor(seed: string, backRankCode: string, mode: ShuffleMode = seed.startsWith('random-') ? 'random' : 'daily') {
+    trackEvent('homepage_cta_click', { cta: 'find_match', seed, mode });
+    setMatchTarget({ seed, backRankCode, mode });
     setModal('matchmaking');
     setMatchmaking((current) => ({ status: 'finding', queueId: current.status === 'finding' ? current.queueId : undefined }));
     try {
@@ -248,11 +295,16 @@ ${getShareUrl('/daily')}`;
     else onStartSeededBot(seed);
   }
 
-  async function switchFromMatchmaking(nextAction: () => void) {
+  async function switchFromMatchmaking(nextAction: () => void | Promise<void>) {
     if (matchmaking.status === 'finding' || matchmaking.status === 'timeout') await onCancelFindMatch(matchmaking.queueId);
     setMatchmaking({ status: 'idle' });
     setModal(null);
-    nextAction();
+    await nextAction();
+  }
+
+  async function inviteMatchTarget() {
+    if (matchTarget.seed.startsWith('daily-')) await onDaily(matchTarget.seed.replace('daily-', ''));
+    else await onSeeded(matchTarget.seed);
   }
 
   const closeModal = useCallback(() => {
@@ -314,39 +366,55 @@ ${getShareUrl('/daily')}`;
           <h1 id="home-title" className="hero-title"><span>Pocket</span><span>Shuffle</span><span>Chess</span></h1>
           <p className="hero-tagline"><Zap size={18} aria-hidden="true" /><span>Fast chess without <strong>memorized openings</strong>.</span></p>
 
-          <div className="today-pill">
-            <span className="today-pill-icon" aria-hidden="true"><CalendarDays size={21} /></span>
-            <span className="today-pill-copy">
-              <span>Today’s Daily</span>
-              <strong>{dailySeed} • {dailyBackRankCode}</strong>
-            </span>
-            <button type="button" className="copy-seed-button" onClick={copyDailySeed} aria-label={`Copy ${dailySeed} seed`}>
-              <Copy size={18} aria-hidden="true" />
-              <span>{copyStatus === 'copied' ? 'Copied' : 'Copy'}</span>
-            </button>
-            <span className="copy-status" aria-live="polite">{copyStatus === 'copied' ? 'Copied.' : ''}</span>
+          <div className="shuffle-mode-panel">
+            <div className="today-pill">
+              <span className="today-pill-icon" aria-hidden="true">{shuffleMode === 'daily' ? <CalendarDays size={21} /> : <Shuffle size={21} />}</span>
+              <span className="today-pill-copy">
+                <span>{activeHeaderLabel}</span>
+                <strong>{activeSeedLabel}</strong>
+                <small>{activeHeaderDescription}</small>
+              </span>
+              <button type="button" className="copy-seed-button" onClick={copyActiveSeed} aria-label={`Copy ${activeSeedSource.seed} seed`}>
+                <Copy size={18} aria-hidden="true" />
+                <span>{copyStatus === 'copied' ? 'Copied' : 'Copy'}</span>
+              </button>
+              <span className="copy-status" aria-live="polite">{copyStatus === 'copied' ? 'Copied.' : ''}</span>
+            </div>
+            <div className="shuffle-mode-toggle" role="group" aria-label="Choose global shuffle mode">
+              {(['daily', 'random'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={mode === shuffleMode ? 'selected' : ''}
+                  onClick={() => setShuffleMode(mode)}
+                  aria-pressed={mode === shuffleMode}
+                >
+                  {mode === 'daily' ? 'Daily Shuffle' : 'Random Shuffle'}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="home-action-grid" aria-label="Choose how to play">
-            <button type="button" className="home-action-card home-action-ai" onClick={() => { trackEvent('homepage_cta_click', { cta: 'play_ai' }); onStartBot(todayKey); }}>
+            <button type="button" className="home-action-card home-action-ai" onClick={playActiveModeAgainstAi}>
               <span className="action-badge"><Bot size={14} aria-hidden="true" /> AI</span>
               <span className="card-sparkle card-sparkle-one" aria-hidden="true" />
               <img className="action-piece action-piece-pawn" src="/pieces/white-pawn.png" alt="White pawn" draggable={false} />
-              <span className="daily-ai-stars" aria-label={`Daily AI progress: ${getDailyAIProgressAria(dailyAIProgress)}`}><DailyAIStarMarks progress={dailyAIProgress} /></span>
-              <span className="action-card-copy"><strong>Play AI</strong><small>Instant daily game</small><small className="daily-ai-status">{dailyAIStatusLine}</small></span>
+              {shuffleMode === 'daily' && <span className="daily-ai-stars" aria-label={`Daily AI progress: ${getDailyAIProgressAria(dailyAIProgress)}`}><DailyAIStarMarks progress={dailyAIProgress} /></span>}
+              <span className="action-card-copy"><strong>Play AI</strong><small>{shuffleMode === 'daily' ? 'Instant daily game' : 'Fresh random setup'}</small>{shuffleMode === 'daily' && <small className="daily-ai-status">{dailyAIStatusLine}</small>}</span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
-            <button type="button" className="home-action-card home-action-match" onClick={() => requestMatchFor(dailySeed, dailyBackRankCode)}>
+            <button type="button" className="home-action-card home-action-match" onClick={() => { void requestActiveMatch(); }}>
               <span className="card-sparkle card-sparkle-two" aria-hidden="true" />
               <img className="action-piece action-piece-rook" src="/pieces/white-rook.png" alt="White rook" draggable={false} />
-              <span className="action-card-copy"><strong>Find Match</strong><small>Match today’s seed</small></span>
+              <span className="action-card-copy"><strong>Find Match</strong><small>{shuffleMode === 'daily' ? 'Match today’s seed' : 'Fresh random match'}</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
-            <button type="button" className="home-action-card home-action-invite" onClick={() => { trackEvent('homepage_cta_click', { cta: 'invite_friend' }); onInvite(); }}>
+            <button type="button" className="home-action-card home-action-invite" onClick={() => { void inviteActiveMode(); }}>
               <span className="action-badge invite-badge"><LinkIcon size={14} aria-hidden="true" /> Link</span>
               <span className="card-sparkle card-sparkle-three" aria-hidden="true" />
               <img className="action-piece action-piece-knight" src="/pieces/white-knight.png" alt="White knight" draggable={false} />
-              <span className="action-card-copy"><strong>Invite Friend</strong><small>Share a challenge link</small></span>
+              <span className="action-card-copy"><strong>Invite Friend</strong><small>{shuffleMode === 'daily' ? 'Share today’s setup' : 'Share one random setup'}</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
             <button type="button" className="home-action-card home-action-more" onClick={() => setModal('more')}>
@@ -370,19 +438,20 @@ ${getShareUrl('/daily')}`;
           <span className="setup-spark setup-spark-right" aria-hidden="true" />
           <div className="setup-header-pill"><span aria-hidden="true" />TODAY’S SETUP<span aria-hidden="true" /></div>
           <HomepageInteractiveBoard
-            backRankCode={dailyBackRankCode}
-            dailySeed={dailySeed}
+            key={activeSeedSource.seed}
+            backRankCode={activeBackRankCode}
+            dailySeed={activeSeedSource.seed}
             blackBackRankCode={blackBackRankCode}
           />
           <div className="setup-summary-panel">
             <div className="setup-summary-copy">
-              <span>DAILY SHUFFLE</span>
-              <p><strong>White (Bottom):</strong> {spacedCode(dailyBackRankCode)}</p>
+              <span>{shuffleMode === 'daily' ? 'DAILY SHUFFLE' : 'RANDOM SHUFFLE'}</span>
+              <p><strong>White (Bottom):</strong> {spacedCode(activeBackRankCode)}</p>
               <p><strong>Black (Top):</strong> {spacedCode(blackBackRankCode)}</p>
             </div>
             <div className="setup-seed-block">
               <span>SEED</span>
-              <strong>{dailyBackRankCode}</strong>
+              <strong>{activeBackRankCode}</strong>
             </div>
           </div>
         </aside>
@@ -565,14 +634,14 @@ ${getShareUrl('/daily')}`;
             <button type="button" className="modal-close" onClick={cancelMatch} aria-label="Cancel matchmaking"><X size={18} /></button>
             <p className="eyebrow">Find Match</p>
             <h2 id="matchmaking-modal-title">{matchmaking.status === 'timeout' ? 'No opponent found yet.' : matchmaking.status === 'failed' ? 'Matchmaking unavailable' : 'Finding opponent...'}</h2>
-            <p>Daily seed: <strong>{matchTarget.seed}</strong></p>
+            <p>{matchTarget.mode === 'daily' ? 'Daily seed' : 'Random seed'}: <strong>{matchTarget.seed}</strong></p>
             <p>Back rank: {matchTarget.backRankCode}</p>
             {matchmaking.status === 'failed' && <p className="error-message inline-message">{matchmaking.message}</p>}
             {matchmaking.status === 'timeout' && <p>No one matched within about a minute. You can keep waiting or send an invite link.</p>}
             <div className="panel-actions centered-actions">
               {matchmaking.status === 'timeout' && <button type="button" onClick={() => requestMatchFor(matchTarget.seed, matchTarget.backRankCode)}><Users size={18} /> Keep Waiting</button>}
-              <button type="button" onClick={() => switchFromMatchmaking(onInvite)}><LinkIcon size={18} /> Invite Friend Instead</button>
-              <button type="button" onClick={() => switchFromMatchmaking(() => playAiForSeed(matchTarget.seed))}><Bot size={18} /> Play AI While Waiting</button>
+              <button type="button" onClick={() => { void switchFromMatchmaking(inviteMatchTarget); }}><LinkIcon size={18} /> Invite Friend Instead</button>
+              <button type="button" onClick={() => { void switchFromMatchmaking(() => playAiForSeed(matchTarget.seed)); }}><Bot size={18} /> Play AI While Waiting</button>
               <button type="button" onClick={cancelMatch}>Cancel</button>
             </div>
           </div>
