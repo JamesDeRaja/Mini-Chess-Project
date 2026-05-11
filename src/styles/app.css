@@ -3278,3 +3278,30 @@ input:focus-visible {
     border-radius: 14px;
   }
 }
+
+.ascension-missing-note {
+  margin: clamp(4px, 1vh, 10px) 0 0;
+  padding: clamp(10px, 1.25vh, 14px) clamp(12px, 1.4vw, 16px);
+  border: 1px dashed rgba(146, 176, 151, 0.5);
+  border-radius: 18px;
+  color: #5f6f66;
+  background: rgba(225, 237, 223, 0.52);
+  font-size: clamp(0.82rem, 0.55vw + 0.65rem, 0.94rem);
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.ascension-missing-note span {
+  display: inline-block;
+  margin-right: 2px;
+}
+
+@media (max-width: 768px) {
+  .ascension-missing-note {
+    order: 3;
+    margin-top: 0;
+    padding: 9px 10px;
+    font-size: 0.78rem;
+    line-height: 1.28;
+  }
+}
