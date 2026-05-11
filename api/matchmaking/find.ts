@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createInitialBoard } from '../../src/game/createInitialBoard.js';
-import { validateSeedInput } from '../../src/game/seed.js';
+import { isValidBackRankCode, validateSeedInput } from '../../src/game/seed.js';
 import { safeSupabaseInsert } from '../../src/multiplayer/safeSupabaseInsert.js';
 import { getServerSupabase } from '../games/serverSupabase.js';
 
@@ -50,6 +50,7 @@ async function findMatchUsingGamesTable(supabase: ServerSupabase, playerId: stri
     .select('id, status, white_player_id, black_player_id')
     .eq('white_player_id', playerId)
     .eq('seed', seed)
+    .eq('back_rank_code', backRankCode)
     .in('status', ['waiting', 'active'])
     .order('created_at', { ascending: false })
     .limit(1);
@@ -70,6 +71,7 @@ async function findMatchUsingGamesTable(supabase: ServerSupabase, playerId: stri
     .from('games')
     .select('id')
     .eq('seed', seed)
+    .eq('back_rank_code', backRankCode)
     .eq('status', 'waiting')
     .is('black_player_id', null)
     .neq('white_player_id', playerId)
@@ -120,13 +122,18 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const playerId = getString(request.body?.playerId);
   const seedValidation = request.body?.seed ? validateSeedInput(String(request.body.seed)) : null;
   const seed = seedValidation?.ok ? seedValidation.normalizedSeed : null;
-  const backRankCode = getString(request.body?.backRankCode) ?? (seedValidation?.ok ? seedValidation.backRankCode : null);
+  const requestedBackRankCode = getString(request.body?.backRankCode)?.toUpperCase() ?? null;
+  const backRankCode = requestedBackRankCode ?? (seedValidation?.ok ? seedValidation.backRankCode : null);
   if (!playerId || !seedValidation) {
     response.status(400).send('Missing playerId, seed, or backRankCode');
     return;
   }
   if (!seedValidation.ok || !seed || !backRankCode) {
     response.status(400).send(seedValidation.ok ? 'Missing playerId, seed, or backRankCode' : seedValidation.error);
+    return;
+  }
+  if (requestedBackRankCode && !isValidBackRankCode(requestedBackRankCode)) {
+    response.status(400).send('Invalid backRankCode');
     return;
   }
 
@@ -137,6 +144,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     .select('*')
     .eq('player_id', playerId)
     .eq('seed', seed)
+    .eq('back_rank_code', backRankCode)
     .in('status', ['waiting', 'matched'])
     .order('created_at', { ascending: false })
     .limit(1);
@@ -156,6 +164,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     .from('matchmaking_queue')
     .select('*')
     .eq('seed', seed)
+    .eq('back_rank_code', backRankCode)
     .eq('status', 'waiting')
     .neq('player_id', playerId)
     .order('created_at', { ascending: true })

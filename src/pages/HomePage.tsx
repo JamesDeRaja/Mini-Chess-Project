@@ -571,7 +571,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             <input
               id={seedInputId}
               name="seed"
-              placeholder="boss-battle-1 or BRKNQ"
+              placeholder="boss-battle-1 or PPKPP"
               maxLength={48}
               value={customSeed}
               onChange={(event) => {
@@ -582,7 +582,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               aria-invalid={customSeedError ? 'true' : 'false'}
               autoFocus
             />
-            <p id="custom-seed-help" className="custom-seed-example">Use a direct code like BRKNQ or a text seed like boss-battle-1.</p>
+            <p id="custom-seed-help" className="custom-seed-example">Use any 5-piece direct code with one K, like PPKPP, or a text seed like boss-battle-1.</p>
             {customSeedError && <p id={seedErrorId} className="error-message inline-message">{customSeedError}</p>}
             {customBackRankCode && <p className="seed-readout"><span>Generated back rank</span><span>{customBackRankCode}</span></p>}
             <div className="panel-actions centered-actions">
