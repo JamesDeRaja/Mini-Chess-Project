@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, Shuffle, Users, X, Zap } from 'lucide-react';
-import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded } from '../game/dailyAIProgress.js';
+import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
@@ -58,6 +58,33 @@ function shiftMonth(monthKey: string, offset: number): string {
   const date = new Date(`${monthKey}-01T00:00:00.000Z`);
   date.setUTCMonth(date.getUTCMonth() + offset);
   return date.toISOString().slice(0, 7);
+}
+
+
+function getDailyAIProgressAria(progress: DailyAIProgress): string {
+  if (progress.magicStarUnlocked) return 'rainbow star unlocked';
+  if (progress.stars === 0) return 'no stars yet';
+  return `${progress.stars} ${progress.stars === 1 ? 'star' : 'stars'} unlocked`;
+}
+
+function DailyAIStarMarks({ progress, compact = false }: { progress: DailyAIProgress; compact?: boolean }) {
+  if (progress.magicStarUnlocked) {
+    return (
+      <span className={compact ? 'daily-ai-calendar-rainbow-star' : 'daily-ai-rainbow-star'} aria-hidden="true">
+        ★
+      </span>
+    );
+  }
+
+  return (
+    <>
+      {[0, 1, 2].map((starIndex) => (
+        <span key={starIndex} className={starIndex < progress.stars ? 'daily-ai-star-earned' : 'daily-ai-star-empty'} aria-hidden="true">
+          ★
+        </span>
+      ))}
+    </>
+  );
 }
 
 function getCalendarCells(monthKey: string): Array<{ dateKey: string; day: number } | null> {
@@ -305,6 +332,7 @@ ${getShareUrl('/daily')}`;
               <span className="action-badge"><Bot size={14} aria-hidden="true" /> AI</span>
               <span className="card-sparkle card-sparkle-one" aria-hidden="true" />
               <img className="action-piece action-piece-pawn" src="/pieces/white-pawn.png" alt="White pawn" draggable={false} />
+              <span className="daily-ai-stars" aria-label={`Daily AI progress: ${getDailyAIProgressAria(dailyAIProgress)}`}><DailyAIStarMarks progress={dailyAIProgress} /></span>
               <span className="action-card-copy"><strong>Play AI</strong><small>Instant daily game</small><small className="daily-ai-status">{dailyAIStatusLine}</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
@@ -421,6 +449,7 @@ ${getShareUrl('/daily')}`;
                   const isFuture = cell.dateKey > todayKey;
                   const isSelected = cell.dateKey === calendarDateKey;
                   const isToday = cell.dateKey === todayKey;
+                  const cellProgress = isFuture ? null : getDailyAIProgress(cell.dateKey);
                   return (
                     <button
                       type="button"
@@ -429,13 +458,20 @@ ${getShareUrl('/daily')}`;
                         'daily-calendar-day',
                         isSelected ? 'selected-day' : '',
                         isToday ? 'today-day' : '',
+                        cellProgress?.magicStarUnlocked ? 'rainbow-day' : '',
+                        cellProgress && cellProgress.stars > 0 && !cellProgress.magicStarUnlocked ? 'starred-day' : '',
                       ].filter(Boolean).join(' ')}
                       onClick={() => handleDateChange(cell.dateKey)}
                       disabled={isFuture}
                       aria-pressed={isSelected}
-                      aria-label={`${getDisplayDate(cell.dateKey)}${isFuture ? ' locked' : ''}`}
+                      aria-label={`${getDisplayDate(cell.dateKey)}${isFuture ? ' locked' : cellProgress ? `, ${getDailyAIProgressAria(cellProgress)}` : ''}`}
                     >
-                      {cell.day}
+                      <span className="daily-calendar-day-number">{cell.day}</span>
+                      {cellProgress && (cellProgress.stars > 0 || cellProgress.magicStarUnlocked) && (
+                        <span className="daily-calendar-stars" aria-hidden="true">
+                          <DailyAIStarMarks progress={cellProgress} compact />
+                        </span>
+                      )}
                     </button>
                   );
                 })}
