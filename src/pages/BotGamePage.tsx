@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Flag, Handshake, RotateCcw } from 'lucide-react';
+import { CalendarDays, Flag, Handshake, RotateCcw, Shuffle } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
@@ -21,7 +21,7 @@ import { createInitialBoard } from '../game/createInitialBoard.js';
 import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
-import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, normalizeSeed, resolveBackRankCode } from '../game/seed.js';
+import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
 import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord, PieceType } from '../game/types.js';
 
@@ -32,6 +32,9 @@ type BotGamePageProps = {
   dateKey?: string;
   customSeed?: string;
   onHome: () => void;
+  onCustomSeed: () => void;
+  onDaily: () => void;
+  onRandomSetup: () => void;
 };
 
 type MatchScore = Record<Color, number>;
@@ -81,8 +84,8 @@ function getWinner(status: GameStatus): Color | null {
 }
 
 function getRoundMessage(status: GameStatus): string {
-  if (status === 'white_won') return 'Checkmate — White wins this game!';
-  if (status === 'black_won') return 'Checkmate — Black wins this game!';
+  if (status === 'white_won') return 'Checkmate - White wins this game!';
+  if (status === 'black_won') return 'Checkmate - Black wins this game!';
   if (status === 'draw') return 'Draw agreed for this game.';
   return '';
 }
@@ -120,17 +123,47 @@ function cloneBoard(board: ChessBoard): ChessBoard {
   return board.map((square) => ({ ...square, piece: square.piece ? { ...square.piece } : null }));
 }
 
-export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, onHome }: BotGamePageProps) {
+type ValidSeedValidation = Extract<ReturnType<typeof validateSeedInput>, { ok: true }>;
+
+type BotGameContentProps = BotGamePageProps & {
+  seedValidation: ValidSeedValidation | null;
+};
+
+function InvalidSeedPanel({ customSeed, error, onHome, onCustomSeed, onDaily, onRandomSetup }: BotGamePageProps & { error: string }) {
+  return (
+    <main className="game-page invalid-seed-page">
+      <section className="invalid-seed-card" role="alert" aria-labelledby="invalid-seed-title">
+        <p className="eyebrow">Custom Seed</p>
+        <h1 id="invalid-seed-title">That seed can&apos;t start a game.</h1>
+        <p className="invalid-seed-copy">{error}</p>
+        {customSeed && <p className="invalid-seed-value"><span>Entered seed</span><strong>{customSeed}</strong></p>}
+        <div className="panel-actions centered-actions">
+          <button type="button" className="secondary-action" onClick={onCustomSeed}><Shuffle size={18} /> Return to Custom Seed</button>
+          <button type="button" onClick={onDaily}><CalendarDays size={18} /> Play Today&apos;s Daily</button>
+          <button type="button" className="gold-action" onClick={onRandomSetup}>Play Random Setup</button>
+          <button type="button" onClick={onHome}>Go Home</button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+export function BotGamePage(props: BotGamePageProps) {
+  const seedValidation = props.customSeed ? validateSeedInput(props.customSeed) : null;
+  if (seedValidation && !seedValidation.ok) return <InvalidSeedPanel {...props} error={seedValidation.error} />;
+  return <BotGameContent {...props} seedValidation={seedValidation} />;
+}
+
+function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, onHome, seedValidation }: BotGameContentProps) {
   const dailySeedInfo = useMemo(() => {
-    if (customSeed) {
-      const seed = normalizeSeed(customSeed);
-      return { dateKey: 'Custom', seed, backRankCode: resolveBackRankCode(seed) };
+    if (seedValidation?.ok) {
+      return { dateKey: 'Custom', seed: seedValidation.normalizedSeed, backRankCode: seedValidation.backRankCode };
     }
     const todayKey = getUtcDateKey();
     const dateKey = requestedDateKey && requestedDateKey <= todayKey ? requestedDateKey : todayKey;
     const seed = getDailySeed(dateKey);
     return { dateKey, seed, backRankCode: backRankCodeFromSeed(seed) };
-  }, [customSeed, requestedDateKey]);
+  }, [requestedDateKey, seedValidation]);
   const isDailyAI = !customSeed;
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
@@ -159,7 +192,6 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   const [previewPly, setPreviewPly] = useState<number | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const historyListRef = useRef<HTMLOListElement | null>(null);
-
   const config = modeConfig[matchMode];
   const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber);
   const latestPly = boardTimeline.length - 1;
@@ -468,7 +500,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
           winner={roundResult.winner}
           eyebrow={matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}
           title={matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}
-          summary={`Score: White ${score.white} — Black ${score.black}. ${isDailyAI ? 'Daily ladder mode.' : matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}`}
+          summary={`Score: White ${score.white} - Black ${score.black}. ${isDailyAI ? 'Daily ladder mode.' : matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}`}
           progressionMessage={roundResult.progressionMessage}
           actions={(
             <>

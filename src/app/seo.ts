@@ -1,4 +1,4 @@
-import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, normalizeSeed, resolveBackRankCode } from '../game/seed.js';
+import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
 
 const SITE_URL = 'https://chess.alphaden.club';
 const SITE_NAME = 'Pocket Shuffle Chess';
@@ -20,7 +20,7 @@ const KEYWORDS = [
 ];
 
 type SeoInput = {
-  routeName: 'home' | 'daily' | 'bot' | 'seed' | 'game' | 'how-it-works';
+  routeName: 'home' | 'daily' | 'bot' | 'seed' | 'game' | 'how-it-works' | 'not-found';
   path: string;
   seed?: string;
   dateKey?: string;
@@ -108,7 +108,7 @@ export function getSeoConfig(input: SeoInput): SeoConfig {
     const seed = getDailySeed(dateKey);
     const backRankCode = backRankCodeFromSeed(seed);
     const config = {
-      title: 'Daily Shuffle Chess — Today’s Tactical Seed',
+      title: 'Daily Shuffle Chess - Today’s Tactical Seed',
       description: `Play the ${dateKey} Pocket Shuffle Chess daily seed (${backRankCode}) and challenge your friends to the same tactical 5x6 setup.`,
       canonicalPath: '/daily',
       image: '/og-daily.svg',
@@ -118,10 +118,22 @@ export function getSeoConfig(input: SeoInput): SeoConfig {
   }
 
   if (input.routeName === 'seed' && input.seed) {
-    const seed = normalizeSeed(input.seed);
-    const backRankCode = resolveBackRankCode(seed);
+    const seedValidation = validateSeedInput(input.seed);
+    if (!seedValidation.ok) {
+      const config = {
+        title: 'Invalid Seed - Pocket Shuffle Chess',
+        description: 'This seed is invalid. Return home or enter a valid Pocket Shuffle Chess custom seed.',
+        canonicalPath: input.path,
+        image: '/og-result.svg',
+        noindex: true,
+        jsonLd: [],
+      } satisfies SeoConfig;
+      return { ...config, jsonLd: createStructuredData(config) };
+    }
+    const seed = seedValidation.normalizedSeed;
+    const backRankCode = seedValidation.backRankCode;
     const config = {
-      title: `Custom Seed Chess Challenge — ${backRankCode} | Pocket Shuffle Chess`,
+      title: `Custom Seed Chess Challenge - ${backRankCode} | Pocket Shuffle Chess`,
       description: `Play seed ${seed} (${backRankCode}) as a shareable 5x6 mirrored shuffle chess challenge. Fast tactical chess without memorized openings.`,
       canonicalPath: `/seed/${encodeURIComponent(seed)}`,
       image: '/og-result.svg',
@@ -133,9 +145,21 @@ export function getSeoConfig(input: SeoInput): SeoConfig {
   if (input.routeName === 'bot') {
     const config = {
       title: 'Play Shuffle Chess Against AI',
-      description: 'Play Pocket Shuffle Chess against AI in fast 2–5 minute matches with daily tactical seeds and 5x6 mirrored setups.',
+      description: 'Play Pocket Shuffle Chess against AI in fast 2-5 minute matches with daily tactical seeds and 5x6 mirrored setups.',
       canonicalPath: '/bot',
       image: '/og-home.svg',
+      jsonLd: [],
+    } satisfies SeoConfig;
+    return { ...config, jsonLd: createStructuredData(config) };
+  }
+
+  if (input.routeName === 'not-found') {
+    const config = {
+      title: 'Page Not Found - Pocket Shuffle Chess',
+      description: 'This page does not exist. Return home or play Pocket Shuffle Chess against the bot.',
+      canonicalPath: input.path,
+      image: '/og-home.svg',
+      noindex: true,
       jsonLd: [],
     } satisfies SeoConfig;
     return { ...config, jsonLd: createStructuredData(config) };
@@ -165,7 +189,7 @@ export function getSeoConfig(input: SeoInput): SeoConfig {
   }
 
   const config = {
-    title: 'Pocket Shuffle Chess — Fast Chess Without Memorized Openings',
+    title: 'Pocket Shuffle Chess - Fast Chess Without Memorized Openings',
     description: DEFAULT_DESCRIPTION,
     canonicalPath: '/',
     image: '/og-home.svg',

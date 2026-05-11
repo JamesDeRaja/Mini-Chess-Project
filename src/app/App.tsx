@@ -5,6 +5,7 @@ import { getPlayerId } from '../multiplayer/playerSession.js';
 import { BotGamePage } from '../pages/BotGamePage.js';
 import type { MatchMode } from '../pages/BotGamePage.js';
 import { HomePage } from '../pages/HomePage.js';
+import { NotFoundPage } from '../pages/NotFoundPage.js';
 import { OnlineGamePage } from '../pages/OnlineGamePage.js';
 import { trackEvent } from './analytics.js';
 import { applySeo, getSeoConfig } from './seo.js';
@@ -17,7 +18,8 @@ type Route =
   | { name: 'seed'; seed: string }
   | { name: 'how-it-works' }
   | { name: 'bot'; dateKey?: string; seed?: string }
-  | { name: 'online'; gameId: string; matchMode: MatchMode };
+  | { name: 'online'; gameId: string; matchMode: MatchMode }
+  | { name: 'not-found' };
 
 function isMatchMode(value: string | null): value is MatchMode {
   return value === 'single' || value === 'best-of-3' || value === 'best-of-5';
@@ -33,7 +35,8 @@ function routeFromLocation(): Route {
   if (window.location.pathname === '/daily') return { name: 'daily' };
   if (window.location.pathname === '/how-it-works') return { name: 'how-it-works' };
   if (window.location.pathname === '/bot') return { name: 'bot', dateKey: search.get('date') ?? undefined, seed: search.get('seed') ?? undefined };
-  return { name: 'home' };
+  if (window.location.pathname === '/') return { name: 'home' };
+  return { name: 'not-found' };
 }
 
 function navigate(path: string) {
@@ -58,6 +61,7 @@ export function App() {
   const seoConfig = useMemo(() => {
     if (route.name === 'online') return getSeoConfig({ routeName: 'game', path: window.location.pathname, gameId: route.gameId });
     if (route.name === 'seed') return getSeoConfig({ routeName: 'seed', path: window.location.pathname, seed: route.seed });
+    if (route.name === 'not-found') return getSeoConfig({ routeName: 'not-found', path: window.location.pathname });
     return getSeoConfig({ routeName: route.name, path: window.location.pathname });
   }, [route]);
 
@@ -83,7 +87,17 @@ export function App() {
 
   function startSeededBot(seed: string) {
     trackEvent('seed_challenge_start', { seed });
-    navigate(`/seed/${encodeURIComponent(seed)}`);
+    navigate(`/bot?seed=${encodeURIComponent(seed)}`);
+  }
+
+  function openCustomSeed() {
+    navigate('/?modal=custom');
+  }
+
+  function playRandomSetup() {
+    const seed = `random-${Date.now().toString(36)}`;
+    trackEvent('seed_challenge_start', { seed });
+    navigate(`/bot?seed=${encodeURIComponent(seed)}`);
   }
 
   function handleInvite() {
@@ -125,13 +139,16 @@ export function App() {
   }
 
   if (route.name === 'daily') {
-    return <BotGamePage key="daily" matchMode="single" onHome={() => navigate('/')} />;
+    return <BotGamePage key="daily" matchMode="single" onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />;
   }
   if (route.name === 'seed') {
-    return <BotGamePage key={`seed-${route.seed}`} matchMode="single" customSeed={route.seed} onHome={() => navigate('/')} />;
+    return <BotGamePage key={`seed-${route.seed}`} matchMode="single" customSeed={route.seed} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />;
   }
   if (route.name === 'bot') {
-    return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} onHome={() => navigate('/')} />;
+    return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />;
+  }
+  if (route.name === 'not-found') {
+    return <NotFoundPage onHome={() => navigate('/')} onBot={() => navigate('/bot')} onDaily={() => navigate('/daily')} />;
   }
   if (route.name === 'online') {
     return (
@@ -147,7 +164,7 @@ export function App() {
   return (
     <>
       <HomePage
-        initialModal={route.name === 'how-it-works' ? 'rules' : undefined}
+        initialModal={route.name === 'how-it-works' ? 'rules' : new URLSearchParams(window.location.search).get('modal') === 'custom' ? 'custom' : undefined}
         onStartBot={startBot}
         onStartSeededBot={startSeededBot}
         onInvite={handleInvite}

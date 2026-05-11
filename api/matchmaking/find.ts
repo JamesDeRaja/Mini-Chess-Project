@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createInitialBoard } from '../../src/game/createInitialBoard.js';
-import { backRankCodeFromSeed, normalizeSeed } from '../../src/game/seed.js';
+import { validateSeedInput } from '../../src/game/seed.js';
 import { safeSupabaseInsert } from '../../src/multiplayer/safeSupabaseInsert.js';
 import { getServerSupabase } from '../games/serverSupabase.js';
 
@@ -118,10 +118,15 @@ export default async function handler(request: VercelRequest, response: VercelRe
   }
 
   const playerId = getString(request.body?.playerId);
-  const seed = request.body?.seed ? normalizeSeed(String(request.body.seed)) : null;
-  const backRankCode = getString(request.body?.backRankCode) ?? (seed ? backRankCodeFromSeed(seed) : null);
-  if (!playerId || !seed || !backRankCode) {
+  const seedValidation = request.body?.seed ? validateSeedInput(String(request.body.seed)) : null;
+  const seed = seedValidation?.ok ? seedValidation.normalizedSeed : null;
+  const backRankCode = getString(request.body?.backRankCode) ?? (seedValidation?.ok ? seedValidation.backRankCode : null);
+  if (!playerId || !seedValidation) {
     response.status(400).send('Missing playerId, seed, or backRankCode');
+    return;
+  }
+  if (!seedValidation.ok || !seed || !backRankCode) {
+    response.status(400).send(seedValidation.ok ? 'Missing playerId, seed, or backRankCode' : seedValidation.error);
     return;
   }
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, Shuffle, Users, X, Zap } from 'lucide-react';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded } from '../game/dailyAIProgress.js';
-import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, resolveBackRankCode } from '../game/seed.js';
+import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { trackEvent } from '../app/analytics.js';
@@ -84,12 +84,14 @@ export function HomePage({
   onCancelFindMatch,
 }: HomePageProps) {
   const seedInputId = 'custom-seed-input';
+  const seedErrorId = 'custom-seed-error';
   const [todayKey, setTodayKey] = useState(() => getUtcDateKey());
   const yesterdayKey = useMemo(() => addUtcDays(todayKey, -1), [todayKey]);
   const [calendarDateKey, setCalendarDateKey] = useState(todayKey);
   const [calendarMonthKey, setCalendarMonthKey] = useState(monthKeyFromDateKey(todayKey));
   const [dateError, setDateError] = useState<string | null>(null);
   const [customSeed, setCustomSeed] = useState('');
+  const [customSeedWasSubmitted, setCustomSeedWasSubmitted] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [modal, setModal] = useState<ModalName>(initialModal ?? null);
   const [matchmaking, setMatchmaking] = useState<MatchmakingState>({ status: 'idle' });
@@ -102,12 +104,9 @@ export function HomePage({
   const calendarCells = getCalendarCells(calendarMonthKey);
   const canGoNextMonth = shiftMonth(calendarMonthKey, 1) <= monthKeyFromDateKey(todayKey);
   const blackBackRankCode = [...dailyBackRankCode].reverse().join('');
-  const customSeedValue = customSeed.trim();
-  const customSeedLooksLikeCode = /^[BRKNQ]+$/i.test(customSeedValue);
-  const customSeedError = customSeedValue && customSeedLooksLikeCode && !isValidBackRankCode(customSeedValue)
-    ? 'Direct codes must contain exactly one B, R, K, N, and Q.'
-    : null;
-  const customBackRankCode = customSeedValue && !customSeedError ? resolveBackRankCode(customSeedValue) : null;
+  const customSeedValidation = validateSeedInput(customSeed);
+  const customSeedError = customSeedWasSubmitted && !customSeedValidation.ok ? customSeedValidation.error : null;
+  const customBackRankCode = customSeedValidation.ok ? customSeedValidation.backRankCode : null;
   const dailyAIStatusLine = getDailyAIStatusLine(dailyAIProgress);
 
   useEffect(() => {
@@ -176,6 +175,24 @@ ${getShareUrl('/daily')}`;
     }
     setCopyStatus('copied');
     window.setTimeout(() => setCopyStatus('idle'), 1600);
+  }
+
+  function playCustomSeedAgainstAi() {
+    setCustomSeedWasSubmitted(true);
+    if (!customSeedValidation.ok) return;
+    onStartSeededBot(customSeedValidation.normalizedSeed);
+  }
+
+  async function requestCustomMatch() {
+    setCustomSeedWasSubmitted(true);
+    if (!customSeedValidation.ok) return;
+    await requestMatchFor(customSeedValidation.normalizedSeed, customSeedValidation.backRankCode);
+  }
+
+  async function inviteCustomSeed() {
+    setCustomSeedWasSubmitted(true);
+    if (!customSeedValidation.ok) return;
+    await onSeeded(customSeedValidation.normalizedSeed);
   }
 
   async function requestMatchFor(seed: string, backRankCode: string) {
@@ -444,9 +461,7 @@ ${getShareUrl('/daily')}`;
             onClick={(event) => event.stopPropagation()}
             onSubmit={(event) => {
               event.preventDefault();
-              const formData = new FormData(event.currentTarget);
-              const seed = String(formData.get('seed') ?? '').trim();
-              if (seed && customBackRankCode) onSeeded(seed);
+              void inviteCustomSeed();
             }}
           >
             <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Close custom seed"><X size={18} /></button>
@@ -459,16 +474,21 @@ ${getShareUrl('/daily')}`;
               placeholder="boss-battle-1 or BRKNQ"
               maxLength={48}
               value={customSeed}
-              onChange={(event) => setCustomSeed(event.target.value)}
+              onChange={(event) => {
+                setCustomSeed(event.target.value);
+                if (customSeedWasSubmitted) setCustomSeedWasSubmitted(true);
+              }}
+              aria-describedby={`custom-seed-help ${customSeedError ? seedErrorId : ''}`.trim()}
+              aria-invalid={customSeedError ? 'true' : 'false'}
               autoFocus
             />
-            <p className="custom-seed-example">Use a direct code like BRKNQ or a text seed like boss‑battle‑1.</p>
-            {customSeedError && <p className="error-message inline-message">{customSeedError}</p>}
+            <p id="custom-seed-help" className="custom-seed-example">Use a direct code like BRKNQ or a text seed like boss-battle-1.</p>
+            {customSeedError && <p id={seedErrorId} className="error-message inline-message">{customSeedError}</p>}
             {customBackRankCode && <p className="seed-readout"><span>Generated back rank</span><span>{customBackRankCode}</span></p>}
             <div className="panel-actions centered-actions">
-              <button type="button" disabled={!customBackRankCode} onClick={() => customSeedValue && onStartSeededBot(customSeedValue)}>Play AI</button>
-              <button type="button" disabled={!customBackRankCode} onClick={() => customSeedValue && customBackRankCode && requestMatchFor(customSeedValue, customBackRankCode)}>Find Match</button>
-              <button type="submit" disabled={!customBackRankCode}>Invite Friend</button>
+              <button type="button" onClick={playCustomSeedAgainstAi}>Play AI</button>
+              <button type="button" onClick={() => { void requestCustomMatch(); }}>Find Match</button>
+              <button type="submit">Invite Friend</button>
             </div>
           </form>
         </div>
