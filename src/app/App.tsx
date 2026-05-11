@@ -9,6 +9,7 @@ import { NotFoundPage } from '../pages/NotFoundPage.js';
 import { OnlineGamePage } from '../pages/OnlineGamePage.js';
 import { trackEvent } from './analytics.js';
 import { isValidBackRankCode } from '../game/seed.js';
+import { createRandomGameSeed, resolveSeedSourceForMode } from '../game/shuffleMode.js';
 import { applySeo, getSeoConfig } from './seo.js';
 
 type Theme = 'light' | 'dark';
@@ -105,9 +106,9 @@ export function App() {
   }
 
   function playRandomSetup() {
-    const seed = `random-${Date.now().toString(36)}`;
-    trackEvent('seed_challenge_start', { seed });
-    navigate(`/bot?seed=${encodeURIComponent(seed)}`);
+    const randomSetup = resolveSeedSourceForMode('random', { randomSeed: createRandomGameSeed() });
+    trackEvent('seed_challenge_start', { seed: randomSetup.seed, backRankCode: randomSetup.backRankCode });
+    navigate(`/bot?seed=${encodeURIComponent(randomSetup.seed)}&setup=${encodeURIComponent(randomSetup.backRankCode)}`);
   }
 
   function handleInvite() {

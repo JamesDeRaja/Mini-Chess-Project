@@ -1,4 +1,4 @@
-import { backRankCodeFromSeed, getDailySeed, getUtcDateKey } from './seed.js';
+import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, randomBackRankCodeFromSeed } from './seed.js';
 
 export type ShuffleMode = 'daily' | 'random';
 
@@ -38,7 +38,7 @@ export function getPageSessionRandomGameSeed(): string {
 export function resolveSeedSourceForMode(mode: ShuffleMode, options: { dateKey?: string; randomSeed?: string } = {}): ResolvedSeedSource {
   if (mode === 'random') {
     const seed = options.randomSeed ?? getPageSessionRandomGameSeed();
-    return { mode, seed, backRankCode: backRankCodeFromSeed(seed), label: 'Random Shuffle' };
+    return { mode, seed, backRankCode: randomBackRankCodeFromSeed(seed), label: 'Random Shuffle' };
   }
 
   const dateKey = options.dateKey ?? getUtcDateKey();

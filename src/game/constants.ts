@@ -4,7 +4,8 @@ export const BOARD_FILES = 5;
 export const BOARD_RANKS = 6;
 export const BOARD_SIZE = BOARD_FILES * BOARD_RANKS;
 
-export const BACK_RANK_PIECES: PieceType[] = ['king', 'queen', 'rook', 'bishop', 'knight', 'pawn'];
+export const BACK_RANK_PIECES: PieceType[] = ['king', 'queen', 'bishop', 'knight', 'rook'];
+export const RANDOM_BACK_RANK_PIECES: PieceType[] = ['queen', 'rook', 'bishop', 'knight', 'pawn'];
 export const PROMOTION_PIECES = ['queen', 'rook', 'bishop', 'knight'] as const;
 
 export const pieceValues: Record<PieceType, number> = {
