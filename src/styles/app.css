@@ -327,6 +327,26 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   animation: winner-pop 420ms cubic-bezier(.2, 1.4, .4, 1);
 }
 .winner-card h2 { font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1; }
+.result-close-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  padding: 0;
+  border-radius: 999px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(141, 191, 175, 0.32);
+  box-shadow: 0 8px 18px rgba(45, 43, 40, 0.12);
+  font-size: 1.6rem;
+  line-height: 1;
+  z-index: 1;
+}
+.result-close-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.92);
+}
 .winner-card svg { color: #facc15; filter: drop-shadow(0 0 16px rgba(250, 204, 21, 0.5)); }
 .calm-result-card svg { color: #93a4bd; filter: none; }
 .title-link {
