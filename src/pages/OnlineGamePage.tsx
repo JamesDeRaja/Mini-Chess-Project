@@ -7,6 +7,7 @@ import { MoveHistory } from '../components/MoveHistory.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { findKingIndex, isKingInCheck } from '../game/check.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
+import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../game/seed.js';
@@ -18,6 +19,7 @@ import type { OnlineGameRecord } from '../multiplayer/gameApi.js';
 import { getPlayerId } from '../multiplayer/playerSession.js';
 import { subscribeToGame, unsubscribeFromGame } from '../multiplayer/realtime.js';
 import type { MatchMode } from './BotGamePage.js';
+import { trackEvent } from '../app/analytics.js';
 
 type OnlineGamePageProps = {
   gameId: string;
@@ -92,6 +94,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<Move | null>(null);
   const [moveHistory, setMoveHistory] = useState<Array<MoveDelta | MoveRecord>>([]);
+  const [moveAnnouncement, setMoveAnnouncement] = useState('Online board ready.');
   const [seedLabel, setSeedLabel] = useState('Random');
   const [backRankCode, setBackRankCode] = useState<string | null>(null);
   const [roundNumber, setRoundNumber] = useState(1);
@@ -342,6 +345,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
         setMoveHistory(nextHistory);
         moveHistoryRef.current = nextHistory;
         setLastMove(displayMove);
+        setMoveAnnouncement(`${latestMove.color === 'white' ? 'White' : 'Black'} ${latestMove.piece} moved to ${squareLabel(latestMove.to.file, latestMove.to.rank)}.`);
         setTurn(game.turn);
         setStatus(game.status);
         setWhitePlayerId(game.white_player_id);
@@ -404,11 +408,15 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
 
   async function handleShareInvite() {
     if (!inviteLink) return;
+    trackEvent('share_button_click', { type: 'invite', seed: seedLabel });
     const shareData = {
-      title: 'Pocket Shuffle Chess',
-      text: `Pocket Shuffle Chess
+      title: 'Play Pocket Shuffle Chess With Friends',
+      text: `Play this Pocket Shuffle Chess seed with me.
+
+Seed: ${backRankCode ?? seedLabel}
+
 Fast chess without memorized openings.
-Play today's daily shuffle: ${inviteLink}`,
+Can you beat it?`,
       url: inviteLink,
     };
 
@@ -420,16 +428,24 @@ Play today's daily shuffle: ${inviteLink}`,
         return;
       }
     } else {
-      await navigator.clipboard.writeText(inviteLink);
+      await navigator.clipboard.writeText(`${shareData.text}
+
+${inviteLink}`);
       setCopied(true);
     }
     window.setTimeout(() => setCopied(false), 1600);
   }
 
   async function handleShareResult() {
-    const resultText = `Pocket Shuffle Chess
+    trackEvent('share_button_click', { type: 'result', seed: seedLabel, result: onlineResultTitle });
+    const resultText = `${onlineResultTitle} in Pocket Shuffle Chess.
+
+${onlineResultSummary}
+
+Seed: ${backRankCode ?? seedLabel}
+
 Fast chess without memorized openings.
-${onlineResultTitle}. ${onlineResultSummary}`;
+Can you beat it?`;
     const shareData = {
       title: 'Pocket Shuffle Chess result',
       text: resultText,
@@ -511,6 +527,7 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
       setMoveHistory(optimisticHistory);
       setScores(materialScores);
       setLastMove(selectedMove);
+      setMoveAnnouncement(`${selectedMove.piece.color === 'white' ? 'White' : 'Black'} ${selectedMove.piece.type} moved from ${squareLabel(selectedMove.from % 5, Math.floor(selectedMove.from / 5))} to ${squareLabel(selectedMove.to % 5, Math.floor(selectedMove.to / 5))}${selectedMove.isCapture ? ' and captured a piece' : ''}.`);
       setSelectedSquare(null);
       setLegalMoves([]);
       setPendingIds((ids) => ids.add(clientMoveId));
@@ -596,7 +613,10 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
 
         <section className="board-column online-board-column">
           {board.length > 0 && (
-            <Board
+            <>
+              <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
+              <Board
+              ariaLabel={`Pocket Shuffle Chess online board. ${role === 'white' || role === 'black' ? `You are ${role}.` : 'Spectator view.'}`}
               board={board}
               selectedSquare={selectedSquare}
               legalMoves={legalMoves}
@@ -606,6 +626,7 @@ ${onlineResultTitle}. ${onlineResultSummary}`;
               isInteractive={canInteractWithBoard}
               onSquareClick={handleSquareClick}
             />
+            </>
           )}
           {shouldShowWaitingOverlay && (
             <div className="waiting-board-overlay">

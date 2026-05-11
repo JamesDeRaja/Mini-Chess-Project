@@ -18,11 +18,12 @@ import {
 } from '../game/dailyAIProgress.js';
 import { findKingIndex, isKingInCheck } from '../game/check.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
+import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, normalizeSeed, resolveBackRankCode } from '../game/seed.js';
 import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
-import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord } from '../game/types.js';
+import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord, PieceType } from '../game/types.js';
 
 export type MatchMode = 'single' | 'best-of-3' | 'best-of-5';
 
@@ -43,6 +44,29 @@ type RoundResult = {
 };
 
 type PendingAction = 'resign' | 'draw' | 'restart' | null;
+
+const ascensionRemovedPieces: PieceType[] = ['knight', 'bishop', 'rook'];
+const ascensionPieceLabels: Record<PieceType, string> = {
+  king: 'king',
+  queen: 'queen',
+  rook: 'rook',
+  bishop: 'bishop',
+  knight: 'knight',
+  pawn: 'pawn',
+};
+
+function formatPieceList(pieces: PieceType[]): string {
+  const labels = pieces.map((piece) => ascensionPieceLabels[piece]);
+  if (labels.length <= 1) return labels[0] ?? '';
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+  return `${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]}`;
+}
+
+function getAscensionMissingNote(tier: AscensionTier): string | null {
+  if (tier === 0) return null;
+  const missingPieces = formatPieceList(ascensionRemovedPieces.slice(0, tier));
+  return `Missing your ${missingPieces}? Not a bug. You climbed the daily ladder, so we politely confiscated ${tier === 1 ? 'it' : 'them'} to make the bot feel important. Keep winning and yes, we may borrow more.`;
+}
 
 const modeConfig: Record<MatchMode, { label: string; maxGames: number; winsRequired: number }> = {
   single: { label: 'One Match', maxGames: 1, winsRequired: 1 },
@@ -111,6 +135,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
   const dailyAscensionTier = getAscensionTierForDailyDifficulty(dailyAIDifficulty);
+  const ascensionMissingNote = isDailyAI ? getAscensionMissingNote(dailyAscensionTier) : null;
   const playerColor = isDailyAI ? getDailyAIPlayerColor(dailyAIProgress) : 'white';
   const botColor = getOpponent(playerColor);
   const initialBoardForMount = useMemo(() => {
@@ -125,6 +150,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<Pick<Move, 'from' | 'to'> | null>(null);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
+  const [moveAnnouncement, setMoveAnnouncement] = useState('Board ready. Select a piece to move.');
   const [score, setScore] = useState<MatchScore>({ white: 0, black: 0 });
   const [roundNumber, setRoundNumber] = useState(1);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
@@ -219,6 +245,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
     setSelectedSquare(null);
     setLegalMoves([]);
     setLastMove({ from: move.from, to: move.to });
+    setMoveAnnouncement(`${move.piece.color === 'white' ? 'White' : 'Black'} ${move.piece.type} moved from ${squareLabel(move.from % 5, Math.floor(move.from / 5))} to ${squareLabel(move.to % 5, Math.floor(move.to / 5))}${move.isCapture ? ' and captured a piece' : ''}.`);
     setMoveHistory((history) => [...history, createMoveRecord(move)]);
     setPreviewPly(null);
     playMoveSound(move.isCapture);
@@ -241,6 +268,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
     setLegalMoves([]);
     setLastMove(null);
     setMoveHistory([]);
+    setMoveAnnouncement('New round ready. Select a piece to move.');
     setRoundResult(null);
     setPreviewPly(null);
     setRoundNumber(nextRoundNumber);
@@ -374,13 +402,20 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>
             <p><span>Back rank</span><strong>{dailySeedInfo.backRankCode}</strong></p>
           </div>
+          {ascensionMissingNote && (
+            <p className="ascension-missing-note" aria-label="Daily ascension piece removal explanation">
+              <span aria-hidden="true">🪄</span> {ascensionMissingNote}
+            </p>
+          )}
           <div className="match-actions">
             <button type="button" className="wide-action secondary-action" onClick={() => setIsFlipped((flipped) => !flipped)}><RotateCcw size={18} /> Flip Board</button>
           </div>
         </aside>
 
         <section className="board-column">
+          <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
           <Board
+            ariaLabel={`Pocket Shuffle Chess ${dailySeedInfo.backRankCode} board. ${playerColor === 'white' ? 'White' : 'Black'} to play as you.`}
             board={displayBoard}
             selectedSquare={isPreviewing ? null : selectedSquare}
             legalMoves={activeLegalMoves}

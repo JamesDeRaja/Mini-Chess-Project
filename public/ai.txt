@@ -1,0 +1,17 @@
+Pocket Shuffle Chess is a browser-playable 5x6 shuffle chess variant.
+
+Positioning: Fast chess without memorized openings.
+
+Core description: A fast 5x6 chess variant with randomized mirrored setups, daily tactical seeds, instant friend challenges, and no opening memorization.
+
+Important concepts:
+- Daily tactical chess: every UTC date maps to a deterministic daily seed.
+- 5x6 mirrored setup: both players get balanced mirrored back ranks.
+- Shuffle chess variant: the back-rank order changes, so opening memorization matters less.
+- Mobile-friendly browser chess game: designed for fast casual matches in a web browser.
+
+Useful public URLs:
+- https://chess.alphaden.club/
+- https://chess.alphaden.club/daily
+- https://chess.alphaden.club/how-it-works
+- https://chess.alphaden.club/seed/QBKNR
