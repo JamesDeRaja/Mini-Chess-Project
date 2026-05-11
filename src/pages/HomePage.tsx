@@ -431,7 +431,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
         <aside className="today-setup-showcase" aria-label="Today’s 5 by 6 setup preview">
           <span className="setup-spark setup-spark-left" aria-hidden="true" />
           <span className="setup-spark setup-spark-right" aria-hidden="true" />
-          <div className="setup-header-pill"><span aria-hidden="true" />TODAY’S SETUP<span aria-hidden="true" /></div>
+          <div className="setup-header-pill"><span aria-hidden="true" />{shuffleMode === 'daily' ? "TODAY'S SETUP" : 'RANDOM SETUP'}<span aria-hidden="true" /></div>
           <HomepageInteractiveBoard
             key={activeSeedSource.seed}
             backRankCode={activeBackRankCode}
