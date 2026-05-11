@@ -20,6 +20,7 @@ type BoardProps = {
   onDragStart?: (squareIndex: number) => Move[] | null;
   onDrop?: (squareIndex: number, move: Move) => void;
   onDragCancel?: () => void;
+  onSpawnComplete?: () => void;
 };
 
 type DragState = {
@@ -108,6 +109,7 @@ export function Board({
   onDragStart,
   onDrop,
   onDragCancel,
+  onSpawnComplete,
 }: BoardProps) {
   const boardElementRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
@@ -121,12 +123,15 @@ export function Board({
   const visualRanks = isFlipped ? ranks : [...ranks].reverse();
   const visualFiles = isFlipped ? [...files].reverse() : files;
   useEffect(() => {
-    const spawnTimer = window.setTimeout(() => setIsSpawningPieces(false), 1100);
+    const spawnTimer = window.setTimeout(() => {
+      setIsSpawningPieces(false);
+      onSpawnComplete?.();
+    }, 1100);
     return () => {
       window.clearTimeout(spawnTimer);
       dragStateRef.current = null;
     };
-  }, []);
+  }, [onSpawnComplete]);
 
   useLayoutEffect(() => {
     if (!lastMove || getMotionPreference()) return;

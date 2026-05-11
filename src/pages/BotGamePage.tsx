@@ -185,12 +185,13 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<(Pick<Move, 'from' | 'to'> & { isCapture?: boolean }) | null>(null);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
-  const [moveAnnouncement, setMoveAnnouncement] = useState('Board ready. Select a piece to move.');
+  const [moveAnnouncement, setMoveAnnouncement] = useState('Setting up pieces.');
   const [score, setScore] = useState<MatchScore>({ white: 0, black: 0 });
   const [roundNumber, setRoundNumber] = useState(1);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [matchWinner, setMatchWinner] = useState<Color | null>(null);
   const [isFlipped, setIsFlipped] = useState(() => playerColor === 'black');
+  const [isBoardReady, setIsBoardReady] = useState(false);
   const [previewPly, setPreviewPly] = useState<number | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const historyListRef = useRef<HTMLOListElement | null>(null);
@@ -301,10 +302,11 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setLegalMoves([]);
     setLastMove(null);
     setMoveHistory([]);
-    setMoveAnnouncement('New round ready. Select a piece to move.');
+    setMoveAnnouncement('Setting up pieces.');
     setRoundResult(null);
     setPreviewPly(null);
     setIsFlipped(playerColor === 'black');
+    setIsBoardReady(false);
     setRoundNumber(nextRoundNumber);
   }
 
@@ -394,7 +396,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }
 
   useEffect(() => {
-    if (status !== 'active' || turn !== botColor || isPreviewing) return;
+    if (!isBoardReady || status !== 'active' || turn !== botColor || isPreviewing) return;
 
     const timeoutId = window.setTimeout(() => {
       const botMove = getBotMoveByLevel(board, botColor, botLevel);
@@ -402,17 +404,24 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     }, 300);
 
     return () => window.clearTimeout(timeoutId);
-  }, [board, botColor, botLevel, completeMove, isPreviewing, status, turn]);
+  }, [board, botColor, botLevel, completeMove, isBoardReady, isPreviewing, status, turn]);
 
-  const activeLegalMoves = isPreviewing ? [] : legalMoves;
-  const headerStatusLabel = roundResult ? 'Game Over' : undefined;
+  const handleBoardSpawnComplete = useCallback(() => {
+    setIsBoardReady(true);
+    setMoveAnnouncement('Ready. Select a piece to move.');
+  }, []);
+
+  const activeLegalMoves = isPreviewing || !isBoardReady ? [] : legalMoves;
+  const headerStatusLabel = roundResult ? 'Game Over' : !isBoardReady ? 'Setting up' : undefined;
   const headerTurnLabel = roundResult
     ? roundResult.status === 'draw'
       ? 'Draw'
       : roundResult.didPlayerWin
         ? 'You won'
         : 'You lost'
-    : undefined;
+    : !isBoardReady
+      ? 'Ready soon'
+      : undefined;
 
   return (
     <main className="game-page">
@@ -458,7 +467,9 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
         <section className="board-column">
           <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
+          <p className={`board-ready-note ${isBoardReady ? 'is-ready' : ''}`} aria-live="polite">{isBoardReady ? 'Ready!' : 'Setting up pieces...'}</p>
           <Board
+            key={`${dailySeedInfo.seed}-${roundNumber}-${playerColor}`}
             ariaLabel={`Pocket Shuffle Chess ${dailySeedInfo.backRankCode} board. ${playerColor === 'white' ? 'White' : 'Black'} to play as you.`}
             board={displayBoard}
             selectedSquare={isPreviewing ? null : selectedSquare}
@@ -466,11 +477,12 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             lastMove={displayMove}
             checkedKingIndex={checkedKingIndex}
             isFlipped={isFlipped}
-            isInteractive={!isPreviewing && status === 'active'}
+            isInteractive={!isPreviewing && isBoardReady && status === 'active'}
             onSquareClick={handleSquareClick}
             onDragStart={handleDragStart}
             onDrop={handleDrop}
             onDragCancel={() => { setSelectedSquare(null); setLegalMoves([]); }}
+            onSpawnComplete={handleBoardSpawnComplete}
           />
         </section>
 
