@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createInitialBoard } from '../../src/game/createInitialBoard.js';
-import { normalizeSeed, resolveBackRankCode } from '../../src/game/seed.js';
+import { validateSeedInput } from '../../src/game/seed.js';
 import { safeSupabaseInsert } from '../../src/multiplayer/safeSupabaseInsert.js';
 import { cleanupOldGames, getNewGameLifecycleFields } from './lifecycle.js';
 import { getServerSupabase } from './serverSupabase.js';
@@ -13,13 +13,18 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   const playerId = typeof request.body?.playerId === 'string' ? request.body.playerId : null;
   const rawSeed = typeof request.body?.seed === 'string' ? request.body.seed : null;
-  const seed = rawSeed ? normalizeSeed(rawSeed) : null;
-  if (!playerId || !seed) {
+  const seedValidation = rawSeed ? validateSeedInput(rawSeed) : null;
+  if (!playerId || !seedValidation) {
     response.status(400).send('Missing playerId or seed');
     return;
   }
+  if (!seedValidation.ok) {
+    response.status(400).send(seedValidation.error);
+    return;
+  }
 
-  const backRankCode = resolveBackRankCode(seed);
+  const seed = seedValidation.normalizedSeed;
+  const backRankCode = seedValidation.backRankCode;
   const supabase = getServerSupabase();
   await cleanupOldGames(supabase);
   const lifecycleFields = getNewGameLifecycleFields();

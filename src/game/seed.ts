@@ -2,6 +2,14 @@ import { BACK_RANK_PIECES, BOARD_FILES } from './constants.js';
 import type { Board, Color, PieceType } from './types.js';
 
 export const DIRECT_BACK_RANK_CODE_PATTERN = /^[KQRBN]{5}$/i;
+export const TEXT_SEED_PATTERN = /^[A-Za-z0-9-]{1,32}$/;
+
+export const INVALID_SEED_HELP = 'Invalid seed. Use exactly K, Q, R, B, N once each, like QBKNR, or enter a simple text seed like boss-battle-1.';
+export const INVALID_SEED_CHARACTERS = 'Use letters, numbers, and hyphens only.';
+
+export type SeedValidationResult =
+  | { ok: true; normalizedSeed: string; backRankCode: string; seedType: 'backRankCode' | 'text' }
+  | { ok: false; error: string };
 
 const codeToPiece: Record<string, PieceType> = {
   K: 'king',
@@ -40,14 +48,56 @@ function seededRandom(seed: string): () => number {
   };
 }
 
-export function normalizeSeed(seed: string): string {
-  return seed.trim().replace(/\s+/g, '-').toLowerCase();
+export function normalizeSeedInput(seed: string): string {
+  return seed.trim();
 }
 
-export function isValidBackRankCode(code: string): boolean {
+export function normalizeSeed(seed: string): string {
+  const trimmedSeed = normalizeSeedInput(seed);
+  return isBackRankCode(trimmedSeed) ? trimmedSeed.toUpperCase() : trimmedSeed.toLowerCase();
+}
+
+export function isBackRankCode(code: string): boolean {
   if (!DIRECT_BACK_RANK_CODE_PATTERN.test(code)) return false;
   const normalized = code.toUpperCase().split('');
   return ['K', 'Q', 'R', 'B', 'N'].every((pieceCode) => normalized.filter((value) => value === pieceCode).length === 1);
+}
+
+export function isValidTextSeed(seed: string): boolean {
+  return TEXT_SEED_PATTERN.test(seed);
+}
+
+export function validateSeedInput(seed: string): SeedValidationResult {
+  const trimmedSeed = normalizeSeedInput(seed);
+  if (!trimmedSeed) return { ok: false, error: INVALID_SEED_HELP };
+
+  if (isBackRankCode(trimmedSeed)) {
+    const backRankCode = trimmedSeed.toUpperCase();
+    return { ok: true, normalizedSeed: backRankCode, backRankCode, seedType: 'backRankCode' };
+  }
+
+  if (/^[KQRBN]{1,}$/i.test(trimmedSeed) || /^[A-Za-z]{5}$/.test(trimmedSeed) || (/^[KQRBN]{5}/i.test(trimmedSeed) && !isBackRankCode(trimmedSeed))) {
+    return { ok: false, error: INVALID_SEED_HELP };
+  }
+
+  if (!Array.from(trimmedSeed).every((character) => character.charCodeAt(0) <= 127) || !/^[A-Za-z0-9-]+$/.test(trimmedSeed)) {
+    return { ok: false, error: INVALID_SEED_CHARACTERS };
+  }
+
+  if (!isValidTextSeed(trimmedSeed)) {
+    return { ok: false, error: 'Use 1 to 32 letters, numbers, and hyphens.' };
+  }
+
+  const normalizedSeed = trimmedSeed.toLowerCase();
+  return { ok: true, normalizedSeed, backRankCode: backRankCodeFromSeed(normalizedSeed), seedType: 'text' };
+}
+
+export function createSeedFromInput(seed: string): SeedValidationResult {
+  return validateSeedInput(seed);
+}
+
+export function isValidBackRankCode(code: string): boolean {
+  return isBackRankCode(code);
 }
 
 export function pieceOrderFromBackRankCode(backRankCode: string): PieceType[] {
@@ -73,8 +123,9 @@ export function backRankCodeFromSeed(seed: string): string {
 }
 
 export function resolveBackRankCode(seed: string): string {
-  const normalizedSeed = normalizeSeed(seed);
-  return isValidBackRankCode(normalizedSeed) ? normalizedSeed.toUpperCase() : backRankCodeFromSeed(normalizedSeed);
+  const validatedSeed = validateSeedInput(seed);
+  if (!validatedSeed.ok) throw new Error(validatedSeed.error);
+  return validatedSeed.backRankCode;
 }
 
 export function getUtcDateKey(date = new Date()): string {

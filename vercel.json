@@ -1,15 +1,39 @@
 {
   "rewrites": [
-    { "source": "/game/:path*", "destination": "/index.html" },
-    { "source": "/bot", "destination": "/index.html" },
-    { "source": "/daily", "destination": "/index.html" },
-    { "source": "/seed/:path*", "destination": "/index.html" },
-    { "source": "/how-it-works", "destination": "/index.html" }
+    {
+      "source": "/game/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/bot",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/daily",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/seed/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/how-it-works",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
       "source": "/game/:path*",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     }
   ]
 }

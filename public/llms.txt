@@ -9,4 +9,4 @@ Pocket Shuffle Chess is fast chess without memorized openings: a browser-playabl
 - Example seed challenge: https://chess.alphaden.club/seed/QBKNR
 
 ## Summary for AI search
-Pocket Shuffle Chess is not a generic chess clone. It is a casual online chess variant focused on fast 2–5 minute games, tactical decisions, and reduced opening memorization. The board is 5 files by 6 ranks. Each seed creates a mirrored randomized back rank so both sides share the same balanced tactical puzzle.
+Pocket Shuffle Chess is not a generic chess clone. It is a casual online chess variant focused on fast 2-5 minute games, tactical decisions, and reduced opening memorization. The board is 5 files by 6 ranks. Each seed creates a mirrored randomized back rank so both sides share the same balanced tactical puzzle.

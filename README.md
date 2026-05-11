@@ -10,9 +10,9 @@ Pocket Shuffle Chess is a browser-playable 5x6 shuffle chess variant built for q
 
 Pocket Shuffle Chess is a casual online chess variant with three simple ideas:
 
-- **5x6 chess board** — fewer squares means faster contact, shorter games, and less waiting.
-- **Randomized mirrored setup** — each seed creates a balanced back rank shared by both players.
-- **Daily tactical chess** — every UTC day has a deterministic daily seed that everyone can replay and share.
+- **5x6 chess board** - fewer squares means faster contact, shorter games, and less waiting.
+- **Randomized mirrored setup** - each seed creates a balanced back rank shared by both players.
+- **Daily tactical chess** - every UTC day has a deterministic daily seed that everyone can replay and share.
 
 The result is mini chess that feels tactical immediately: no opening memorization, no long buildup, and no need to know decades of theory before having fun.
 
@@ -24,18 +24,18 @@ Traditional chess is beautiful, but it can feel intimidating:
 - Casual games can take longer than a quick break allows.
 - New players may feel like they need study time before they can enjoy competitive play.
 
-Pocket Shuffle Chess keeps the recognizable chess pieces and tactical decisions, then compresses the experience into fast 2–5 minute browser matches.
+Pocket Shuffle Chess keeps the recognizable chess pieces and tactical decisions, then compresses the experience into fast 2-5 minute browser matches.
 
 ## Features
 
-- **Daily seeds** — play the same tactical setup as everyone else each day.
-- **AI battles** — jump into a quick daily AI match from the homepage.
-- **Friend challenges** — create an invite link and play the same mirrored setup online.
-- **Mirror match setup** — both sides receive equivalent randomized back ranks for fairness.
-- **Ascension mode** — daily AI progress adds lightweight challenge escalation.
-- **Mobile-friendly** — designed for portrait screens, touch input, and native sharing.
-- **Custom seeds** — share a specific setup with routes like `/seed/QBKNR`.
-- **Search-ready pages** — route metadata, structured data, sitemap, robots rules, and social cards are included.
+- **Daily seeds** - play the same tactical setup as everyone else each day.
+- **AI battles** - jump into a quick daily AI match from the homepage.
+- **Friend challenges** - create an invite link and play the same mirrored setup online.
+- **Mirror match setup** - both sides receive equivalent randomized back ranks for fairness.
+- **Ascension mode** - daily AI progress adds lightweight challenge escalation.
+- **Mobile-friendly** - designed for portrait screens, touch input, and native sharing.
+- **Custom seeds** - share a specific setup with routes like `/seed/QBKNR`.
+- **Search-ready pages** - route metadata, structured data, sitemap, robots rules, and social cards are included.
 
 ## Screenshots
 
@@ -66,13 +66,50 @@ Consistent phrases used throughout the app and metadata:
 - 5x6 mirrored setup
 - Shuffle chess variant
 
+
+## Seed Validation
+
+Custom seeds can be entered as a direct back-rank code or as a deterministic text seed.
+
+Valid direct seed:
+
+```text
+QBKNR
+```
+
+Direct seed rules:
+
+- Must contain exactly one K, Q, R, B, and N.
+- Uppercase and lowercase entries are accepted and normalized to uppercase.
+
+Valid text seed:
+
+```text
+boss-battle-1
+```
+
+Text seed rules:
+
+- Use letters, numbers, and ASCII hyphens only.
+- Text seeds are normalized safely before deterministic setup generation.
+
+Invalid:
+
+```text
+INVALID_SEED_XYZ
+QBKNN
+QBKNRX
+```
+
+Invalid seeds are rejected with a visible error and never silently fall back to the daily setup.
+
 ## Tech Stack
 
-- **React** — app UI and interactive game screens
-- **TypeScript** — game state, route logic, API contracts, and safety
-- **Vite** — fast local development and production bundling
-- **Supabase** — anonymous online games and realtime updates
-- **Vercel** — static app hosting plus serverless API routes
+- **React** - app UI and interactive game screens
+- **TypeScript** - game state, route logic, API contracts, and safety
+- **Vite** - fast local development and production bundling
+- **Supabase** - anonymous online games and realtime updates
+- **Vercel** - static app hosting plus serverless API routes
 
 ## Local Development
 
