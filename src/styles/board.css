@@ -211,6 +211,7 @@
   overflow: visible;
   z-index: 3;
 }
+.piece-tweening { animation: none !important; }
 .last-move-destination-square .piece { animation: piece-squash-land 430ms cubic-bezier(.14, 1.65, .38, 1); }
 .last-move-destination-square.moved-piece-knight .piece { animation-name: knight-hop-land; animation-duration: 520ms; }
 .last-move-destination-square.moved-piece-rook .piece { animation-name: rook-thump-land; animation-duration: 460ms; }
