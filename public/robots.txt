@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /game/
+
+Sitemap: https://chess.alphaden.club/sitemap.xml

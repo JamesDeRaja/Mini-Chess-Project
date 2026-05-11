@@ -4,8 +4,11 @@ import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded 
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, resolveBackRankCode } from '../game/seed.js';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
+import { trackEvent } from '../app/analytics.js';
+import { getShareUrl } from '../app/seo.js';
 
 type HomePageProps = {
+  initialModal?: Exclude<ModalName, null>;
   onStartBot: (dateKey?: string) => void;
   onStartSeededBot: (seed: string) => void;
   onInvite: () => void;
@@ -71,6 +74,7 @@ function getCalendarCells(monthKey: string): Array<{ dateKey: string; day: numbe
 }
 
 export function HomePage({
+  initialModal,
   onStartBot,
   onStartSeededBot,
   onInvite,
@@ -87,7 +91,7 @@ export function HomePage({
   const [dateError, setDateError] = useState<string | null>(null);
   const [customSeed, setCustomSeed] = useState('');
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
-  const [modal, setModal] = useState<ModalName>(null);
+  const [modal, setModal] = useState<ModalName>(initialModal ?? null);
   const [matchmaking, setMatchmaking] = useState<MatchmakingState>({ status: 'idle' });
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
   const [matchTarget, setMatchTarget] = useState({ seed: getDailySeed(todayKey), backRankCode: backRankCodeFromSeed(getDailySeed(todayKey)) });
@@ -148,7 +152,15 @@ export function HomePage({
   }
 
   async function copyDailySeed() {
-    const copyText = `${dailySeed} • ${dailyBackRankCode}`;
+    trackEvent('share_button_click', { type: 'daily_seed_copy', seed: dailySeed });
+    const copyText = `I’m playing today’s Pocket Shuffle Chess seed.
+
+Seed: ${dailyBackRankCode}
+
+Fast chess without memorized openings.
+Can you beat it?
+
+${getShareUrl('/daily')}`;
     try {
       await navigator.clipboard.writeText(copyText);
     } catch {
@@ -167,6 +179,7 @@ export function HomePage({
   }
 
   async function requestMatchFor(seed: string, backRankCode: string) {
+    trackEvent('homepage_cta_click', { cta: 'find_match', seed });
     setMatchTarget({ seed, backRankCode });
     setModal('matchmaking');
     setMatchmaking((current) => ({ status: 'finding', queueId: current.status === 'finding' ? current.queueId : undefined }));
@@ -186,6 +199,7 @@ export function HomePage({
   }, [matchmaking, onCancelFindMatch]);
 
   function playAiForSeed(seed: string) {
+    trackEvent('homepage_cta_click', { cta: 'play_ai_for_seed', seed });
     if (seed.startsWith('daily-')) onStartBot(seed.replace('daily-', ''));
     else onStartSeededBot(seed);
   }
@@ -254,7 +268,7 @@ export function HomePage({
           <span className="title-spark title-spark-yellow" aria-hidden="true" />
           <span className="title-spark title-spark-mint" aria-hidden="true" />
           <h1 id="home-title" className="hero-title"><span>Pocket</span><span>Shuffle</span><span>Chess</span></h1>
-          <p className="hero-tagline"><Zap size={18} aria-hidden="true" /><span>Fast chess. <strong>New opening</strong> every time.</span></p>
+          <p className="hero-tagline"><Zap size={18} aria-hidden="true" /><span>Fast chess without <strong>memorized openings</strong>.</span></p>
 
           <div className="today-pill">
             <span className="today-pill-icon" aria-hidden="true"><CalendarDays size={21} /></span>
@@ -270,7 +284,7 @@ export function HomePage({
           </div>
 
           <div className="home-action-grid" aria-label="Choose how to play">
-            <button type="button" className="home-action-card home-action-ai" onClick={() => onStartBot(todayKey)}>
+            <button type="button" className="home-action-card home-action-ai" onClick={() => { trackEvent('homepage_cta_click', { cta: 'play_ai' }); onStartBot(todayKey); }}>
               <span className="action-badge"><Bot size={14} aria-hidden="true" /> AI</span>
               <span className="card-sparkle card-sparkle-one" aria-hidden="true" />
               <img className="action-piece action-piece-pawn" src="/pieces/white-pawn.png" alt="White pawn" draggable={false} />
@@ -283,7 +297,7 @@ export function HomePage({
               <span className="action-card-copy"><strong>Find Match</strong><small>Match today’s seed</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
-            <button type="button" className="home-action-card home-action-invite" onClick={onInvite}>
+            <button type="button" className="home-action-card home-action-invite" onClick={() => { trackEvent('homepage_cta_click', { cta: 'invite_friend' }); onInvite(); }}>
               <span className="action-badge invite-badge"><LinkIcon size={14} aria-hidden="true" /> Link</span>
               <span className="card-sparkle card-sparkle-three" aria-hidden="true" />
               <img className="action-piece action-piece-knight" src="/pieces/white-knight.png" alt="White knight" draggable={false} />
@@ -300,9 +314,9 @@ export function HomePage({
           </div>
 
           <div className="secondary-home-actions" aria-label="More options">
-            <button type="button" onClick={() => setModal('date')}><CalendarDays size={17} aria-hidden="true" /> Choose Date</button>
-            <button type="button" onClick={() => setModal('custom')}><Shuffle size={17} aria-hidden="true" /> Custom Seed</button>
-            <button type="button" onClick={() => setModal('rules')}><BookOpen size={17} aria-hidden="true" /> How It Works</button>
+            <button type="button" onClick={() => { trackEvent('homepage_cta_click', { cta: 'choose_date' }); setModal('date'); }}><CalendarDays size={17} aria-hidden="true" /> Choose Date</button>
+            <button type="button" onClick={() => { trackEvent('homepage_cta_click', { cta: 'custom_seed' }); setModal('custom'); }}><Shuffle size={17} aria-hidden="true" /> Custom Seed</button>
+            <button type="button" onClick={() => { trackEvent('homepage_cta_click', { cta: 'how_it_works' }); setModal('rules'); }}><BookOpen size={17} aria-hidden="true" /> How It Works</button>
           </div>
         </div>
 
@@ -342,15 +356,15 @@ export function HomePage({
             <p className="eyebrow">More Options</p>
             <h2 id="more-options-modal-title">Pick a setup tool</h2>
             <div className="more-options-list">
-              <button type="button" className="more-option-item" onClick={() => setModal('date')}>
+              <button type="button" className="more-option-item" onClick={() => { trackEvent('homepage_cta_click', { cta: 'choose_date' }); setModal('date'); }}>
                 <CalendarDays size={20} aria-hidden="true" />
                 <span><strong>Choose Date</strong><small>Replay any unlocked daily setup.</small></span>
               </button>
-              <button type="button" className="more-option-item" onClick={() => setModal('custom')}>
+              <button type="button" className="more-option-item" onClick={() => { trackEvent('homepage_cta_click', { cta: 'custom_seed' }); setModal('custom'); }}>
                 <Shuffle size={20} aria-hidden="true" />
                 <span><strong>Custom Seed</strong><small>Create or share your own shuffle.</small></span>
               </button>
-              <button type="button" className="more-option-item" onClick={() => setModal('rules')}>
+              <button type="button" className="more-option-item" onClick={() => { trackEvent('homepage_cta_click', { cta: 'how_it_works' }); setModal('rules'); }}>
                 <BookOpen size={20} aria-hidden="true" />
                 <span><strong>Rule Book / How It Works</strong><small>Learn captures, drops, and scoring.</small></span>
               </button>

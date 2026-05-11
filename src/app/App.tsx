@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { cancelMatchmaking, createDailyGame, createSeededGame, findMatchmakingGame } from '../multiplayer/gameApi.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { getPlayerId } from '../multiplayer/playerSession.js';
@@ -6,11 +6,16 @@ import { BotGamePage } from '../pages/BotGamePage.js';
 import type { MatchMode } from '../pages/BotGamePage.js';
 import { HomePage } from '../pages/HomePage.js';
 import { OnlineGamePage } from '../pages/OnlineGamePage.js';
+import { trackEvent } from './analytics.js';
+import { applySeo, getSeoConfig } from './seo.js';
 
 type Theme = 'light' | 'dark';
 
 type Route =
   | { name: 'home' }
+  | { name: 'daily' }
+  | { name: 'seed'; seed: string }
+  | { name: 'how-it-works' }
   | { name: 'bot'; dateKey?: string; seed?: string }
   | { name: 'online'; gameId: string; matchMode: MatchMode };
 
@@ -20,9 +25,13 @@ function isMatchMode(value: string | null): value is MatchMode {
 
 function routeFromLocation(): Route {
   const gameMatch = window.location.pathname.match(/^\/game\/([^/]+)$/);
+  const seedMatch = window.location.pathname.match(/^\/seed\/([^/]+)$/);
   const search = new URLSearchParams(window.location.search);
   const mode = search.get('mode');
   if (gameMatch) return { name: 'online', gameId: gameMatch[1], matchMode: isMatchMode(mode) ? mode : 'single' };
+  if (seedMatch) return { name: 'seed', seed: decodeURIComponent(seedMatch[1]) };
+  if (window.location.pathname === '/daily') return { name: 'daily' };
+  if (window.location.pathname === '/how-it-works') return { name: 'how-it-works' };
   if (window.location.pathname === '/bot') return { name: 'bot', dateKey: search.get('date') ?? undefined, seed: search.get('seed') ?? undefined };
   return { name: 'home' };
 }
@@ -46,6 +55,11 @@ export function App() {
   const [selectedTheme] = useState<Theme | null>(() => getStoredTheme());
   const [inviteError, setInviteError] = useState<string | null>(null);
   const theme = selectedTheme ?? getDefaultTheme();
+  const seoConfig = useMemo(() => {
+    if (route.name === 'online') return getSeoConfig({ routeName: 'game', path: window.location.pathname, gameId: route.gameId });
+    if (route.name === 'seed') return getSeoConfig({ routeName: 'seed', path: window.location.pathname, seed: route.seed });
+    return getSeoConfig({ routeName: route.name, path: window.location.pathname });
+  }, [route]);
 
   useEffect(() => {
     const onPopState = () => setRoute(routeFromLocation());
@@ -54,24 +68,32 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    applySeo(seoConfig);
+  }, [seoConfig]);
+
+  useEffect(() => {
     document.documentElement.dataset.theme = theme;
     if (selectedTheme) localStorage.setItem('mini_chess_theme', selectedTheme);
   }, [selectedTheme, theme]);
 
   function startBot(dateKey?: string) {
+    trackEvent('ai_mode_start', { dateKey: dateKey ?? 'today' });
     navigate(dateKey ? `/bot?date=${encodeURIComponent(dateKey)}` : '/bot');
   }
 
   function startSeededBot(seed: string) {
-    navigate(`/bot?seed=${encodeURIComponent(seed)}`);
+    trackEvent('seed_challenge_start', { seed });
+    navigate(`/seed/${encodeURIComponent(seed)}`);
   }
 
   function handleInvite() {
+    trackEvent('invite_creation_start');
     setInviteError(null);
     navigate('/game/new?mode=single&create=invite');
   }
 
   async function handleDaily(dateKey?: string) {
+    trackEvent('daily_mode_start', { dateKey: dateKey ?? 'today' });
     setInviteError(null);
     try {
       const { gameId } = await createDailyGame(getPlayerId(), dateKey);
@@ -102,6 +124,12 @@ export function App() {
     await cancelMatchmaking(getPlayerId(), queueId);
   }
 
+  if (route.name === 'daily') {
+    return <BotGamePage key="daily" matchMode="single" onHome={() => navigate('/')} />;
+  }
+  if (route.name === 'seed') {
+    return <BotGamePage key={`seed-${route.seed}`} matchMode="single" customSeed={route.seed} onHome={() => navigate('/')} />;
+  }
   if (route.name === 'bot') {
     return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} onHome={() => navigate('/')} />;
   }
@@ -119,6 +147,7 @@ export function App() {
   return (
     <>
       <HomePage
+        initialModal={route.name === 'how-it-works' ? 'rules' : undefined}
         onStartBot={startBot}
         onStartSeededBot={startSeededBot}
         onInvite={handleInvite}

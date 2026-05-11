@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Pocket Shuffle Chess social preview</title>
+  <desc id="desc">A cute 5x6 chess board preview with the phrase Fast chess without memorized openings.</desc>
+  <rect width="1200" height="630" fill="#fff8e9"/>
+  <circle cx="1010" cy="95" r="190" fill="#f7cf72" opacity=".34"/>
+  <circle cx="165" cy="510" r="250" fill="#8dbfaf" opacity=".42"/>
+  <rect x="70" y="70" width="1060" height="490" rx="54" fill="#fffcf1" stroke="#2d2b28" stroke-opacity=".12" stroke-width="4"/>
+  <g transform="translate(96 112)">
+    <text x="0" y="56" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="900" fill="#7bb2a4" letter-spacing="4">POCKET SHUFFLE CHESS</text>
+    <text x="0" y="145" font-family="Inter,Arial,sans-serif" font-size="72" font-weight="950" fill="#2d2b28">Fast chess without</text>
+    <text x="0" y="225" font-family="Inter,Arial,sans-serif" font-size="72" font-weight="950" fill="#2d2b28">memorized openings.</text>
+    <text x="0" y="302" font-family="Inter,Arial,sans-serif" font-size="33" font-weight="800" fill="#776f63">5x6 mirrored setup · daily seeds · instant friend challenges</text>
+    <rect x="0" y="352" width="318" height="66" rx="24" fill="#f7cf72"/>
+    <text x="34" y="396" font-family="Inter,Arial,sans-serif" font-size="27" font-weight="950" fill="#2d2b28">Play in your browser</text>
+  </g>
+  <g transform="translate(770 86)">
+    <rect width="280" height="360" rx="32" fill="#2d2b28" opacity=".14" transform="translate(18 28)"/>
+    <rect width="280" height="360" rx="32" fill="#2d2b28"/>
+    <g transform="translate(18 18)">
+      <rect width="244" height="324" rx="24" fill="#fff8e9"/>
+      <g transform="translate(12 12)">
+        <g fill="#8dbfaf"><rect x="0" y="0" width="44" height="50"/><rect x="88" y="0" width="44" height="50"/><rect x="176" y="0" width="44" height="50"/><rect x="44" y="50" width="44" height="50"/><rect x="132" y="50" width="44" height="50"/><rect x="0" y="100" width="44" height="50"/><rect x="88" y="100" width="44" height="50"/><rect x="176" y="100" width="44" height="50"/><rect x="44" y="150" width="44" height="50"/><rect x="132" y="150" width="44" height="50"/><rect x="0" y="200" width="44" height="50"/><rect x="88" y="200" width="44" height="50"/><rect x="176" y="200" width="44" height="50"/><rect x="44" y="250" width="44" height="50"/><rect x="132" y="250" width="44" height="50"/></g>
+        <g font-family="Georgia,serif" font-size="42" text-anchor="middle" dominant-baseline="middle"><text x="22" y="25">♜</text><text x="66" y="25">♞</text><text x="110" y="25">♚</text><text x="154" y="25">♝</text><text x="198" y="25">♛</text><text x="22" y="275" fill="#fff">♕</text><text x="66" y="275" fill="#fff">♗</text><text x="110" y="275" fill="#fff">♔</text><text x="154" y="275" fill="#fff">♘</text><text x="198" y="275" fill="#fff">♖</text></g>
+      </g>
+    </g>
+  </g>
+</svg>

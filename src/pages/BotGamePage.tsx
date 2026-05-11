@@ -18,6 +18,7 @@ import {
 } from '../game/dailyAIProgress.js';
 import { findKingIndex, isKingInCheck } from '../game/check.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
+import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, normalizeSeed, resolveBackRankCode } from '../game/seed.js';
@@ -125,6 +126,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<Pick<Move, 'from' | 'to'> | null>(null);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
+  const [moveAnnouncement, setMoveAnnouncement] = useState('Board ready. Select a piece to move.');
   const [score, setScore] = useState<MatchScore>({ white: 0, black: 0 });
   const [roundNumber, setRoundNumber] = useState(1);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
@@ -219,6 +221,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
     setSelectedSquare(null);
     setLegalMoves([]);
     setLastMove({ from: move.from, to: move.to });
+    setMoveAnnouncement(`${move.piece.color === 'white' ? 'White' : 'Black'} ${move.piece.type} moved from ${squareLabel(move.from % 5, Math.floor(move.from / 5))} to ${squareLabel(move.to % 5, Math.floor(move.to / 5))}${move.isCapture ? ' and captured a piece' : ''}.`);
     setMoveHistory((history) => [...history, createMoveRecord(move)]);
     setPreviewPly(null);
     playMoveSound(move.isCapture);
@@ -241,6 +244,7 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
     setLegalMoves([]);
     setLastMove(null);
     setMoveHistory([]);
+    setMoveAnnouncement('New round ready. Select a piece to move.');
     setRoundResult(null);
     setPreviewPly(null);
     setRoundNumber(nextRoundNumber);
@@ -380,7 +384,9 @@ export function BotGamePage({ matchMode, dateKey: requestedDateKey, customSeed, 
         </aside>
 
         <section className="board-column">
+          <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
           <Board
+            ariaLabel={`Pocket Shuffle Chess ${dailySeedInfo.backRankCode} board. ${playerColor === 'white' ? 'White' : 'Black'} to play as you.`}
             board={displayBoard}
             selectedSquare={isPreviewing ? null : selectedSquare}
             legalMoves={activeLegalMoves}

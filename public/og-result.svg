@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Pocket Shuffle Chess result share card</title>
+  <desc id="desc">A result card for sharing a Pocket Shuffle Chess challenge.</desc>
+  <rect width="1200" height="630" fill="#2d2b28"/>
+  <circle cx="935" cy="112" r="205" fill="#8dbfaf" opacity=".75"/>
+  <circle cx="160" cy="550" r="240" fill="#f7cf72" opacity=".72"/>
+  <rect x="86" y="78" width="1028" height="474" rx="56" fill="#fff8e9"/>
+  <text x="126" y="150" font-family="Inter,Arial,sans-serif" font-size="31" font-weight="900" fill="#7bb2a4" letter-spacing="4">POCKET SHUFFLE CHESS</text>
+  <text x="126" y="255" font-family="Inter,Arial,sans-serif" font-size="78" font-weight="950" fill="#2d2b28">I played the seed.</text>
+  <text x="126" y="340" font-family="Inter,Arial,sans-serif" font-size="58" font-weight="950" fill="#2d2b28">Can you beat it?</text>
+  <text x="126" y="421" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="850" fill="#776f63">Fast chess without memorized openings.</text>
+  <rect x="126" y="462" width="260" height="58" rx="20" fill="#8dbfaf"/>
+  <text x="157" y="501" font-family="Inter,Arial,sans-serif" font-size="27" font-weight="950" fill="#fff8e9">5x6 challenge</text>
+  <g transform="translate(805 188)"><rect x="0" y="0" width="210" height="210" rx="42" fill="#f7cf72"/><text x="105" y="145" font-family="Georgia,serif" font-size="142" text-anchor="middle" fill="#2d2b28">♕</text></g>
+</svg>

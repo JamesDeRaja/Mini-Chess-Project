@@ -7,6 +7,7 @@ type LastMove = Pick<Move, 'from' | 'to'> | null;
 
 type BoardProps = {
   board: ChessBoard;
+  ariaLabel?: string;
   selectedSquare: number | null;
   legalMoves: Move[];
   lastMove: LastMove;
@@ -20,6 +21,7 @@ type BoardProps = {
 
 export function Board({
   board,
+  ariaLabel = 'Pocket Shuffle Chess board',
   selectedSquare,
   legalMoves,
   lastMove,
@@ -50,6 +52,7 @@ export function Board({
           isLastMove={lastMove?.from === squareIndex || lastMove?.to === squareIndex}
           isKingInCheck={checkedKingIndex === squareIndex}
           isInteractive={isInteractive}
+          isBoardSelected={selectedSquare === squareIndex}
           coordinateLabel={`${fileLabel(file)}${rank + 1}`}
           onClick={() => onSquareClick(squareIndex)}
           onDragStart={onDragStart ? () => onDragStart(squareIndex) : undefined}
@@ -68,7 +71,7 @@ export function Board({
         <div className="board-rank-labels" aria-hidden="true">
           {rankLabels.map((rank) => <span key={rank}>{rank}</span>)}
         </div>
-        <div className="board">{squares}</div>
+        <div className="board" role="grid" aria-label={ariaLabel}>{squares}</div>
         <div className="board-file-labels" aria-hidden="true">
           {fileLabels.map((file) => <span key={file}>{file}</span>)}
         </div>

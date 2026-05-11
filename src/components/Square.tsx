@@ -11,6 +11,7 @@ type SquareProps = {
   isLastMove: boolean;
   isKingInCheck: boolean;
   isInteractive: boolean;
+  isBoardSelected: boolean;
   coordinateLabel: string;
   onClick: () => void;
   onDragStart?: () => boolean;
@@ -25,11 +26,14 @@ export function Square({
   isLastMove,
   isKingInCheck,
   isInteractive,
+  isBoardSelected,
   coordinateLabel,
   onClick,
   onDragStart,
   onDrop,
 }: SquareProps) {
+  const pieceLabel = square.piece ? `${square.piece.color === 'white' ? 'White' : 'Black'} ${square.piece.type} at ${coordinateLabel}` : `Empty square ${coordinateLabel}`;
+  const stateLabel = [isSelected ? 'selected' : '', isLegalMove ? (isCapture ? 'capture available' : 'legal move available') : '', isLastMove ? 'last move' : '', isKingInCheck ? 'king in check' : ''].filter(Boolean).join(', ');
   const squareColor = (square.file + square.rank) % 2 === 0 ? 'light' : 'dark';
   const className = [
     'square',
@@ -71,7 +75,10 @@ export function Square({
       onClick={onClick}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
-      aria-label={`Square ${coordinateLabel}`}
+      role="gridcell"
+      tabIndex={isInteractive || isBoardSelected || square.piece ? 0 : -1}
+      aria-label={stateLabel ? `${pieceLabel}, ${stateLabel}` : pieceLabel}
+      aria-pressed={isSelected}
     >
       {square.piece && (
         <Piece
