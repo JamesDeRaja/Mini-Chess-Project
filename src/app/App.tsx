@@ -8,6 +8,7 @@ import { HomePage } from '../pages/HomePage.js';
 import { NotFoundPage } from '../pages/NotFoundPage.js';
 import { OnlineGamePage } from '../pages/OnlineGamePage.js';
 import { trackEvent } from './analytics.js';
+import { isValidBackRankCode } from '../game/seed.js';
 import { applySeo, getSeoConfig } from './seo.js';
 
 type Theme = 'light' | 'dark';
@@ -17,7 +18,7 @@ type Route =
   | { name: 'daily' }
   | { name: 'seed'; seed: string }
   | { name: 'how-it-works' }
-  | { name: 'bot'; dateKey?: string; seed?: string }
+  | { name: 'bot'; dateKey?: string; seed?: string; backRankCode?: string }
   | { name: 'online'; gameId: string; matchMode: MatchMode }
   | { name: 'not-found' };
 
@@ -34,7 +35,15 @@ function routeFromLocation(): Route {
   if (seedMatch) return { name: 'seed', seed: decodeURIComponent(seedMatch[1]) };
   if (window.location.pathname === '/daily') return { name: 'daily' };
   if (window.location.pathname === '/how-it-works') return { name: 'how-it-works' };
-  if (window.location.pathname === '/bot') return { name: 'bot', dateKey: search.get('date') ?? undefined, seed: search.get('seed') ?? undefined };
+  if (window.location.pathname === '/bot') {
+    const setup = search.get('setup');
+    return {
+      name: 'bot',
+      dateKey: search.get('date') ?? undefined,
+      seed: search.get('seed') ?? undefined,
+      backRankCode: setup && isValidBackRankCode(setup) ? setup.toUpperCase() : undefined,
+    };
+  }
   if (window.location.pathname === '/') return { name: 'home' };
   return { name: 'not-found' };
 }
@@ -85,9 +94,10 @@ export function App() {
     navigate(dateKey ? `/bot?date=${encodeURIComponent(dateKey)}` : '/bot');
   }
 
-  function startSeededBot(seed: string) {
-    trackEvent('seed_challenge_start', { seed });
-    navigate(`/bot?seed=${encodeURIComponent(seed)}`);
+  function startSeededBot(seed: string, backRankCode?: string) {
+    trackEvent('seed_challenge_start', { seed, backRankCode });
+    const setupQuery = backRankCode ? `&setup=${encodeURIComponent(backRankCode)}` : '';
+    navigate(`/bot?seed=${encodeURIComponent(seed)}${setupQuery}`);
   }
 
   function openCustomSeed() {
@@ -117,10 +127,10 @@ export function App() {
     }
   }
 
-  async function handleSeeded(seed: string) {
+  async function handleSeeded(seed: string, backRankCode?: string) {
     setInviteError(null);
     try {
-      const { gameId } = await createSeededGame(getPlayerId(), seed);
+      const { gameId } = await createSeededGame(getPlayerId(), seed, backRankCode);
       navigate(`/game/${gameId}?mode=single`);
     } catch (error) {
       setInviteError(error instanceof Error ? error.message : 'Unable to create seeded game');
@@ -145,7 +155,7 @@ export function App() {
     return <BotGamePage key={`seed-${route.seed}`} matchMode="single" customSeed={route.seed} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />;
   }
   if (route.name === 'bot') {
-    return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />;
+    return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}-${route.backRankCode ?? ''}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} customBackRankCode={route.backRankCode} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />;
   }
   if (route.name === 'not-found') {
     return <NotFoundPage onHome={() => navigate('/')} onBot={() => navigate('/bot')} onDaily={() => navigate('/daily')} />;

@@ -11,6 +11,8 @@ export type ResolvedSeedSource = {
 
 export const SHUFFLE_MODE_STORAGE_KEY = 'shuffleMode';
 
+let pageSessionRandomGameSeed: string | null = null;
+
 export function getCurrentShuffleMode(): ShuffleMode {
   if (typeof localStorage === 'undefined') return 'daily';
   return localStorage.getItem(SHUFFLE_MODE_STORAGE_KEY) === 'random' ? 'random' : 'daily';
@@ -28,9 +30,14 @@ export function createRandomGameSeed(): string {
   return `random-${randomPart}`.slice(0, 32);
 }
 
+export function getPageSessionRandomGameSeed(): string {
+  pageSessionRandomGameSeed ??= createRandomGameSeed();
+  return pageSessionRandomGameSeed;
+}
+
 export function resolveSeedSourceForMode(mode: ShuffleMode, options: { dateKey?: string; randomSeed?: string } = {}): ResolvedSeedSource {
   if (mode === 'random') {
-    const seed = options.randomSeed ?? createRandomGameSeed();
+    const seed = options.randomSeed ?? getPageSessionRandomGameSeed();
     return { mode, seed, backRankCode: backRankCodeFromSeed(seed), label: 'Random Shuffle' };
   }
 

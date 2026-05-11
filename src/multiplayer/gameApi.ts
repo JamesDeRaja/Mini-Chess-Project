@@ -62,10 +62,10 @@ export function createDailyGame(playerId: string, dateKey?: string): Promise<{ g
   });
 }
 
-export function createSeededGame(playerId: string, seed: string): Promise<{ gameId: string; seed: string; backRankCode: string }> {
+export function createSeededGame(playerId: string, seed: string, backRankCode?: string): Promise<{ gameId: string; seed: string; backRankCode: string }> {
   return requestJson('/api/games/create-seeded', {
     method: 'POST',
-    body: JSON.stringify({ playerId, seed }),
+    body: JSON.stringify({ playerId, seed, backRankCode }),
   });
 }
 
