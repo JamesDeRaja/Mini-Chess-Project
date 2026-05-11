@@ -271,10 +271,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     if (isDailyAI) setDailyAIProgress(resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   }, [dailySeedInfo.dateKey, isDailyAI]);
 
-  useEffect(() => {
-    setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, dailyAscensionTier));
-  }, [dailyAscensionTier, isDailyAI]);
-
   useEffect(() => () => {
     if (botMoveTimerRef.current !== null) window.clearTimeout(botMoveTimerRef.current);
   }, []);
@@ -398,6 +394,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setSubmittedScore(false);
     setScoreSubmitMessage(null);
     setRoundResult(null);
+    setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, dailyAscensionTier));
     setPreviewPly(null);
     setIsFlipped(playerColor === 'black');
     setIsBoardReady(false);
