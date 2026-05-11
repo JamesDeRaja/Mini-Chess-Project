@@ -1,11 +1,25 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { BOARD_FILES, BOARD_RANKS } from '../game/constants.js';
 import { fileLabel, index } from '../game/coordinates.js';
 import type { Board as ChessBoard, Move, Piece as ChessPiece } from '../game/types.js';
 import { Piece } from './Piece.js';
 import { Square } from './Square.js';
 
-type LastMove = Pick<Move, 'from' | 'to'> | null;
+type LastMove = { from: number; to: number; isCapture?: boolean } | null;
+
+type FlyingPiece = {
+  piece: ChessPiece;
+  startX: number;
+  startY: number;
+  endDx: number;
+  endDy: number;
+  arcHeight: number;
+  size: number;
+  destSquare: number;
+  duration: number;
+  animKey: string;
+} | null;
 
 type BoardProps = {
   board: ChessBoard;
@@ -41,6 +55,32 @@ function isPrimaryPointer(event: ReactPointerEvent<HTMLButtonElement>) {
   return event.isPrimary && (event.pointerType !== 'mouse' || event.button === 0);
 }
 
+function spawnCaptureParticles(cx: number, cy: number) {
+  const colors = ['#f7cf72', '#ffa995', '#ffffff', '#ffc840', '#ff6932', '#ffec64'];
+  const count = 8;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'capture-particle';
+    const angle = (i / count) * Math.PI * 2;
+    const speed = 35 + Math.random() * 55;
+    const tx = Math.sin(angle) * speed;
+    const ty = -Math.cos(angle) * speed;
+    const size = 5 + Math.random() * 7;
+    const dur = 340 + Math.random() * 180;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const rot = (Math.random() - 0.5) * 240;
+    el.style.cssText = [
+      `left:${cx}px`, `top:${cy}px`,
+      `width:${size}px`, `height:${size}px`,
+      `background:${color}`, `border-radius:50%`,
+      `--tx:${tx}px`, `--ty:${ty}px`, `--rot:${rot}deg`,
+      `animation:particle-burst ${dur}ms ease-out forwards`,
+    ].join(';');
+    document.body.appendChild(el);
+    window.setTimeout(() => el.remove(), dur + 60);
+  }
+}
+
 export function Board({
   board,
   ariaLabel = 'Pocket Shuffle Chess board',
@@ -59,6 +99,9 @@ export function Board({
   const dragStateRef = useRef<DragState | null>(null);
   const suppressNextClickRef = useRef(false);
   const [dragState, setDragState] = useState<DragState | null>(null);
+  const [flyingPiece, setFlyingPiece] = useState<FlyingPiece>(null);
+  const [hiddenPieceSquare, setHiddenPieceSquare] = useState<number | null>(null);
+  const flyKeyRef = useRef<string | null>(null);
   const squares = [];
   const ranks = Array.from({ length: BOARD_RANKS }, (_, rank) => rank);
   const files = Array.from({ length: BOARD_FILES }, (_, file) => file);
@@ -70,6 +113,95 @@ export function Board({
       dragStateRef.current = null;
     };
   }, []);
+
+  // --- Flying piece ghost (runs before paint) ---
+  const prevMoveKeyRef = useRef<string | null>(null);
+  const boardPropRef = useRef(board);
+  boardPropRef.current = board;
+
+  useLayoutEffect(() => {
+    const boardEl = boardElementRef.current;
+    if (!boardEl || !lastMove) {
+      prevMoveKeyRef.current = null;
+      return;
+    }
+
+    const moveKey = `${lastMove.from}-${lastMove.to}`;
+    if (prevMoveKeyRef.current === moveKey) return;
+    prevMoveKeyRef.current = moveKey;
+
+    const fromEl = boardEl.querySelector<HTMLElement>(`[data-square-index="${lastMove.from}"]`);
+    const toEl = boardEl.querySelector<HTMLElement>(`[data-square-index="${lastMove.to}"]`);
+    if (!fromEl || !toEl) return;
+
+    const fromRect = fromEl.getBoundingClientRect();
+    const toRect = toEl.getBoundingClientRect();
+    const startX = fromRect.left + fromRect.width / 2;
+    const startY = fromRect.top + fromRect.height / 2;
+    const endDx = (toRect.left + toRect.width / 2) - startX;
+    const endDy = (toRect.top + toRect.height / 2) - startY;
+
+    if (Math.abs(endDx) < 2 && Math.abs(endDy) < 2) return;
+
+    const piece = boardPropRef.current[lastMove.to]?.piece;
+    if (!piece) return;
+
+    const distance = Math.hypot(endDx, endDy);
+    const arcHeight = Math.max(Math.min(distance * 0.35, 55), 28);
+    const duration = Math.min(Math.max(distance * 0.45, 260), 380);
+
+    const animKey = `${moveKey}-${Date.now()}`;
+    flyKeyRef.current = animKey;
+
+    // Hide real piece at destination while ghost flies
+    setHiddenPieceSquare(lastMove.to);
+    setFlyingPiece({
+      piece,
+      startX,
+      startY,
+      endDx,
+      endDy,
+      arcHeight,
+      size: fromRect.width,
+      destSquare: lastMove.to,
+      duration,
+      animKey,
+    });
+
+    // Reveal real piece just before ghost fully fades
+    const REVEAL_AT = duration * 0.88;
+    const revealTimer = window.setTimeout(() => {
+      if (flyKeyRef.current === animKey) setHiddenPieceSquare(null);
+    }, REVEAL_AT);
+
+    // Clear ghost after animation completes
+    const clearTimer = window.setTimeout(() => {
+      if (flyKeyRef.current === animKey) {
+        setFlyingPiece(null);
+        flyKeyRef.current = null;
+      }
+    }, duration + 80);
+
+    return () => {
+      window.clearTimeout(revealTimer);
+      window.clearTimeout(clearTimer);
+    };
+  }, [lastMove]);
+
+  // --- Capture explosion (after paint) ---
+  useEffect(() => {
+    if (!lastMove?.isCapture) return;
+    const boardEl = boardElementRef.current;
+    if (!boardEl) return;
+
+    const toEl = boardEl.querySelector<HTMLElement>(`[data-square-index="${lastMove.to}"]`);
+    if (!toEl) return;
+
+    const rect = toEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    spawnCaptureParticles(cx, cy);
+  }, [lastMove]);
 
   function updateDragState(nextDragState: DragState | null) {
     dragStateRef.current = nextDragState;
@@ -230,6 +362,7 @@ export function Board({
           isBoardSelected={selectedSquare === squareIndex}
           isDragSource={Boolean(dragState?.hasMoved && dragState.fromSquare === squareIndex)}
           isDragHoveredLegal={dragHoveredLegalSquare === squareIndex}
+          isPieceHidden={hiddenPieceSquare === squareIndex}
           coordinateLabel={`${fileLabel(file)}${rank + 1}`}
           onClick={() => handleSquareClick(squareIndex)}
           onPointerDragStart={handlePointerDragStart}
@@ -265,6 +398,26 @@ export function Board({
         >
           <Piece piece={dragState.piece} isDraggable={false} isSelected />
         </div>
+      )}
+      {flyingPiece && createPortal(
+        <div
+          key={flyingPiece.animKey}
+          className="flying-piece-ghost"
+          aria-hidden="true"
+          style={{
+            left: flyingPiece.startX,
+            top: flyingPiece.startY,
+            width: flyingPiece.size * 1.38,
+            height: flyingPiece.size * 1.38,
+            '--end-dx': `${flyingPiece.endDx}px`,
+            '--end-dy': `${flyingPiece.endDy}px`,
+            '--arc': `${flyingPiece.arcHeight}px`,
+            '--fly-dur': `${flyingPiece.duration}ms`,
+          } as React.CSSProperties}
+        >
+          <Piece piece={flyingPiece.piece} isDraggable={false} />
+        </div>,
+        document.body,
       )}
     </div>
   );

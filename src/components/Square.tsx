@@ -15,6 +15,7 @@ type SquareProps = {
   isBoardSelected: boolean;
   isDragSource: boolean;
   isDragHoveredLegal: boolean;
+  isPieceHidden?: boolean;
   coordinateLabel: string;
   onClick: () => void;
   onPointerDragStart?: (event: PointerEvent<HTMLButtonElement>, squareIndex: number) => void;
@@ -32,6 +33,7 @@ export function Square({
   isBoardSelected,
   isDragSource,
   isDragHoveredLegal,
+  isPieceHidden = false,
   coordinateLabel,
   onClick,
   onPointerDragStart,
@@ -69,7 +71,7 @@ export function Square({
       aria-label={stateLabel ? `${pieceLabel}, ${stateLabel}` : pieceLabel}
       aria-pressed={isSelected}
     >
-      {square.piece && !isDragSource && (
+      {square.piece && !isDragSource && !isPieceHidden && (
         <Piece
           piece={square.piece}
           isDraggable={isInteractive}
