@@ -183,7 +183,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [status, setStatus] = useState<GameStatus>('active');
   const [selectedSquare, setSelectedSquare] = useState<number | null>(null);
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
-  const [lastMove, setLastMove] = useState<Pick<Move, 'from' | 'to'> | null>(null);
+  const [lastMove, setLastMove] = useState<(Pick<Move, 'from' | 'to'> & { isCapture?: boolean }) | null>(null);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
   const [moveAnnouncement, setMoveAnnouncement] = useState('Board ready. Select a piece to move.');
   const [score, setScore] = useState<MatchScore>({ white: 0, black: 0 });
@@ -278,7 +278,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setStatus(nextStatus);
     setSelectedSquare(null);
     setLegalMoves([]);
-    setLastMove({ from: move.from, to: move.to });
+    setLastMove({ from: move.from, to: move.to, isCapture: move.isCapture });
     setMoveAnnouncement(`${move.piece.color === 'white' ? 'White' : 'Black'} ${move.piece.type} moved from ${squareLabel(move.from % 5, Math.floor(move.from / 5))} to ${squareLabel(move.to % 5, Math.floor(move.to / 5))}${move.isCapture ? ' and captured a piece' : ''}.`);
     setMoveHistory((history) => [...history, createMoveRecord(move)]);
     setPreviewPly(null);

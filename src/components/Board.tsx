@@ -5,7 +5,7 @@ import type { Board as ChessBoard, Move, Piece as ChessPiece } from '../game/typ
 import { Piece } from './Piece.js';
 import { Square } from './Square.js';
 
-type LastMove = Pick<Move, 'from' | 'to'> | null;
+type LastMove = (Pick<Move, 'from' | 'to'> & { isCapture?: boolean }) | null;
 
 type BoardProps = {
   board: ChessBoard;
@@ -216,6 +216,8 @@ export function Board({
     for (const file of visualFiles) {
       const squareIndex = index(file, rank);
       const legalMove = visibleLegalMoves.find((move) => move.to === squareIndex);
+      const isLastMoveDestination = lastMove?.to === squareIndex;
+      const movedPieceType = isLastMoveDestination ? board[squareIndex]?.piece?.type ?? null : null;
       squares.push(
         <Square
           key={squareIndex}
@@ -224,7 +226,10 @@ export function Board({
           isSelected={selectedSquare === squareIndex}
           isLegalMove={Boolean(legalMove)}
           isCapture={Boolean(legalMove?.isCapture)}
-          isLastMove={lastMove?.from === squareIndex || lastMove?.to === squareIndex}
+          isLastMove={lastMove?.from === squareIndex || isLastMoveDestination}
+          isLastMoveDestination={isLastMoveDestination}
+          didLastMoveCapture={Boolean(isLastMoveDestination && lastMove?.isCapture)}
+          movedPieceType={movedPieceType}
           isKingInCheck={checkedKingIndex === squareIndex}
           isInteractive={isInteractive}
           isBoardSelected={selectedSquare === squareIndex}

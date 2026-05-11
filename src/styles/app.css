@@ -327,6 +327,26 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   animation: winner-pop 420ms cubic-bezier(.2, 1.4, .4, 1);
 }
 .winner-card h2 { font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1; }
+.result-close-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  padding: 0;
+  border-radius: 999px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(141, 191, 175, 0.32);
+  box-shadow: 0 8px 18px rgba(45, 43, 40, 0.12);
+  font-size: 1.6rem;
+  line-height: 1;
+  z-index: 1;
+}
+.result-close-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.92);
+}
 .winner-card svg { color: #facc15; filter: drop-shadow(0 0 16px rgba(250, 204, 21, 0.5)); }
 .calm-result-card svg { color: #93a4bd; filter: none; }
 .title-link {
@@ -782,7 +802,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .sync-toast { color: var(--text); font-weight: 850; }
 .error-card { display: grid; gap: 8px; }
 .error-card p { margin: 0; }
-button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 5px 0 rgba(45, 43, 40, 0.08), inset 0 -2px rgba(45, 43, 40, 0.08); }
+button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 5px 0 rgba(45, 43, 40, 0.08), inset 0 -2px rgba(45, 43, 40, 0.08); animation: button-squish-pop 180ms ease-out; }
 
 @media (max-width: 760px) {
   .waiting-board-overlay { width: min(82%, 300px); padding: 12px; }
@@ -1075,7 +1095,7 @@ button {
   transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 button:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.04); }
-button:active:not(:disabled) { transform: translateY(1px) scale(0.99); }
+button:active:not(:disabled) { transform: translateY(1px) scale(0.99); animation: button-squish-pop 180ms ease-out; }
 .secondary-action,
 .theme-action { color: var(--text-primary); background: var(--button-secondary-bg); border-color: var(--card-border); }
 .gold-action { color: #3a2c0d; background: linear-gradient(180deg, #f2c84b, #a87516); border-color: rgba(242, 200, 75, 0.7); }
@@ -1445,7 +1465,7 @@ button {
   transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, filter 140ms ease;
 }
 button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.02); box-shadow: 0 7px 12px rgba(87, 89, 75, 0.09); }
-button:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 3px 7px rgba(87, 89, 75, 0.07); }
+button:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 3px 7px rgba(87, 89, 75, 0.07); animation: button-squish-pop 180ms ease-out; }
 .secondary-action { color: #253028; background: #bfe3cd; border-color: #abd5bd; }
 .theme-action { color: #2d2b25; background: #f2d063; border-color: #d9ba55; }
 .primary-action,
@@ -1759,6 +1779,7 @@ button:hover:not(:disabled) {
 button:active:not(:disabled) {
   transform: translateY(3px);
   box-shadow: 0 2px 0 currentColor, 0 7px 14px rgba(99, 91, 70, 0.1);
+  animation: button-squish-pop 180ms ease-out;
 }
 .secondary-action:active:not(:disabled),
 .wide-action.secondary-action:active:not(:disabled),
@@ -2128,7 +2149,41 @@ button:active:not(:disabled) {
 }
 
 .home-action-card:hover:not(:disabled) { transform: translateY(-4px); box-shadow: 0 22px 36px rgba(90, 103, 82, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.76); }
-.home-action-card:active:not(:disabled) { transform: translateY(1px); }
+.home-action-card::after {
+  position: absolute;
+  inset: -45% -65%;
+  z-index: 0;
+  content: '';
+  background: linear-gradient(115deg, transparent 34%, rgba(255, 255, 255, 0.34) 48%, transparent 62%);
+  transform: translateX(-55%) rotate(4deg);
+  opacity: 0;
+  pointer-events: none;
+}
+.home-action-card:hover:not(:disabled)::after {
+  animation: card-glint 900ms ease-out;
+}
+.home-action-card:hover:not(:disabled) .action-piece {
+  animation: action-piece-bob 760ms cubic-bezier(.18, 1.45, .32, 1);
+}
+.home-action-card:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
+
+@keyframes button-squish-pop {
+  0% { scale: 1; }
+  48% { scale: 0.96 1.04; }
+  100% { scale: 1; }
+}
+@keyframes card-glint {
+  0% { opacity: 0; transform: translateX(-55%) rotate(4deg); }
+  18% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(55%) rotate(4deg); }
+}
+@keyframes action-piece-bob {
+  0% { transform: translateX(-50%) translateY(0) rotate(var(--piece-rotate, 0deg)) scale(var(--piece-scale, 1)); }
+  42% { transform: translateX(-50%) translateY(-10px) rotate(calc(var(--piece-rotate, 0deg) - 4deg)) scale(calc(var(--piece-scale, 1) * 1.04), calc(var(--piece-scale, 1) * 0.96)); }
+  72% { transform: translateX(-50%) translateY(2px) rotate(calc(var(--piece-rotate, 0deg) + 2deg)) scale(calc(var(--piece-scale, 1) * 0.98), calc(var(--piece-scale, 1) * 1.03)); }
+  100% { transform: translateX(-50%) translateY(0) rotate(var(--piece-rotate, 0deg)) scale(var(--piece-scale, 1)); }
+}
+
 .home-action-ai { background: #dcefe5; border-color: rgba(169, 192, 169, 0.72); }
 .home-action-match { background: #f4dd9b; border-color: rgba(229, 202, 137, 0.72); }
 .home-action-invite { background: #f1c8c1; border-color: rgba(224, 174, 166, 0.72); }

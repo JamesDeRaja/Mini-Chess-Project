@@ -1,5 +1,5 @@
 import type { PointerEvent } from 'react';
-import type { Square as ChessSquare } from '../game/types.js';
+import type { PieceType, Square as ChessSquare } from '../game/types.js';
 import { Piece } from './Piece.js';
 import { MoveHint } from './MoveHint.js';
 
@@ -10,6 +10,9 @@ type SquareProps = {
   isLegalMove: boolean;
   isCapture: boolean;
   isLastMove: boolean;
+  isLastMoveDestination: boolean;
+  didLastMoveCapture: boolean;
+  movedPieceType: PieceType | null;
   isKingInCheck: boolean;
   isInteractive: boolean;
   isBoardSelected: boolean;
@@ -27,6 +30,9 @@ export function Square({
   isLegalMove,
   isCapture,
   isLastMove,
+  isLastMoveDestination,
+  didLastMoveCapture,
+  movedPieceType,
   isKingInCheck,
   isInteractive,
   isBoardSelected,
@@ -46,6 +52,9 @@ export function Square({
     isLegalMove ? 'legal-target-square' : '',
     isCapture ? 'capture-target-square' : '',
     isLastMove ? 'last-move-square' : '',
+    isLastMoveDestination ? 'last-move-destination-square' : '',
+    isLastMoveDestination && didLastMoveCapture ? 'capture-impact-square' : '',
+    movedPieceType ? `moved-piece-${movedPieceType}` : '',
     isKingInCheck ? 'king-in-check' : '',
     isDragSource ? 'drag-source-square' : '',
     isDragHoveredLegal ? 'drag-hover-square' : '',
@@ -76,6 +85,8 @@ export function Square({
           isSelected={isSelected}
         />
       )}
+      {isLastMoveDestination && <span className="move-impact" aria-hidden="true" />}
+      {isLastMoveDestination && didLastMoveCapture && <span className="capture-shards" aria-hidden="true" />}
       {isLegalMove && <MoveHint isCapture={isCapture} />}
     </button>
   );
