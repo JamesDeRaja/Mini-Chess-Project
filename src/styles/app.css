@@ -1395,33 +1395,6 @@ button:active:not(:disabled) { transform: translateY(1px) scale(0.99); animation
   align-items: start;
 }
 .board-column { gap: 0; position: relative; }
-.board-ready-note {
-  position: absolute;
-  top: 10px;
-  z-index: 8;
-  margin: 0;
-  padding: 7px 14px;
-  border: 1px solid rgba(222, 217, 203, 0.76);
-  border-radius: 999px;
-  color: #5c655f;
-  background: rgba(255, 251, 239, 0.88);
-  box-shadow: 0 10px 22px rgba(93, 117, 103, 0.1);
-  font-size: 0.82rem;
-  font-weight: 950;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  pointer-events: none;
-  animation: ready-note-pop 420ms cubic-bezier(.18, 1.45, .3, 1);
-}
-.board-ready-note.is-ready {
-  color: #476b57;
-  background: rgba(220, 239, 229, 0.9);
-}
-@keyframes ready-note-pop {
-  from { opacity: 0; transform: translateY(-8px) scale(0.92); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
 
 .side-panel,
 .invite-panel,

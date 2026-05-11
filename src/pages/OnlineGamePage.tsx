@@ -126,7 +126,6 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const canNativeShare = typeof navigator !== 'undefined' && 'share' in navigator;
   const handleBoardSpawnComplete = useCallback(() => {
     setIsBoardReady(true);
-    setMoveAnnouncement('Ready. The board is live.');
   }, []);
   const checkedKingIndex = useMemo(
     () => (!isPreviewing && displayBoard.length && isKingInCheck(displayBoard, turn) ? findKingIndex(displayBoard, turn) : null),
@@ -149,10 +148,9 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     if (status === 'timeout') return 'Session over';
     if (isCompleted) return status === 'draw' ? 'Draw' : `${status === 'white_won' ? 'White' : 'Black'} won`;
     if (!isOnlineGameReady) return 'Waiting for opponent';
-    if (!isBoardReady) return 'Setting up board';
     if (role === 'spectator') return `${turn === 'white' ? 'White' : 'Black'} to move`;
     return role === turn ? 'Your turn' : "Opponent's turn";
-  }, [inviteState, isBoardReady, isCompleted, isOnlineGameReady, role, status, turn]);
+  }, [inviteState, isCompleted, isOnlineGameReady, role, status, turn]);
   const winner: Color | null = status === 'white_won' ? 'white' : status === 'black_won' ? 'black' : null;
   const drawOfferIsFromOpponent = (role === 'white' || role === 'black') && drawOfferBy !== null && drawOfferBy !== role;
   const drawActionLabel = drawOfferIsFromOpponent ? 'Accept Draw' : drawOfferBy === role ? 'Draw Requested' : 'Request Draw';
@@ -711,7 +709,6 @@ Can you beat it?`;
           {board.length > 0 && (
             <>
               <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
-              <p className={`board-ready-note ${isBoardReady ? 'is-ready' : ''}`} aria-live="polite">{isBoardReady ? 'Ready!' : 'Setting up pieces...'}</p>
               <Board
                 key={`${effectiveGameId || 'new'}-${roundNumber}-${backRankCode ?? 'pending'}`}
                 ariaLabel={`Pocket Shuffle Chess online board. ${role === 'white' || role === 'black' ? `You are ${role}.` : 'Spectator view.'}`}

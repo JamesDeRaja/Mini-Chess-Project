@@ -185,7 +185,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<(Pick<Move, 'from' | 'to'> & { isCapture?: boolean }) | null>(null);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
-  const [moveAnnouncement, setMoveAnnouncement] = useState('Setting up pieces.');
+  const [moveAnnouncement, setMoveAnnouncement] = useState('');
   const [score, setScore] = useState<MatchScore>({ white: 0, black: 0 });
   const [roundNumber, setRoundNumber] = useState(1);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
@@ -302,7 +302,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setLegalMoves([]);
     setLastMove(null);
     setMoveHistory([]);
-    setMoveAnnouncement('Setting up pieces.');
+    setMoveAnnouncement('');
     setRoundResult(null);
     setPreviewPly(null);
     setIsFlipped(playerColor === 'black');
@@ -408,20 +408,17 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   const handleBoardSpawnComplete = useCallback(() => {
     setIsBoardReady(true);
-    setMoveAnnouncement('Ready. Select a piece to move.');
   }, []);
 
   const activeLegalMoves = isPreviewing || !isBoardReady ? [] : legalMoves;
-  const headerStatusLabel = roundResult ? 'Game Over' : !isBoardReady ? 'Setting up' : undefined;
+  const headerStatusLabel = roundResult ? 'Game Over' : undefined;
   const headerTurnLabel = roundResult
     ? roundResult.status === 'draw'
       ? 'Draw'
       : roundResult.didPlayerWin
         ? 'You won'
         : 'You lost'
-    : !isBoardReady
-      ? 'Ready soon'
-      : undefined;
+    : undefined;
 
   return (
     <main className="game-page">
@@ -467,7 +464,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
         <section className="board-column">
           <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
-          <p className={`board-ready-note ${isBoardReady ? 'is-ready' : ''}`} aria-live="polite">{isBoardReady ? 'Ready!' : 'Setting up pieces...'}</p>
           <Board
             key={`${dailySeedInfo.seed}-${roundNumber}-${playerColor}`}
             ariaLabel={`Pocket Shuffle Chess ${dailySeedInfo.backRankCode} board. ${playerColor === 'white' ? 'White' : 'Black'} to play as you.`}
