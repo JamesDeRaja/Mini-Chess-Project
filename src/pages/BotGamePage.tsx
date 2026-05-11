@@ -257,7 +257,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       progressionMessage = getDailyProgressionMessage(dailyAIProgress, didPlayerWin);
       const nextProgress = handleDailyAIGameResult(dailyAIProgress, didPlayerWin ? 'win' : 'loss');
       setDailyAIProgress(nextProgress);
-      setIsFlipped(getDailyAIPlayerColor(nextProgress) === 'black');
     }
 
     if (winner) {
@@ -305,6 +304,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setMoveAnnouncement('New round ready. Select a piece to move.');
     setRoundResult(null);
     setPreviewPly(null);
+    setIsFlipped(playerColor === 'black');
     setRoundNumber(nextRoundNumber);
   }
 
