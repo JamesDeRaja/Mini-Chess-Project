@@ -3316,18 +3316,22 @@ input:focus-visible {
 }
 
 .match-panel:not(.online-match-panel) .score-stack span {
-  min-height: clamp(42px, 6svh, 64px);
-  padding: clamp(7px, 1svh, 12px) clamp(10px, 1.25vw, 14px);
+  min-height: clamp(36px, 5.2svh, 54px);
+  padding: clamp(5px, 0.8svh, 10px) clamp(9px, 1.1vw, 13px);
   border-radius: clamp(14px, 1.4vw, 18px);
   gap: clamp(8px, 1vw, 12px);
-  font-size: clamp(0.9rem, 0.65vw + 0.65rem, 1.04rem);
+  font-size: clamp(0.86rem, 0.58vw + 0.64rem, 0.98rem);
 }
 
 .match-panel:not(.online-match-panel) .piece-score-icon {
   --piece-scale: 1.45;
-  width: clamp(30px, 5svh, 46px);
-  height: clamp(30px, 5svh, 46px);
+  width: clamp(26px, 4.4svh, 40px);
+  height: clamp(26px, 4.4svh, 40px);
   padding: 0;
+}
+
+.match-panel:not(.online-match-panel) .match-actions {
+  padding-bottom: clamp(8px, 1.4svh, 14px);
 }
 
 @media (max-height: 820px) and (min-width: 769px) {
@@ -3337,13 +3341,13 @@ input:focus-visible {
   }
 
   .match-panel:not(.online-match-panel) .score-stack span {
-    min-height: 38px;
-    padding-block: 6px;
+    min-height: 34px;
+    padding-block: 5px;
   }
 
   .match-panel:not(.online-match-panel) .piece-score-icon {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
   }
 
   .match-panel:not(.online-match-panel) .info-stack {
@@ -3353,19 +3357,20 @@ input:focus-visible {
 
   .match-panel:not(.online-match-panel) .match-actions {
     padding-top: 6px;
+    padding-bottom: 8px;
   }
 }
 
 @media (max-width: 768px) {
   .match-panel:not(.online-match-panel) .score-stack span {
-    min-height: clamp(34px, 5svh, 42px);
+    min-height: clamp(30px, 4.4svh, 38px);
     padding: 5px 7px;
-    font-size: clamp(0.78rem, 3vw, 0.9rem);
+    font-size: clamp(0.74rem, 2.8vw, 0.84rem);
   }
 
   .match-panel:not(.online-match-panel) .piece-score-icon {
     --piece-scale: 1.12;
-    width: clamp(24px, 3.8svh, 34px);
-    height: clamp(24px, 3.8svh, 34px);
+    width: clamp(22px, 3.4svh, 30px);
+    height: clamp(22px, 3.4svh, 30px);
   }
 }
