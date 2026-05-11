@@ -4250,12 +4250,12 @@ button:focus-visible,
 }
 
 @media (max-width: 1199px) {
-  body { overflow-x: hidden; }
+  body { overflow: auto; }
 
   .game-page {
     height: auto;
     min-height: 100svh;
-    overflow-x: hidden;
+    overflow: visible;
   }
 
   .chess-shell {

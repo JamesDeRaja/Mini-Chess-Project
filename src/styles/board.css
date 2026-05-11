@@ -529,7 +529,7 @@
 
 @media (max-width: 1199px) {
   .board-frame {
-    --board-max-width: min(590px, calc(100vw - var(--rank-label-size) - 32px), calc(var(--play-area-height, 708px) * 5 / 6));
+    --board-max-width: min(88vw, 560px);
   }
 }
 
