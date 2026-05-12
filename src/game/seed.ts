@@ -1,4 +1,4 @@
-import { BOARD_FILES, RANDOM_BACK_RANK_PIECES } from './constants.js';
+import { BACK_RANK_PIECES, BOARD_FILES, RANDOM_BACK_RANK_PIECES } from './constants.js';
 import type { Board, Color, PieceType } from './types.js';
 
 export const BACK_RANK_CODE_PATTERN = /^[KQRBNP]{5}$/i;
@@ -110,6 +110,26 @@ export function pieceOrderFromBackRankCode(backRankCode: string): PieceType[] {
 
 export function backRankCodeFromPieceOrder(pieceOrder: PieceType[]): string {
   return pieceOrder.map((piece) => pieceToCode[piece]).join('');
+}
+
+function shuffledBackRankCodeFromSeed(seed: string, sourcePieces: PieceType[]): string {
+  const random = seededRandom(seed);
+  const pieces = [...sourcePieces];
+  for (let index = pieces.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [pieces[index], pieces[swapIndex]] = [pieces[swapIndex], pieces[index]];
+  }
+  return backRankCodeFromPieceOrder(pieces);
+}
+
+export function dailyBackRankCodeFromSeed(seed: string): string {
+  return shuffledBackRankCodeFromSeed(seed, BACK_RANK_PIECES);
+}
+
+export function isCompleteDailyBackRankCode(backRankCode: string): boolean {
+  if (!isValidBackRankCode(backRankCode)) return false;
+  const codePieces = new Set(backRankCode.toUpperCase().split(''));
+  return ['K', 'Q', 'R', 'B', 'N'].every((pieceCode) => codePieces.has(pieceCode));
 }
 
 export function backRankCodeFromSeed(seed: string): string {

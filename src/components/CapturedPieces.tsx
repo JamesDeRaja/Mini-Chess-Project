@@ -67,7 +67,7 @@ function CapturedPieceList({ pieceGroups }: { pieceGroups: CapturedPieceGroup[] 
 
   return (
     <div className={`captured-piece-list ${densityClass} ${groupDensityClass}`.trim()}>
-      {pieceGroups.length === 0 ? <span className="captured-empty">—</span> : pieceGroups.map((group) => (
+      {pieceGroups.length === 0 ? <span className="captured-empty" aria-hidden="true" /> : pieceGroups.map((group) => (
         <CapturedPieceGroupIcon key={`${group.color}-${group.type}`} {...group} />
       ))}
     </div>
