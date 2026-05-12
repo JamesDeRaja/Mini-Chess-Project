@@ -59,15 +59,10 @@ const randomTaunts = [
 const leaderboardViews: LeaderboardView[] = [
   { scope: 'daily', label: 'Today’s Top 10', title: 'Today’s top 10', description: 'Best scores on today’s shared shuffle.' },
   { scope: 'global', label: 'Global', title: 'Global scores', description: 'Best player scores across every saved game.' },
-  { scope: 'global-start-points', label: 'Global start points', title: 'Global start points', description: 'Best scores grouped by starting setup.' },
 ];
 
 function leaderboardEntryToFeedItem(entry: LeaderboardEntry, index: number): LeaderboardFeedItem {
   return { id: entry.id, displayName: entry.display_name, score: entry.score, kind: index < 10 ? 'rank' : 'new-score', rank: index + 1 };
-}
-
-function getLeaderboardBackRankCode(entry: LeaderboardEntry): string | null {
-  return entry.backRankCode ?? (entry as LeaderboardEntry & { back_rank_code?: string | null }).back_rank_code ?? null;
 }
 
 function pickTaunt(messages: string[]): string {
@@ -475,7 +470,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               </li>
             )) : <li><span>No daily scores yet</span><b>—</b></li>}
           </ol>
-          <small>Tap for top 10, global, and starts</small>
+          <small>Tap for top 10 and global scores</small>
         </div>
       </button>
       {leaderboardDialogOpen && (
@@ -499,8 +494,8 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
                 <li key={entry.id}>
                   <span className="leaderboard-rank">{index + 1}</span>
                   <span className="leaderboard-player">
-                    <strong>{leaderboardScope === 'global-start-points' ? (getLeaderboardBackRankCode(entry) ?? entry.seed) : entry.display_name}</strong>
-                    <small>{leaderboardScope === 'global-start-points' ? `Best by ${entry.display_name}` : `${entry.mode} • ${entry.seed.replace('daily-', '')}`}</small>
+                    <strong>{entry.display_name}</strong>
+                    <small>{entry.mode} • {entry.seed.replace('daily-', '')}</small>
                   </span>
                   <b>{entry.score}</b>
                 </li>
