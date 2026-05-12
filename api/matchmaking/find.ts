@@ -46,6 +46,16 @@ function getGamePayload(whitePlayerId: string, seed: string, backRankCode: strin
   };
 }
 
+
+async function getUsableMatchedGameId(supabase: ServerSupabase, queueRow: QueueRow): Promise<string | null> {
+  if (!queueRow.game_id) return null;
+  const { data: game } = await supabase.from('games').select('id, status').eq('id', queueRow.game_id).maybeSingle();
+  const status = typeof game?.status === 'string' ? game.status : null;
+  if (status === 'waiting' || status === 'active') return queueRow.game_id;
+  await supabase.from('matchmaking_queue').update({ status: 'expired' }).eq('id', queueRow.id);
+  return null;
+}
+
 async function findMatchUsingGamesTable(supabase: ServerSupabase, playerId: string, seed: string, backRankCode: string) {
   const { data: existingRows, error: existingError } = await supabase
     .from('games')
@@ -157,8 +167,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   const existing = existingRows?.[0] as QueueRow | undefined;
   if (existing?.status === 'matched' && existing.game_id) {
-    response.status(200).json({ status: 'matched', gameId: existing.game_id });
-    return;
+    const usableGameId = await getUsableMatchedGameId(supabase, existing);
+    if (usableGameId) {
+      response.status(200).json({ status: 'matched', gameId: usableGameId });
+      return;
+    }
   }
 
   const { data: opponent, error: opponentError } = await supabase

@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { applyMove } from '../../src/game/applyMove.js';
 import { BOARD_FILES, BOARD_RANKS } from '../../src/game/constants.js';
 import { index } from '../../src/game/coordinates.js';
-import { getOpponent, getStatusForTurn } from '../../src/game/gameStatus.js';
+import { getOpponent, getStatusForTurn, isStalemate } from '../../src/game/gameStatus.js';
 import { getCaptureScore } from '../../src/game/scoring.js';
 import { getLegalMoves } from '../../src/game/legalMoves.js';
 import { rebuildBoardFromHistory } from '../../src/game/moveDelta.js';
@@ -19,9 +19,9 @@ function getWinner(status: GameStatus): Color | null {
   return null;
 }
 
-function getResultType(status: GameStatus): string | null {
+function getResultType(status: GameStatus, board?: Board, turn?: Color): string | null {
   if (status === 'white_won' || status === 'black_won') return 'checkmate';
-  if (status === 'draw') return 'draw';
+  if (status === 'draw') return board && turn && isStalemate(board, turn) ? 'stalemate' : 'draw';
   return null;
 }
 
@@ -131,7 +131,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     last_move: moveDelta,
     move_count: moveCount,
     winner: getWinner(nextStatus),
-    result_type: getResultType(nextStatus),
+    result_type: getResultType(nextStatus, nextBoard, nextTurn),
     draw_offer_by: null,
     total_moves: moveCount,
     white_score: materialScores.whiteScore,
