@@ -10,6 +10,7 @@ type GameResultPanelProps = {
   title: string;
   summary: string;
   progressionMessage?: string;
+  details?: ReactNode;
   actions: ReactNode;
 };
 
@@ -36,7 +37,7 @@ function ResultAvatar({ winner }: { winner: Color | null }) {
   );
 }
 
-export function GameResultPanel({ result, winner, eyebrow, title, summary, progressionMessage, actions }: GameResultPanelProps) {
+export function GameResultPanel({ result, winner, eyebrow, title, summary, progressionMessage, details, actions }: GameResultPanelProps) {
   const [dismissedResultKey, setDismissedResultKey] = useState<string | null>(null);
   const didWin = result === 'win';
   const resultKey = `${result}:${winner ?? 'none'}:${title}:${summary}`;
@@ -60,6 +61,7 @@ export function GameResultPanel({ result, winner, eyebrow, title, summary, progr
         <h2>{title}</h2>
         <p>{summary}</p>
         {progressionMessage && <p className="panel-note">{progressionMessage}</p>}
+        {details}
         <div className="panel-actions centered-actions">{actions}</div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { applyMove } from '../../src/game/applyMove.js';
 import { BOARD_FILES, BOARD_RANKS } from '../../src/game/constants.js';
 import { index } from '../../src/game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../../src/game/gameStatus.js';
+import { getCaptureScore } from '../../src/game/scoring.js';
 import { getLegalMoves } from '../../src/game/legalMoves.js';
 import { rebuildBoardFromHistory } from '../../src/game/moveDelta.js';
 import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../../src/game/seed.js';
@@ -112,6 +113,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
     piece: legalMove.piece.type,
     color: legalMove.piece.color,
     captured: legalMove.capturedPiece?.type ?? null,
+    capturedColor: legalMove.capturedPiece?.color ?? null,
+    capturingSide: legalMove.capturedPiece ? legalMove.piece.color : null,
+    captureScore: legalMove.capturedPiece ? getCaptureScore(legalMove.capturedPiece.type) : null,
     promotion: legalMove.promotionPiece ?? null,
     createdAt,
     playerId,

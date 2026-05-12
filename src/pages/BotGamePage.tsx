@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, Flag, Handshake, RotateCcw, Shuffle } from 'lucide-react';
 import { Board } from '../components/Board.js';
+import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
 import { MoveHistory } from '../components/MoveHistory.js';
@@ -22,6 +23,10 @@ import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, validateSeedInput } from '../game/seed.js';
+import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
+import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
+import { calculateGameScore, getCaptureScore } from '../game/scoring.js';
+import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
 import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord, PieceType } from '../game/types.js';
 
@@ -32,6 +37,7 @@ type BotGamePageProps = {
   dateKey?: string;
   customSeed?: string;
   customBackRankCode?: string;
+  playerSide?: Color;
   onHome: () => void;
   onCustomSeed: () => void;
   onDaily: () => void;
@@ -199,7 +205,7 @@ export function BotGamePage(props: BotGamePageProps) {
   return <BotGameContent {...props} seedValidation={seedValidation} />;
 }
 
-function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, customBackRankCode, onHome, seedValidation }: BotGameContentProps) {
+function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, customBackRankCode, playerSide, onHome, seedValidation }: BotGameContentProps) {
   const dailySeedInfo = useMemo(() => {
     if (seedValidation?.ok) {
       const safeBackRankCode = customBackRankCode && isValidBackRankCode(customBackRankCode) ? customBackRankCode.toUpperCase() : seedValidation.backRankCode;
@@ -215,7 +221,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
   const dailyAscensionTier = getAscensionTierForDailyDifficulty(dailyAIDifficulty);
   const ascensionMissingNote = isDailyAI ? getAscensionMissingNote(dailyAscensionTier) : null;
-  const playerColor = isDailyAI ? getDailyAIPlayerColor(dailyAIProgress) : 'white';
+  const playerColor = playerSide ?? (isDailyAI ? getDailyAIPlayerColor(dailyAIProgress) : 'white');
   const botColor = getOpponent(playerColor);
   const initialBoardForMount = useMemo(() => {
     const dailyBoard = createInitialBoard({ backRankCode: dailySeedInfo.backRankCode });
@@ -227,7 +233,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [status, setStatus] = useState<GameStatus>('active');
   const [selectedSquare, setSelectedSquare] = useState<number | null>(null);
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
-  const [lastMove, setLastMove] = useState<(Pick<Move, 'from' | 'to'> & { isCapture?: boolean }) | null>(null);
+  const [lastMove, setLastMove] = useState<(Pick<Move, 'from' | 'to'> & { color?: Color; isCapture?: boolean; captureScore?: number | null }) | null>(null);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
   const [moveAnnouncement, setMoveAnnouncement] = useState('');
   const [score, setScore] = useState<MatchScore>({ white: 0, black: 0 });
@@ -240,6 +246,11 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [ascensionPopupTier, setAscensionPopupTier] = useState<AscensionPopupTier | null>(() => getPendingAscensionPopupTier(isDailyAI, dailyAscensionTier));
   const [previewPly, setPreviewPly] = useState<number | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [displayNameDraft, setDisplayNameDraft] = useState(() => getDisplayName());
+  const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(null);
+  const [submittedScore, setSubmittedScore] = useState(false);
+  const [scoreSubmitMessage, setScoreSubmitMessage] = useState<string | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const historyListRef = useRef<HTMLOListElement | null>(null);
   const botMoveTimerRef = useRef<number | null>(null);
   const lastQueuedBotMoveKeyRef = useRef('');
@@ -258,6 +269,35 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   useEffect(() => {
     if (isDailyAI) setDailyAIProgress(resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   }, [dailySeedInfo.dateKey, isDailyAI]);
+
+  useEffect(() => () => {
+    if (botMoveTimerRef.current !== null) window.clearTimeout(botMoveTimerRef.current);
+  }, []);
+
+
+  const scoreBreakdown = useMemo(() => calculateGameScore({ status, side: playerColor, moveHistory }), [moveHistory, playerColor, status]);
+  const headerScoreValue = status === 'active' ? scoreBreakdown.capturePoints : scoreBreakdown.totalScore;
+  const headerScoreLabel = `Score ${headerScoreValue > 0 && status === 'active' ? '+' : ''}${headerScoreValue}`;
+  const scoreMode = isDailyAI ? 'daily' : 'bot';
+
+  useEffect(() => {
+    if (!roundResult) return;
+    const entry = saveLocalScoreEntry({
+      seed: dailySeedInfo.seed,
+      backRankCode: dailySeedInfo.backRankCode,
+      mode: scoreMode,
+      side: playerColor,
+      result: roundResult.status,
+      score: scoreBreakdown.totalScore,
+      moves: scoreBreakdown.fullMoves,
+    });
+    setLocalBestScore(getLocalBestScore(dailySeedInfo.seed, scoreMode, playerColor) ?? entry);
+  }, [dailySeedInfo.backRankCode, dailySeedInfo.seed, playerColor, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode]);
+
+  useEffect(() => {
+    if (!roundResult || !isDailyAI) return;
+    fetchLeaderboard(dailySeedInfo.seed, scoreMode).then(setLeaderboard).catch(() => setLeaderboard([]));
+  }, [dailySeedInfo.seed, isDailyAI, roundResult, scoreMode, submittedScore]);
 
   useEffect(() => {
     setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, dailyAscensionTier));
@@ -335,7 +375,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setStatus(nextStatus);
     setSelectedSquare(null);
     setLegalMoves([]);
-    setLastMove({ from: move.from, to: move.to, isCapture: move.isCapture });
+    setLastMove({ from: move.from, to: move.to, color: move.piece.color, isCapture: move.isCapture, captureScore: move.capturedPiece ? getCaptureScore(move.capturedPiece.type) : null });
     setMoveAnnouncement(`${move.piece.color === 'white' ? 'White' : 'Black'} ${move.piece.type} moved from ${squareLabel(move.from % 5, Math.floor(move.from / 5))} to ${squareLabel(move.to % 5, Math.floor(move.to / 5))}${move.isCapture ? ' and captured a piece' : ''}.`);
     setMoveHistory((history) => [...history, createMoveRecord(move)]);
     setPreviewPly(null);
@@ -360,7 +400,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setLastMove(null);
     setMoveHistory([]);
     setMoveAnnouncement('');
+    setSubmittedScore(false);
+    setScoreSubmitMessage(null);
     setRoundResult(null);
+    setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, dailyAscensionTier));
     setPreviewPly(null);
     setIsFlipped(playerColor === 'black');
     setIsBoardReady(false);
@@ -501,6 +544,28 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         : 'You lost'
     : undefined;
 
+  async function handleSubmitScore() {
+    if (!roundResult) return;
+    setScoreSubmitMessage('Submitting...');
+    try {
+      saveDisplayName(displayNameDraft);
+      await submitScore({
+        seed: dailySeedInfo.seed,
+        backRankCode: dailySeedInfo.backRankCode,
+        mode: scoreMode,
+        side: playerColor,
+        result: roundResult.status,
+        score: scoreBreakdown.totalScore,
+        moves: scoreBreakdown.fullMoves,
+      });
+      setSubmittedScore(true);
+      setScoreSubmitMessage('Score submitted to today’s best scores.');
+    } catch {
+      setScoreSubmitMessage('Could not submit online, but your local score is saved.');
+    }
+  }
+
+
   return (
     <main className="game-page">
       <GameHeader
@@ -508,10 +573,11 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         turn={turn}
         status={status}
         playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
-        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
+        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · ${botLevel} bot`}
         onTitleClick={onHome}
         statusLabelOverride={headerStatusLabel}
         turnLabelOverride={headerTurnLabel}
+        scoreLabel={headerScoreLabel}
       />
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel">
@@ -523,11 +589,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             <span className="mode-badge">{isDailyAI ? 'Daily' : '1v1'}</span>
           </div>
           <div className="score-stack">
-            <span className={turn === 'white' && status === 'active' ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/white-pawn.png" alt="" draggable={false} />White <strong>{score.white}</strong></span>
-            <span className={turn === 'black' && status === 'active' ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/black-pawn.png" alt="" draggable={false} />Black <strong>{score.black}</strong></span>
+            <CapturedScoreRow side="white" moves={moveHistory} scoringSide={playerColor} isActive={turn === 'white' && status === 'active'} />
+            <CapturedScoreRow side="black" moves={moveHistory} scoringSide={playerColor} isActive={turn === 'black' && status === 'active'} />
           </div>
           <div className="info-stack">
-            <p><span>🎮 Game</span><strong>{roundNumber}/{config.maxGames}</strong></p>
             <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
             <p><span>🌱 Daily seed</span><strong>{dailySeedInfo.seed}</strong></p>
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>
@@ -555,6 +620,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             checkedKingIndex={checkedKingIndex}
             isFlipped={isFlipped}
             isInteractive={!isPreviewing && isBoardReady && status === 'active'}
+            scoringSide={playerColor}
             spawnKey={roundResetId}
             onSquareClick={handleSquareClick}
             onDragStart={handleDragStart}
@@ -578,6 +644,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               emptyPrimary="No moves yet."
               emptySecondary="Select a piece to see legal moves."
               activePly={previewPly}
+              scoringSide={playerColor}
               onSelectPly={(ply) => setPreviewPly(ply >= latestPly ? null : ply)}
             />
           </ol>
@@ -602,13 +669,48 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           result={roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'}
           winner={roundResult.winner}
           eyebrow={matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}
-          title={matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}
-          summary={`Score: White ${score.white} - Black ${score.black}. ${isDailyAI ? 'Daily ladder mode.' : matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}`}
+          title={matchWinner ? 'Match complete' : roundResult.status === 'draw' ? 'Draw' : roundResult.didPlayerWin ? 'You won' : 'You lost'}
+          summary={roundResult.message}
           progressionMessage={roundResult.progressionMessage}
+          details={(
+            <>
+              <div className="score-result-bento" aria-label="Score breakdown">
+                <div className="score-hero-tile">
+                  <span>Score</span>
+                  <strong>{scoreBreakdown.totalScore}</strong>
+                  {localBestScore && <small>Local best {localBestScore.score}</small>}
+                </div>
+                <div className="score-mini-grid">
+                  <p><span>Result</span><strong>+{scoreBreakdown.resultBonus}</strong></p>
+                  <p><span>Speed</span><strong>+{scoreBreakdown.speedBonus}</strong></p>
+                  <p><span>Captures</span><strong>{scoreBreakdown.capturePoints >= 0 ? `+${scoreBreakdown.capturePoints}` : scoreBreakdown.capturePoints}</strong></p>
+                  <p><span>Moves</span><strong>{scoreBreakdown.fullMoves}</strong></p>
+                  <p><span>Side</span><strong>{playerColor === 'white' ? 'White' : 'Black'}</strong></p>
+                  <p><span>Setup</span><strong>{dailySeedInfo.backRankCode}</strong></p>
+                </div>
+                <label className="name-capture-form inline-name-form">
+                  <span>Name</span>
+                  <input value={displayNameDraft} onChange={(event) => setDisplayNameDraft(event.target.value)} maxLength={24} />
+                </label>
+              </div>
+              {leaderboard.length > 0 && (
+                <div className="leaderboard-mini">
+                  <h3>Today’s Best Scores</h3>
+                  <div className="leaderboard-table">
+                    <div className="leaderboard-row leaderboard-head"><span>Rank</span><span>Name</span><span>Score</span><span>Moves</span><span>Side</span><span>Result</span></div>
+                    {leaderboard.slice(0, 5).map((entry, index) => (
+                      <div className="leaderboard-row" key={entry.id}><span>{index + 1}</span><span>{entry.display_name}</span><span>{entry.score}</span><span>{entry.moves}</span><span>{entry.side}</span><span>{entry.result}</span></div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {scoreSubmitMessage && <p className="panel-note">{scoreSubmitMessage}</p>}
+            </>
+          )}
           actions={(
             <>
-              {!matchWinner && roundResult.status !== 'draw' && <button type="button" onClick={nextRound}>Next Game</button>}
-              {!matchWinner && roundResult.status === 'draw' && <button type="button" onClick={nextRound}>Replay Game</button>}
+              <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Submit Score'}</button>
+              {!matchWinner && <button type="button" onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay Game' : 'Next Game'}</button>}
               <button type="button" onClick={requestRestart}>Restart Match</button>
             </>
           )}

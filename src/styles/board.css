@@ -817,3 +817,61 @@
   opacity: 0.98;
   transform: none;
 }
+
+.capture-score-pop {
+  position: absolute;
+  z-index: 6;
+  top: 18%;
+  right: 14%;
+  padding: 4px 8px;
+  border: 1px solid rgba(247, 207, 114, 0.68);
+  border-radius: 999px;
+  color: #4f473b;
+  background: rgba(255, 251, 239, 0.9);
+  box-shadow: 0 8px 16px rgba(80, 122, 108, 0.16);
+  font-size: clamp(0.78rem, 1.4vw, 1rem);
+  font-weight: 950;
+  pointer-events: none;
+  animation: capture-score-rise 760ms ease-out both;
+}
+
+@keyframes capture-score-rise {
+  0% { opacity: 0; transform: translateY(8px) scale(0.88); }
+  18% { opacity: 1; transform: translateY(0) scale(1.05); }
+  100% { opacity: 0; transform: translateY(-24px) scale(0.96); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capture-score-pop { animation: capture-score-fade 680ms ease-out both !important; }
+}
+
+@keyframes capture-score-fade {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.capture-score-penalty {
+  border-color: rgba(181, 79, 70, 0.5);
+  color: #b54f46;
+  background: rgba(255, 241, 236, 0.94);
+  box-shadow: 0 8px 16px rgba(181, 79, 70, 0.16);
+}
+
+/* Bigger, clearer capture point burst on the board */
+.capture-score-pop {
+  top: 12%;
+  right: 10%;
+  padding: 6px 11px;
+  border-color: rgba(101, 143, 113, 0.42);
+  color: #4f735f;
+  background: rgba(255, 251, 239, 0.95);
+  box-shadow: 0 10px 20px rgba(80, 122, 108, 0.2);
+  font-size: clamp(1.08rem, 2.4vw, 1.72rem);
+  line-height: 1;
+}
+.capture-score-penalty {
+  border-color: rgba(181, 79, 70, 0.5);
+  color: #b54f46;
+  background: rgba(255, 241, 236, 0.96);
+  box-shadow: 0 10px 20px rgba(181, 79, 70, 0.18);
+}

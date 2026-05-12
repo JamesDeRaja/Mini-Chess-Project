@@ -56,6 +56,7 @@ export function moveDeltaToMove(board: Board, delta: MoveDelta): Move {
     isCapture: Boolean(capturedPiece ?? delta.captured),
     isPromotion: Boolean(promotionPiece),
     promotionPiece,
+    captureScore: delta.captureScore ?? null,
   };
 }
 
@@ -75,6 +76,7 @@ export function legacyMoveRecordToMove(board: Board, record: MoveRecord): Move {
     piece,
     capturedPiece,
     isCapture: Boolean(capturedPiece ?? record.captured),
+    captureScore: record.captureScore ?? null,
   };
 }
 

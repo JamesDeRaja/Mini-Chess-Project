@@ -36,6 +36,7 @@ export type Move = {
   isCapture: boolean;
   isPromotion?: boolean;
   promotionPiece?: PromotionPieceType;
+  captureScore?: number | null;
 };
 
 export type MoveRecord = {
@@ -44,6 +45,9 @@ export type MoveRecord = {
   piece: PieceType;
   color: Color;
   captured?: PieceType;
+  capturedColor?: Color;
+  capturingSide?: Color;
+  captureScore?: number;
   timestamp: number;
   clientMoveId?: string;
   playerId?: string;
@@ -57,6 +61,9 @@ export type MoveDelta = {
   piece: PieceType;
   color: Color;
   captured?: PieceType | null;
+  capturedColor?: Color | null;
+  capturingSide?: Color | null;
+  captureScore?: number | null;
   promotion?: PromotionPieceType | null;
   san?: string;
   createdAt: string;
