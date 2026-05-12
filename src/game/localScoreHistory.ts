@@ -39,10 +39,16 @@ export function scoreHistoryKey(entry: Pick<CompletedScoreEntry, 'seed' | 'mode'
   return `${entry.seed}:${entry.mode}:${entry.side}`;
 }
 
+function sortBestScores(entries: CompletedScoreEntry[]): CompletedScoreEntry[] {
+  return [...entries].sort((a, b) => b.score - a.score || a.moves - b.moves || a.createdAt.localeCompare(b.createdAt));
+}
+
 export function getLocalBestScore(seed: string, mode: string, side: Color): CompletedScoreEntry | null {
-  return readHistory()
-    .filter((entry) => entry.seed === seed && entry.mode === mode && entry.side === side)
-    .sort((a, b) => b.score - a.score || a.moves - b.moves || a.createdAt.localeCompare(b.createdAt))[0] ?? null;
+  return sortBestScores(readHistory().filter((entry) => entry.seed === seed && entry.mode === mode && entry.side === side))[0] ?? null;
+}
+
+export function getLocalBestOverallScore(): CompletedScoreEntry | null {
+  return sortBestScores(readHistory())[0] ?? null;
 }
 
 export function saveLocalScoreEntry(entry: Omit<CompletedScoreEntry, 'id' | 'playerId' | 'displayName' | 'createdAt'>): CompletedScoreEntry {

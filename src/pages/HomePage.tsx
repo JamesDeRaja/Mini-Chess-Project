@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, Shuffle, Users, X, Zap } from 'lucide-react';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
-import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
+import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
 import { getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { trackEvent } from '../app/analytics.js';
+import { getLocalBestOverallScore, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { getShareUrl } from '../app/seo.js';
 
 type HomePageProps = {
@@ -130,11 +131,12 @@ export function HomePage({
   const [shuffleMode, setShuffleModeState] = useState<ShuffleMode>(() => getCurrentShuffleMode());
   const [randomSetup] = useState(() => resolveSeedSourceForMode('random', { randomSeed: getPageSessionRandomGameSeed() }));
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
-  const [matchTarget, setMatchTarget] = useState({ seed: getDailySeed(todayKey), backRankCode: backRankCodeFromSeed(getDailySeed(todayKey)), mode: 'daily' as ShuffleMode });
+  const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(() => getLocalBestOverallScore());
+  const [matchTarget, setMatchTarget] = useState({ seed: getDailySeed(todayKey), backRankCode: dailyBackRankCodeFromSeed(getDailySeed(todayKey)), mode: 'daily' as ShuffleMode });
   const dailySeed = getDailySeed(todayKey);
-  const dailyBackRankCode = backRankCodeFromSeed(dailySeed);
+  const dailyBackRankCode = dailyBackRankCodeFromSeed(dailySeed);
   const selectedDailySeed = getDailySeed(calendarDateKey);
-  const selectedDailyBackRankCode = backRankCodeFromSeed(selectedDailySeed);
+  const selectedDailyBackRankCode = dailyBackRankCodeFromSeed(selectedDailySeed);
   const calendarCells = getCalendarCells(calendarMonthKey);
   const canGoNextMonth = shiftMonth(calendarMonthKey, 1) <= monthKeyFromDateKey(todayKey);
   const activeSeedSource = shuffleMode === 'daily' ? resolveSeedSourceForMode('daily', { dateKey: todayKey }) : randomSetup;
@@ -154,16 +156,17 @@ export function HomePage({
   }, []);
 
   useEffect(() => {
-    function refreshDailyAIProgress() {
+    function refreshHomeProgress() {
       setDailyAIProgress(getDailyAIProgress(todayKey));
+      setLocalBestScore(getLocalBestOverallScore());
     }
 
-    refreshDailyAIProgress();
-    window.addEventListener('focus', refreshDailyAIProgress);
-    window.addEventListener('storage', refreshDailyAIProgress);
+    refreshHomeProgress();
+    window.addEventListener('focus', refreshHomeProgress);
+    window.addEventListener('storage', refreshHomeProgress);
     return () => {
-      window.removeEventListener('focus', refreshDailyAIProgress);
-      window.removeEventListener('storage', refreshDailyAIProgress);
+      window.removeEventListener('focus', refreshHomeProgress);
+      window.removeEventListener('storage', refreshHomeProgress);
     };
   }, [todayKey]);
 
@@ -370,6 +373,14 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
           <span className="title-spark title-spark-mint" aria-hidden="true" />
           <h1 id="home-title" className="hero-title"><span>Pocket</span><span>Shuffle</span><span>Chess</span></h1>
           <p className="hero-tagline"><Zap size={18} aria-hidden="true" /><span>Fast chess without <strong>memorized openings</strong>.</span></p>
+
+          {localBestScore && (
+            <div className="home-high-score-card" aria-label="Your saved high score">
+              <span>High Score</span>
+              <strong>{localBestScore.score}</strong>
+              <small>{localBestScore.mode} · {localBestScore.side === 'white' ? 'White' : 'Black'} · {localBestScore.moves} moves</small>
+            </div>
+          )}
 
           <div className="shuffle-mode-panel">
             <div className="today-pill">

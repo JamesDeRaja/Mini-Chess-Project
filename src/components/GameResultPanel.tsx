@@ -41,6 +41,7 @@ function ResultAvatar({ winner, result }: { winner: Color | null; result: GameRe
 export function GameResultPanel({ result, winner, eyebrow, title, summary, progressionMessage, details, actions }: GameResultPanelProps) {
   const [dismissedResultKey, setDismissedResultKey] = useState<string | null>(null);
   const didWin = result === 'win';
+  const cardClassName = didWin ? 'winner-card player-winner-card' : result === 'stalemate' ? 'winner-card stalemate-result-card' : 'winner-card calm-result-card';
   const resultKey = `${result}:${winner ?? 'none'}:${title}:${summary}`;
 
   if (dismissedResultKey === resultKey) return null;
@@ -48,7 +49,7 @@ export function GameResultPanel({ result, winner, eyebrow, title, summary, progr
   return (
     <div className="winner-overlay" role="status">
       {didWin && <div className="confetti" />}
-      <div className={didWin ? 'winner-card player-winner-card' : 'winner-card calm-result-card'}>
+      <div className={cardClassName}>
         <button
           type="button"
           className="result-close-button"
