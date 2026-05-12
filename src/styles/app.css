@@ -4782,3 +4782,19 @@ button:focus-visible,
     margin-right: -27px;
   }
 }
+
+/* Treat captured pieces as one continuous stack across piece types */
+.score-capture-row .captured-piece-list {
+  margin-left: -20px;
+}
+.score-capture-row .captured-piece-token {
+  min-width: var(--captured-size);
+  margin-right: 0;
+}
+.score-capture-row .captured-piece-token + .captured-piece-token {
+  margin-left: calc(var(--captured-overlap) * -1);
+}
+@media (max-width: 760px) {
+  .score-capture-row .captured-piece-list { margin-left: -18px; }
+  .score-capture-row .captured-piece-token { min-width: var(--captured-size); margin-right: 0; }
+}

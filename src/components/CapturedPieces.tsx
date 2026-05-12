@@ -19,24 +19,18 @@ type CaptureSummary = {
   pieceGroups: CapturedPieceGroup[];
 };
 
-function CapturedPieceIcon({ color, type, count }: CapturedPieceGroup) {
+function CapturedPieceIcon({ color, type }: Pick<CapturedPieceGroup, 'color' | 'type'>) {
   const [imageFailed, setImageFailed] = useState(false);
-  const copies = Array.from({ length: count }, (_, index) => index);
 
   return (
-    <span
-      className="captured-piece-token"
-      title={`${count} ${color} ${type}${count === 1 ? '' : 's'}`}
-    >
-      {copies.map((index) => (
-        <span className="captured-piece-copy" key={`${color}-${type}-${index}`} aria-hidden="true">
-          {!imageFailed ? (
-            <img src={`/pieces/${color}-${type}.png`} alt="" draggable={false} onError={() => setImageFailed(true)} />
-          ) : (
-            <span className="captured-piece-fallback">{pieceFallbacks[color][type]}</span>
-          )}
-        </span>
-      ))}
+    <span className="captured-piece-token" title={`${color} ${type}`} aria-hidden="true">
+      <span className="captured-piece-copy">
+        {!imageFailed ? (
+          <img src={`/pieces/${color}-${type}.png`} alt="" draggable={false} onError={() => setImageFailed(true)} />
+        ) : (
+          <span className="captured-piece-fallback">{pieceFallbacks[color][type]}</span>
+        )}
+      </span>
     </span>
   );
 }
@@ -64,10 +58,12 @@ function getCaptureSummary(moves: Array<MoveRecord | MoveDelta>, side: Color): C
 }
 
 function CapturedPieceList({ pieceGroups }: { pieceGroups: CapturedPieceGroup[] }) {
+  const pieces = pieceGroups.flatMap((group) => Array.from({ length: group.count }, (_, index) => ({ color: group.color, type: group.type, key: `${group.color}-${group.type}-${index}` })));
+
   return (
     <div className="captured-piece-list">
-      {pieceGroups.length === 0 ? <span className="captured-empty">—</span> : pieceGroups.map((group) => (
-        <CapturedPieceIcon key={`${group.color}-${group.type}`} {...group} />
+      {pieces.length === 0 ? <span className="captured-empty">—</span> : pieces.map((piece) => (
+        <CapturedPieceIcon key={piece.key} color={piece.color} type={piece.type} />
       ))}
     </div>
   );
