@@ -1,3 +1,5 @@
+import { getOpponent } from './gameStatus.js';
+import { getCaptureScore } from './scoring.js';
 import type { Board, Move, MoveRecord } from './types.js';
 
 export function applyMove(board: Board, move: Move): Board {
@@ -29,6 +31,9 @@ export function createMoveRecord(move: Move, metadata: MoveRecordMetadata = {}):
     piece: move.piece.type,
     color: move.piece.color,
     captured: move.capturedPiece?.type,
+    capturedColor: move.capturedPiece?.color ?? (move.capturedPiece ? getOpponent(move.piece.color) : undefined),
+    capturingSide: move.capturedPiece ? move.piece.color : undefined,
+    captureScore: move.capturedPiece ? getCaptureScore(move.capturedPiece.type) : undefined,
     timestamp: Date.now(),
     clientMoveId: metadata.clientMoveId,
     playerId: metadata.playerId,
