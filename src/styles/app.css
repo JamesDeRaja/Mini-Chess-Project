@@ -4743,3 +4743,42 @@ button:focus-visible,
   }
   .score-capture-row .captured-piece-list { margin-left: -10px; }
 }
+
+/* Final capture/status polish */
+.status-copy .status-score-pill {
+  padding: 7px 14px;
+  font-size: clamp(1rem, 1.25vw, 1.22rem);
+  font-weight: 950;
+  letter-spacing: -0.035em;
+}
+.score-stack .score-capture-row {
+  gap: 0;
+}
+.score-capture-row .score-side-name {
+  min-width: 68px;
+  margin-right: -16px;
+}
+.score-capture-row .captured-piece-list {
+  margin-left: -18px;
+}
+.score-capture-row .captured-piece-token {
+  --captured-overlap: clamp(39px, 3.28vw, 49px);
+  min-width: 21px;
+  margin-right: -28px;
+}
+@media (max-width: 760px) {
+  .status-copy .status-score-pill {
+    padding: 5px 10px;
+    font-size: 0.9rem;
+  }
+  .score-capture-row .score-side-name {
+    min-width: 56px;
+    margin-right: -12px;
+  }
+  .score-capture-row .captured-piece-list { margin-left: -16px; }
+  .score-capture-row .captured-piece-token {
+    --captured-overlap: 41px;
+    min-width: 18px;
+    margin-right: -27px;
+  }
+}

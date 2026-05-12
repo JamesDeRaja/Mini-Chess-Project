@@ -58,7 +58,6 @@ export function GameHeader({ title, turn, status, playerRole, details, onTitleCl
         {details && <p className="game-details">{details}</p>}
       </div>
       <div className="status-card" aria-live="polite">
-        <span className={`status-corner-dot status-dot-${dotState}`} aria-label={`${dotState} status`} />
         <div className={`status-avatar ${avatarColor === 'black' ? 'black-avatar' : 'white-avatar'}`} role="img" aria-label={avatarLabel}>
           <img className="status-piece-img" data-piece="pawn" src={`/pieces/${avatarColor}-pawn.png`} alt="" draggable={false} />
         </div>
