@@ -51,6 +51,10 @@ export function getLocalBestOverallScore(): CompletedScoreEntry | null {
   return sortBestScores(readHistory())[0] ?? null;
 }
 
+export function getLocalBestScoreForSeedMode(seed: string, mode: string): CompletedScoreEntry | null {
+  return sortBestScores(readHistory().filter((entry) => entry.seed === seed && entry.mode === mode))[0] ?? null;
+}
+
 export function saveLocalScoreEntry(entry: Omit<CompletedScoreEntry, 'id' | 'playerId' | 'displayName' | 'createdAt'>): CompletedScoreEntry {
   const completedEntry: CompletedScoreEntry = {
     ...entry,

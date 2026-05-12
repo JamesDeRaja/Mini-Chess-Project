@@ -65,15 +65,15 @@ export function GameHeader({ title, turn, status, playerRole, details, onTitleCl
           {playerRole && <span>{playerRole}</span>}
           <span className="status-main-line">
             <strong className={`status-word status-word-${dotState}`}>{statusLabelOverride ?? statusLabel(status, isOwnTurn)}</strong>
-            {scoreLabel && (
-              <span className="status-score-pill">
-                <span className="status-score-pill-label">Score</span>
-                <span className="status-score-pill-value">{scoreLabel.replace(/^Score\s*/, '')}</span>
-              </span>
-            )}
           </span>
           <span className="turn-line">{turnLabelOverride ?? `${turn === 'white' ? 'White' : 'Black'} to move`}</span>
         </div>
+        {scoreLabel && (
+          <div className="status-score-section" aria-label={scoreLabel}>
+            <span className="status-score-pill-label">Score</span>
+            <span className="status-score-pill-value">{scoreLabel.replace(/^Score\s*/, '')}</span>
+          </div>
+        )}
       </div>
     </header>
   );

@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, Shuffle, Users, X, Zap } from 'lucide-react';
+import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
 import { getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { trackEvent } from '../app/analytics.js';
-import { getLocalBestOverallScore, type CompletedScoreEntry } from '../game/localScoreHistory.js';
+import { getLocalBestScoreForSeedMode, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { getShareUrl } from '../app/seo.js';
+import { fetchLeaderboard, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
 
 type HomePageProps = {
   initialModal?: Exclude<ModalName, null>;
@@ -131,7 +132,8 @@ export function HomePage({
   const [shuffleMode, setShuffleModeState] = useState<ShuffleMode>(() => getCurrentShuffleMode());
   const [randomSetup] = useState(() => resolveSeedSourceForMode('random', { randomSeed: getPageSessionRandomGameSeed() }));
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
-  const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(() => getLocalBestOverallScore());
+  const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(() => getLocalBestScoreForSeedMode(getDailySeed(todayKey), 'daily'));
+  const [homeLeaderboard, setHomeLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [matchTarget, setMatchTarget] = useState({ seed: getDailySeed(todayKey), backRankCode: dailyBackRankCodeFromSeed(getDailySeed(todayKey)), mode: 'daily' as ShuffleMode });
   const dailySeed = getDailySeed(todayKey);
   const dailyBackRankCode = dailyBackRankCodeFromSeed(dailySeed);
@@ -158,7 +160,7 @@ export function HomePage({
   useEffect(() => {
     function refreshHomeProgress() {
       setDailyAIProgress(getDailyAIProgress(todayKey));
-      setLocalBestScore(getLocalBestOverallScore());
+      setLocalBestScore(getLocalBestScoreForSeedMode(getDailySeed(todayKey), 'daily'));
     }
 
     refreshHomeProgress();
@@ -169,6 +171,10 @@ export function HomePage({
       window.removeEventListener('storage', refreshHomeProgress);
     };
   }, [todayKey]);
+
+  useEffect(() => {
+    fetchLeaderboard(dailySeed, 'daily').then((scores) => setHomeLeaderboard(scores.slice(0, 10))).catch(() => setHomeLeaderboard([]));
+  }, [dailySeed]);
 
   function handleDateChange(nextDateKey: string) {
     if (nextDateKey > todayKey) {
@@ -362,6 +368,17 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
 
   return (
     <main className="home-page">
+      <aside className="home-leaderboard-chip" aria-label="Today’s leaderboard">
+        <Trophy size={18} aria-hidden="true" />
+        <div>
+          <strong>Today’s Top 10</strong>
+          <ol>
+            {homeLeaderboard.length > 0 ? homeLeaderboard.map((entry, index) => (
+              <li key={entry.id}><span>{index + 1}. {entry.display_name}</span><b>{entry.score}</b></li>
+            )) : <li><span>No daily scores yet</span><b>—</b></li>}
+          </ol>
+        </div>
+      </aside>
       <section className="home-hero-shell" aria-labelledby="home-title">
         <div className="hero-copy">
           <div className="brand-row">
@@ -373,14 +390,6 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
           <span className="title-spark title-spark-mint" aria-hidden="true" />
           <h1 id="home-title" className="hero-title"><span>Pocket</span><span>Shuffle</span><span>Chess</span></h1>
           <p className="hero-tagline"><Zap size={18} aria-hidden="true" /><span>Fast chess without <strong>memorized openings</strong>.</span></p>
-
-          {localBestScore && (
-            <div className="home-high-score-card" aria-label="Your saved high score">
-              <span>High Score</span>
-              <strong>{localBestScore.score}</strong>
-              <small>{localBestScore.mode} · {localBestScore.side === 'white' ? 'White' : 'Black'} · {localBestScore.moves} moves</small>
-            </div>
-          )}
 
           <div className="shuffle-mode-panel">
             <div className="today-pill">
@@ -395,6 +404,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
                 <span>{copyStatus === 'copied' ? 'Copied' : 'Copy'}</span>
               </button>
               <span className="copy-status" aria-live="polite">{copyStatus === 'copied' ? 'Copied.' : ''}</span>
+              {localBestScore && <span className="today-high-score-chip">High Score: {localBestScore.score}</span>}
             </div>
             <div className="shuffle-mode-toggle" role="group" aria-label="Choose global shuffle mode">
               {(['daily', 'random'] as const).map((mode) => (
