@@ -1,4 +1,4 @@
-import { BACK_RANK_PIECES, BOARD_FILES, RANDOM_BACK_RANK_PIECES } from './constants.js';
+import { BOARD_FILES, RANDOM_BACK_RANK_PIECES } from './constants.js';
 import type { Board, Color, PieceType } from './types.js';
 
 export const BACK_RANK_CODE_PATTERN = /^[KQRBNP]{5}$/i;
@@ -113,13 +113,7 @@ export function backRankCodeFromPieceOrder(pieceOrder: PieceType[]): string {
 }
 
 export function backRankCodeFromSeed(seed: string): string {
-  const random = seededRandom(seed);
-  const pieces = [...BACK_RANK_PIECES];
-  for (let index = pieces.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(random() * (index + 1));
-    [pieces[index], pieces[swapIndex]] = [pieces[swapIndex], pieces[index]];
-  }
-  return backRankCodeFromPieceOrder(pieces);
+  return randomBackRankCodeFromSeed(seed);
 }
 
 export function randomBackRankCodeFromSeed(seed: string): string {
