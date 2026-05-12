@@ -95,7 +95,7 @@ export function getDailyAIPlayerColor(progress: DailyAIProgress): Color {
   return 'white';
 }
 
-export function handleDailyAIGameResult(progress: DailyAIProgress, result: DailyAIGameResult): DailyAIProgress {
+export function getNextDailyAIProgress(progress: DailyAIProgress, result: DailyAIGameResult): DailyAIProgress {
   const nextProgress: DailyAIProgress = {
     ...progress,
     gamesPlayed: progress.gamesPlayed + 1,
@@ -115,7 +115,11 @@ export function handleDailyAIGameResult(progress: DailyAIProgress, result: Daily
     }
   }
 
-  return saveDailyAIProgress(nextProgress);
+  return sanitizeDailyAIProgress(progress.dateKey, nextProgress);
+}
+
+export function handleDailyAIGameResult(progress: DailyAIProgress, result: DailyAIGameResult): DailyAIProgress {
+  return saveDailyAIProgress(getNextDailyAIProgress(progress, result));
 }
 
 export function getDailyAIStatusLine(progress: DailyAIProgress): string {

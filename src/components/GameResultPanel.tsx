@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { Color } from '../game/types.js';
 
-export type GameResult = 'win' | 'loss' | 'draw' | 'spectator';
+export type GameResult = 'win' | 'loss' | 'draw' | 'stalemate' | 'spectator';
 
 type GameResultPanelProps = {
   result: GameResult;
@@ -14,12 +14,13 @@ type GameResultPanelProps = {
   actions: ReactNode;
 };
 
-function ResultAvatar({ winner }: { winner: Color | null }) {
+function ResultAvatar({ winner, result }: { winner: Color | null; result: GameResult }) {
   if (!winner) {
+    const pieceType = result === 'stalemate' ? 'king' : 'pawn';
     return (
-      <div className="result-piece-pair" role="img" aria-label="Draw result">
-        <img className="result-piece-img" data-piece="pawn" src="/pieces/white-pawn.png" alt="" draggable={false} />
-        <img className="result-piece-img" data-piece="pawn" src="/pieces/black-pawn.png" alt="" draggable={false} />
+      <div className="result-piece-pair" role="img" aria-label={result === 'stalemate' ? 'Stalemate result' : 'Draw result'}>
+        <img className="result-piece-img" data-piece={pieceType} src={`/pieces/white-${pieceType}.png`} alt="" draggable={false} />
+        <img className="result-piece-img" data-piece={pieceType} src={`/pieces/black-${pieceType}.png`} alt="" draggable={false} />
       </div>
     );
   }
@@ -56,7 +57,7 @@ export function GameResultPanel({ result, winner, eyebrow, title, summary, progr
         >
           ×
         </button>
-        <ResultAvatar winner={winner} />
+        <ResultAvatar winner={winner} result={result} />
         <p className="eyebrow">{eyebrow}</p>
         <h2>{title}</h2>
         <p>{summary}</p>
