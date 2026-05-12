@@ -5603,3 +5603,19 @@ button:focus-visible,
     z-index: 90 !important;
   }
 }
+
+/* Keep terminal status text on one line without resizing the header card. */
+.status-word {
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+}
+.status-word-neutral {
+  font-size: clamp(1.15rem, 2.2vw, 1.75rem);
+  line-height: 1;
+}
+@media (max-width: 760px) {
+  .status-word-neutral {
+    font-size: clamp(0.95rem, 4.3vw, 1.25rem);
+  }
+}
