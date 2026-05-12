@@ -22,14 +22,22 @@ type CaptureSummary = {
 
 function CapturedPieceIcon({ color, type, count }: CapturedPieceGroup) {
   const [imageFailed, setImageFailed] = useState(false);
+  const copies = Array.from({ length: count }, (_, index) => index);
+
   return (
-    <span className="captured-piece-token" title={`${count} ${color} ${type}${count === 1 ? '' : 's'}`}>
-      {!imageFailed ? (
-        <img src={`/pieces/${color}-${type}.png`} alt="" draggable={false} onError={() => setImageFailed(true)} />
-      ) : (
-        <span className="captured-piece-fallback" aria-hidden="true">{pieceFallbacks[color][type]}</span>
-      )}
-      {count > 1 && <span className="captured-piece-count" aria-hidden="true">×{count}</span>}
+    <span
+      className="captured-piece-token"
+      title={`${count} ${color} ${type}${count === 1 ? '' : 's'}`}
+    >
+      {copies.map((index) => (
+        <span className="captured-piece-copy" key={`${color}-${type}-${index}`} aria-hidden="true">
+          {!imageFailed ? (
+            <img src={`/pieces/${color}-${type}.png`} alt="" draggable={false} onError={() => setImageFailed(true)} />
+          ) : (
+            <span className="captured-piece-fallback">{pieceFallbacks[color][type]}</span>
+          )}
+        </span>
+      ))}
     </span>
   );
 }
