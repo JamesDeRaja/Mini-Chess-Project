@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { Board } from '../components/Board.js';
+import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
 import { MoveHistory } from '../components/MoveHistory.js';
@@ -10,11 +12,15 @@ import { createInitialBoard } from '../game/createInitialBoard.js';
 import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
-import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../game/seed.js';
+import { deriveBackRankCodeFromBoard } from '../game/seed.js';
+import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
+import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
+import { calculateGameScore, getMoveCaptureRecord } from '../game/scoring.js';
 import { playCheckSound, playMoveSound } from '../game/sound.js';
 import { applyMoveDelta, isMoveDelta, moveDeltaToMove, rebuildBoardFromHistory, replayMoves } from '../game/moveDelta.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveDelta, MoveRecord } from '../game/types.js';
 import { createOnlineGame, createSeededGame, joinOnlineGame, submitOnlineGameAction, submitOnlineMove } from '../multiplayer/gameApi.js';
+import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
 import type { OnlineGameRecord } from '../multiplayer/gameApi.js';
 import { getPlayerId } from '../multiplayer/playerSession.js';
 import { subscribeToGame, unsubscribeFromGame } from '../multiplayer/realtime.js';
@@ -60,6 +66,7 @@ function toDisplayMove(move: MoveDelta | MoveRecord): Move {
     isCapture: Boolean(move.captured),
     isPromotion: isMoveDelta(move) ? Boolean(move.promotion) : false,
     promotionPiece: isMoveDelta(move) ? move.promotion ?? undefined : undefined,
+    captureScore: getMoveCaptureRecord(move, 0)?.scoreValue ?? null,
   };
 }
 
@@ -95,18 +102,23 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [selectedSquare, setSelectedSquare] = useState<number | null>(null);
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<Move | null>(null);
+  const [isBoardReady, setIsBoardReady] = useState(false);
   const [moveHistory, setMoveHistory] = useState<Array<MoveDelta | MoveRecord>>([]);
   const [moveAnnouncement, setMoveAnnouncement] = useState('Online board ready.');
   const [seedLabel, setSeedLabel] = useState('Random');
   const [seedSource, setSeedSource] = useState<string | null>(null);
   const [backRankCode, setBackRankCode] = useState<string | null>(null);
   const [roundNumber, setRoundNumber] = useState(1);
-  const [scores, setScores] = useState({ whiteScore: 0, blackScore: 0 });
   const [resultType, setResultType] = useState<string | null>(null);
   const [drawOfferBy, setDrawOfferBy] = useState<Color | null>(null);
   const [gameActionPending, setGameActionPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [displayNameDraft, setDisplayNameDraft] = useState(() => getDisplayName());
+  const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(null);
+  const [submittedScore, setSubmittedScore] = useState(false);
+  const [scoreSubmitMessage, setScoreSubmitMessage] = useState<string | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [copied, setCopied] = useState(false);
   const [pendingClientMoveIds, setPendingClientMoveIds] = useState<Set<string>>(() => new Set());
   const historyListRef = useRef<HTMLOListElement | null>(null);
@@ -120,9 +132,12 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const isFlipped = manualBoardFlip ?? role === 'black';
   const displayBoard = useMemo(() => (isPreviewing ? replayMoves(initialReplayBoard, moveHistory.slice(0, previewPly)) : board), [board, initialReplayBoard, isPreviewing, moveHistory, previewPly]);
   const displayMove = isPreviewing && previewPly !== null && previewPly > 0 ? toDisplayMove(moveHistory[previewPly - 1]) : lastMove;
-  const activeLegalMoves = isPreviewing ? [] : legalMoves;
+  const activeLegalMoves = isPreviewing || !isBoardReady ? [] : legalMoves;
   const inviteLink = effectiveGameId ? buildInviteLink(effectiveGameId, matchMode) : null;
   const canNativeShare = typeof navigator !== 'undefined' && 'share' in navigator;
+  const handleBoardSpawnComplete = useCallback(() => {
+    setIsBoardReady(true);
+  }, []);
   const checkedKingIndex = useMemo(
     () => (!isPreviewing && displayBoard.length && isKingInCheck(displayBoard, turn) ? findKingIndex(displayBoard, turn) : null),
     [displayBoard, isPreviewing, turn],
@@ -135,7 +150,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const isCompleted = isFinishedGame || isLifecycleTerminal;
   const isOnlineGameReady = !isLifecycleTerminal && (status === 'active' || bothPlayersJoined);
   const shouldShowWaitingOverlay = !isCompleted && inviteState !== 'error' && !isOnlineGameReady;
-  const canInteractWithBoard = !isPreviewing && !shouldShowWaitingOverlay && !isCompleted && role === turn && !hasPendingMove;
+  const canInteractWithBoard = isBoardReady && !isPreviewing && !shouldShowWaitingOverlay && !isCompleted && role === turn && !hasPendingMove;
   const displayStatus: GameStatus = isOnlineGameReady && status === 'waiting' ? 'active' : status;
   const primaryStatus = useMemo(() => {
     if (inviteState === 'creating_game') return 'Creating game...';
@@ -189,6 +204,43 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
               ? 'You won'
               : 'You lost'
     : undefined;
+  const scoreSide: Color = role === 'white' || role === 'black' ? role : winner ?? 'white';
+  const scoreMode = isDailySeed ? 'daily' : 'online';
+  const scoreBreakdown = useMemo(() => calculateGameScore({ status, side: scoreSide, moveHistory }), [moveHistory, scoreSide, status]);
+  const headerScoreValue = isCompleted ? scoreBreakdown.totalScore : scoreBreakdown.capturePoints;
+  const headerScoreLabel = role === 'spectator' ? undefined : `Score ${headerScoreValue > 0 && !isCompleted ? '+' : ''}${headerScoreValue}`;
+
+  useEffect(() => {
+    if (!isCompleted || isLifecycleTerminal || role === 'spectator') return;
+    const entry = saveLocalScoreEntry({
+      seed: seedLabel,
+      backRankCode,
+      mode: scoreMode,
+      side: scoreSide,
+      result: status,
+      score: scoreBreakdown.totalScore,
+      moves: scoreBreakdown.fullMoves,
+    });
+    setLocalBestScore(getLocalBestScore(seedLabel, scoreMode, scoreSide) ?? entry);
+  }, [backRankCode, isCompleted, isLifecycleTerminal, role, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode, scoreSide, seedLabel, status]);
+
+  useEffect(() => {
+    if (!isCompleted || !isDailySeed) return;
+    fetchLeaderboard(seedLabel, scoreMode).then(setLeaderboard).catch(() => setLeaderboard([]));
+  }, [isCompleted, isDailySeed, scoreMode, seedLabel, submittedScore]);
+
+  async function handleSubmitScore() {
+    if (!isCompleted || role === 'spectator') return;
+    setScoreSubmitMessage('Submitting...');
+    try {
+      saveDisplayName(displayNameDraft);
+      await submitScore({ seed: seedLabel, backRankCode, mode: scoreMode, side: scoreSide, result: status, score: scoreBreakdown.totalScore, moves: scoreBreakdown.fullMoves, gameId: effectiveGameId });
+      setSubmittedScore(true);
+      setScoreSubmitMessage('Score submitted to today’s best scores.');
+    } catch {
+      setScoreSubmitMessage('Could not submit online, but your local score is saved.');
+    }
+  }
 
   function setPendingIds(updater: (ids: Set<string>) => Set<string>) {
     setPendingClientMoveIds((currentIds) => {
@@ -222,11 +274,11 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     const derivedBackRankCode = game.back_rank_code ?? deriveBackRankCodeFromBoard(game.board);
     const initialBoard = derivedBackRankCode ? createInitialBoard({ backRankCode: derivedBackRankCode }) : safeMoveHistory.length === 0 ? game.board : createInitialBoard();
     const rebuiltBoard = rebuildBoardFromHistory(safeMoveHistory, { backRankCode: derivedBackRankCode, fallbackBoard: game.board });
-    const estimatedScores = estimateMaterialScores(safeMoveHistory);
     const isNewGameRecord = confirmedGameRef.current?.id !== game.id;
     if (isNewGameRecord) {
       setManualBoardFlip(null);
       setPreviewPly(null);
+      setIsBoardReady(false);
     }
     confirmedGameRef.current = game;
     setInitialReplayBoard(initialBoard);
@@ -253,10 +305,6 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     setRoundNumber(game.round_number ?? 1);
     setResultType(game.result_type ?? null);
     setDrawOfferBy(getDrawOfferBy(game));
-    setScores({
-      whiteScore: game.white_score ?? estimatedScores.whiteScore,
-      blackScore: game.black_score ?? estimatedScores.blackScore,
-    });
     updateInviteStateFromGame(game);
   }
 
@@ -400,12 +448,12 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
         setStatus(game.status);
         setWhitePlayerId(game.white_player_id);
         setBlackPlayerId(game.black_player_id);
-        setScores(estimateMaterialScores(nextHistory));
         updateInviteStateFromGame(game);
         const isNewGameRecord = confirmedGameRef.current?.id !== game.id;
     if (isNewGameRecord) {
       setManualBoardFlip(null);
       setPreviewPly(null);
+      setIsBoardReady(false);
     }
     confirmedGameRef.current = game;
         setSelectedSquare(null);
@@ -476,54 +524,27 @@ Can you beat it?`,
       url: inviteLink,
     };
 
-    if (canNativeShare) {
-      try {
-        await navigator.share(shareData);
-        setCopied(true);
-      } catch {
-        return;
-      }
-    } else {
-      await navigator.clipboard.writeText(`${shareData.text}
+    const shareText = `${shareData.text}
 
-${inviteLink}`);
+${inviteLink}`;
+
+    try {
+      await navigator.clipboard.writeText(shareText);
       setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // Native share still gives players an immediate path on browsers that block clipboard writes.
     }
-    window.setTimeout(() => setCopied(false), 1600);
-  }
-
-  async function handleShareResult() {
-    trackEvent('share_button_click', { type: 'result', seed: seedLabel, result: onlineResultTitle });
-    const resultText = `${onlineResultTitle} in Pocket Shuffle Chess.
-
-${shareSetupLine}
-
-${onlineResultSummary}
-
-Seed: ${seedLabel}
-Back rank: ${backRankCode ?? 'Setup pending'}
-
-Fast chess without memorized openings.
-Can you beat it?`;
-    const shareData = {
-      title: 'Pocket Shuffle Chess result',
-      text: resultText,
-      url: inviteLink ?? window.location.href,
-    };
 
     if (canNativeShare) {
       try {
         await navigator.share(shareData);
-        setCopied(true);
       } catch {
         return;
       }
-    } else {
-      await navigator.clipboard.writeText(`${resultText} ${shareData.url}`);
-      setCopied(true);
     }
-    window.setTimeout(() => setCopied(false), 1600);
   }
+
 
   async function handleCreateNewChallenge() {
     setError(null);
@@ -575,12 +596,10 @@ Can you beat it?`;
     const nextTurn = getOpponent(turn);
     const nextStatus = getStatusForTurn(nextBoard, nextTurn);
     const optimisticHistory = [...moveHistory, createMoveRecord(selectedMove, { clientMoveId, playerId })];
-    const materialScores = estimateMaterialScores(optimisticHistory);
     setBoard(nextBoard);
     setTurn(nextTurn);
     setStatus(nextStatus);
     setMoveHistory(optimisticHistory);
-    setScores(materialScores);
     setLastMove(selectedMove);
     setMoveAnnouncement(`${selectedMove.piece.color === 'white' ? 'White' : 'Black'} ${selectedMove.piece.type} moved from ${squareLabel(selectedMove.from % 5, Math.floor(selectedMove.from / 5))} to ${squareLabel(selectedMove.to % 5, Math.floor(selectedMove.to / 5))}${selectedMove.isCapture ? ' and captured a piece' : ''}.`);
     setSelectedSquare(null);
@@ -668,7 +687,7 @@ Can you beat it?`;
 
   return (
     <main className="game-page">
-      <GameHeader title="Online Game" turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} statusLabelOverride={headerStatusLabel} turnLabelOverride={headerTurnLabel} />
+      <GameHeader title="Online Game" turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} statusLabelOverride={headerStatusLabel} turnLabelOverride={headerTurnLabel} scoreLabel={headerScoreLabel} />
       {toast && <p className="sync-toast" role="status">{toast}</p>}
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel online-match-panel">
@@ -680,8 +699,8 @@ Can you beat it?`;
             <span className="mode-badge">Online</span>
           </div>
           <div className="score-stack">
-            <span className={turn === 'white' && isOnlineGameReady && !isCompleted ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/white-pawn.png" alt="" draggable={false} />White <strong>{scores.whiteScore}</strong></span>
-            <span className={turn === 'black' && isOnlineGameReady && !isCompleted ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/black-pawn.png" alt="" draggable={false} />Black <strong>{scores.blackScore}</strong></span>
+            <CapturedScoreRow side="white" moves={moveHistory} scoringSide={scoreSide} isActive={turn === 'white' && isOnlineGameReady && !isCompleted} />
+            <CapturedScoreRow side="black" moves={moveHistory} scoringSide={scoreSide} isActive={turn === 'black' && isOnlineGameReady && !isCompleted} />
           </div>
           <div className="info-stack">
             <p><span className="info-label-with-piece"><img className="inline-pawn-icon" src={role === 'black' ? '/pieces/black-pawn.png' : '/pieces/white-pawn.png'} alt="" draggable={false} />You are</span><strong>{role === 'spectator' ? 'Spectating' : role === 'white' ? 'White' : 'Black'}</strong></p>
@@ -690,7 +709,6 @@ Can you beat it?`;
             {isOnlineGameReady && !isCompleted && <p><span>↻ Turn</span><strong>{turn === 'white' ? 'White' : 'Black'}</strong></p>}
             <p><span>🌱 Seed</span><strong>{seedLabel}</strong></p>
             <p><span>Back rank</span><strong>{backRankCode ?? 'Setup pending'}</strong></p>
-            <p><span>🎮 Game</span><strong>{roundNumber}</strong></p>
           </div>
           <p className="panel-note">{isOnlineGameReady ? (drawOfferBy ? `${drawOfferBy === role ? 'You offered a draw.' : 'Opponent offered a draw.'}` : 'Share remains available.') : shareIsLoading ? 'Share the invite link. Your friend joins when they open it.' : 'Send this link to a friend. The game starts when they join.'}</p>
           <div className="match-actions">
@@ -704,6 +722,7 @@ Can you beat it?`;
             <>
               <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
               <Board
+                key={`${effectiveGameId || 'new'}-${roundNumber}-${backRankCode ?? 'pending'}`}
                 ariaLabel={`Pocket Shuffle Chess online board. ${role === 'white' || role === 'black' ? `You are ${role}.` : 'Spectator view.'}`}
                 board={displayBoard}
                 selectedSquare={isPreviewing ? null : selectedSquare}
@@ -712,10 +731,12 @@ Can you beat it?`;
                 checkedKingIndex={checkedKingIndex}
                 isFlipped={isFlipped}
                 isInteractive={canInteractWithBoard}
+                scoringSide={scoreSide}
                 onSquareClick={handleSquareClick}
                 onDragStart={handleDragStart}
                 onDrop={handleDrop}
                 onDragCancel={() => { setSelectedSquare(null); setLegalMoves([]); }}
+                onSpawnComplete={handleBoardSpawnComplete}
               />
             </>
           )}
@@ -754,6 +775,7 @@ Can you beat it?`;
               emptyPrimary="No moves yet."
               emptySecondary={isCompleted ? 'Game over.' : isOnlineGameReady ? 'White can make the first move.' : 'Waiting for opponent.'}
               activePly={previewPly}
+              scoringSide={scoreSide}
               onSelectPly={(ply) => setPreviewPly(ply >= latestPly ? null : ply)}
             />
           </ol>
@@ -777,13 +799,50 @@ Can you beat it?`;
           result={onlineResult}
           winner={winner}
           eyebrow="Game complete"
-          title={onlineResultTitle}
+          title={onlineResult === 'win' ? 'You won' : onlineResult === 'loss' ? 'You lost' : onlineResult === 'spectator' ? 'Game complete' : 'Draw'}
           summary={onlineResultSummary}
+          details={(
+            <>
+              <div className="score-result-bento" aria-label="Score breakdown">
+                <div className="score-hero-tile">
+                  <span>Score</span>
+                  <strong>{scoreBreakdown.totalScore}</strong>
+                  {localBestScore && <small>Local best {localBestScore.score}</small>}
+                </div>
+                <div className="score-mini-grid">
+                  <p><span>Result</span><strong>+{scoreBreakdown.resultBonus}</strong></p>
+                  <p><span>Speed</span><strong>+{scoreBreakdown.speedBonus}</strong></p>
+                  <p><span>Captures</span><strong>{scoreBreakdown.capturePoints >= 0 ? `+${scoreBreakdown.capturePoints}` : scoreBreakdown.capturePoints}</strong></p>
+                  <p><span>Moves</span><strong>{scoreBreakdown.fullMoves}</strong></p>
+                  <p><span>Side</span><strong>{scoreSide === 'white' ? 'White' : 'Black'}</strong></p>
+                  <p><span>Setup</span><strong>{backRankCode ?? '—'}</strong></p>
+                </div>
+                {role !== 'spectator' && (
+                  <label className="name-capture-form inline-name-form">
+                    <span>Name</span>
+                    <input value={displayNameDraft} onChange={(event) => setDisplayNameDraft(event.target.value)} maxLength={24} />
+                  </label>
+                )}
+              </div>
+              {leaderboard.length > 0 && (
+                <div className="leaderboard-mini">
+                  <h3>Today’s Best Scores</h3>
+                  <div className="leaderboard-table">
+                    <div className="leaderboard-row leaderboard-head"><span>Rank</span><span>Name</span><span>Score</span><span>Moves</span><span>Side</span><span>Result</span></div>
+                    {leaderboard.slice(0, 5).map((entry, index) => (
+                      <div className="leaderboard-row" key={entry.id}><span>{index + 1}</span><span>{entry.display_name}</span><span>{entry.score}</span><span>{entry.moves}</span><span>{entry.side}</span><span>{entry.result}</span></div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {scoreSubmitMessage && <p className="panel-note">{scoreSubmitMessage}</p>}
+            </>
+          )}
           actions={(
             <>
+              {role !== 'spectator' && <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Submit Score'}</button>}
               {isLifecycleTerminal ? <button type="button" onClick={handleCreateNewChallenge}>Create New Challenge</button> : <button type="button" onClick={onNewOnlineGame}>New Online Game</button>}
               <button type="button" onClick={onHome}>Back Home</button>
-              <button type="button" onClick={handleShareResult}>Share Result</button>
             </>
           )}
         />
