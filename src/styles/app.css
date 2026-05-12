@@ -2037,7 +2037,7 @@ button:active:not(:disabled) {
 .today-pill {
   position: relative;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
   width: min(100%, 560px);
@@ -2690,7 +2690,7 @@ body.home-modal-open { overflow: hidden; }
   .decorative-home-pieces { display: none; }
 
   .today-pill {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 9px;
     width: 100%;
     padding: 9px;
@@ -2854,7 +2854,7 @@ body.home-modal-open { overflow: hidden; }
 
   .status-card {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     min-height: 0;
     width: 100%;
     padding: 9px 12px;
@@ -3024,7 +3024,7 @@ body.home-modal-open { overflow: hidden; }
 
   .score-stack span {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     justify-content: stretch;
     gap: 8px;
     text-align: left;
@@ -3929,7 +3929,7 @@ button:focus-visible,
 
   .status-card {
     justify-self: end;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     width: min(100%, 390px);
     min-height: 0;
     padding: 12px 15px;
@@ -4367,17 +4367,18 @@ button:focus-visible,
 .captured-pieces-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 10px;
+  gap: 8px;
   width: min(100%, 660px);
-  margin: 0 auto 8px;
+  margin: 0 auto 6px;
 }
+
 .captured-side {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  min-height: 38px;
-  padding: 6px 10px;
+  min-height: 34px;
+  padding: 5px 9px;
   border: 1px solid rgba(222, 217, 203, 0.7);
   border-radius: 16px;
   background: rgba(255, 251, 239, 0.72);
@@ -4392,9 +4393,10 @@ button:focus-visible,
   white-space: nowrap;
 }
 .captured-points { color: #4f735f; }
-.captured-piece-list { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
-.captured-piece-token { position: relative; display: inline-grid; grid-template-rows: 25px auto; place-items: center; min-width: 28px; min-height: 34px; }
-.captured-piece-token img { width: 34px; height: 34px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(40, 34, 24, 0.18)); }
+.captured-points-penalty { color: #9a665c; }
+.captured-piece-list { display: flex; flex-wrap: nowrap; align-items: center; gap: 2px; min-width: 0; overflow: hidden; }
+.captured-piece-token { position: relative; display: inline-grid; grid-template-rows: 24px auto; place-items: center; min-width: 24px; min-height: 30px; }
+.captured-piece-token img { width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(40, 34, 24, 0.18)); }
 .captured-piece-fallback { color: #453d36; font-size: 1.12rem; line-height: 1; }
 .captured-piece-count { margin-top: -1px; color: #647067; font-size: 0.62rem; font-weight: 950; line-height: 1; }
 .captured-empty { color: rgba(100, 112, 103, 0.55); font-weight: 900; }
@@ -4421,12 +4423,63 @@ button:focus-visible,
 .leaderboard-row { display: grid; grid-template-columns: 38px 1fr 58px 56px 48px 72px; gap: 8px; align-items: center; font-size: 0.82rem; }
 .leaderboard-head { color: #647067; font-weight: 950; text-transform: uppercase; letter-spacing: 0.06em; }
 @media (max-width: 760px) {
-  .captured-pieces-row { grid-template-columns: 1fr; gap: 6px; margin-bottom: 6px; }
-  .captured-side { min-height: 32px; padding: 5px 8px; }
-  .captured-label { font-size: 0.64rem; }
-  .captured-piece-list { gap: 6px; }
+  .captured-pieces-row { grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px; }
+  .captured-side { min-height: 30px; padding: 4px 7px; }
+  .captured-label { display: none; }
+  .captured-piece-list { gap: 1px; }
   .captured-piece-token { grid-template-rows: 22px auto; min-width: 24px; min-height: 30px; }
-  .captured-piece-token img { width: 29px; height: 29px; }
+  .captured-piece-token img { width: 26px; height: 26px; }
   .leaderboard-row { grid-template-columns: 30px 1fr 48px 44px 40px; }
   .leaderboard-row span:nth-child(6) { display: none; }
+}
+
+/* Compact scoring result layout */
+.winner-card { max-width: min(92vw, 580px); padding: clamp(22px, 3vw, 30px); }
+.winner-card h2 { font-size: clamp(1.9rem, 4.4vw, 3rem); line-height: 0.98; margin-bottom: 8px; }
+.winner-card > p:not(.eyebrow):not(.panel-note) { margin: 0 auto 8px; max-width: 440px; line-height: 1.35; }
+.score-result-bento {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 10px;
+  width: min(100%, 480px);
+  margin: 12px auto;
+}
+.score-hero-tile,
+.score-mini-grid,
+.inline-name-form {
+  border: 1px solid rgba(222, 217, 203, 0.72);
+  border-radius: 22px;
+  background: rgba(255, 251, 239, 0.72);
+  box-shadow: 0 10px 20px rgba(93, 117, 103, 0.08);
+}
+.score-hero-tile {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  min-height: 150px;
+  padding: 16px;
+}
+.score-hero-tile span,
+.inline-name-form span {
+  color: #647067;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.score-hero-tile strong {
+  color: #222428;
+  font-size: clamp(3.4rem, 9vw, 5.6rem);
+  line-height: 0.9;
+}
+.score-hero-tile small { color: #6f7d72; font-weight: 900; }
+.score-mini-grid { display: grid; gap: 6px; padding: 14px; }
+.score-mini-grid p { display: flex; justify-content: space-between; gap: 12px; margin: 0; line-height: 1.2; }
+.score-mini-grid span { color: #647067; font-weight: 850; }
+.score-mini-grid strong { color: #282a2e; font-weight: 950; }
+.inline-name-form { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; width: 100%; margin: 0; padding: 10px 12px; }
+.inline-name-form input { width: 100%; border: 0; background: transparent; padding: 6px 0; font-weight: 900; outline: none; }
+@media (max-width: 640px) {
+  .score-result-bento { grid-template-columns: 1fr; }
+  .score-hero-tile { min-height: 112px; }
 }

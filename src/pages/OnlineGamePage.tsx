@@ -13,7 +13,7 @@ import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../game/seed.js';
-import { getDisplayName, hasCustomDisplayName, saveDisplayName } from '../game/localPlayer.js';
+import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { calculateGameScore, getMoveCaptureRecord } from '../game/scoring.js';
 import { playCheckSound, playMoveSound } from '../game/sound.js';
@@ -723,7 +723,7 @@ ${inviteLink}`);
         <section className="board-column online-board-column">
           {board.length > 0 && (
             <>
-              <CapturedPieces moves={moveHistory} />
+              <CapturedPieces moves={moveHistory} scoringSide={scoreSide} />
               <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
               <Board
                 key={`${effectiveGameId || 'new'}-${roundNumber}-${backRankCode ?? 'pending'}`}
@@ -801,27 +801,31 @@ ${inviteLink}`);
           result={onlineResult}
           winner={winner}
           eyebrow="Game complete"
-          title={onlineResultTitle}
+          title={onlineResult === 'win' ? 'You won' : onlineResult === 'loss' ? 'You lost' : onlineResult === 'spectator' ? 'Game complete' : 'Draw'}
           summary={onlineResultSummary}
           details={(
             <>
-              <div className="score-breakdown" aria-label="Score breakdown">
-                <p><span>Result bonus</span><strong>+{scoreBreakdown.resultBonus}</strong></p>
-                <p><span>Speed bonus</span><strong>+{scoreBreakdown.speedBonus}</strong></p>
-                <p><span>Capture points</span><strong>+{scoreBreakdown.capturePoints}</strong></p>
-                <p><span>Moves</span><strong>{scoreBreakdown.fullMoves}</strong></p>
-                <p><span>Seed</span><strong>{seedLabel}</strong></p>
-                <p><span>Back rank</span><strong>{backRankCode ?? '—'}</strong></p>
-                <p><span>Side</span><strong>{scoreSide === 'white' ? 'White' : 'Black'}</strong></p>
-                <p className="score-breakdown-total"><span>Total score</span><strong>{scoreBreakdown.totalScore}</strong></p>
-                {localBestScore && <p><span>Local best</span><strong>{localBestScore.score}</strong></p>}
+              <div className="score-result-bento" aria-label="Score breakdown">
+                <div className="score-hero-tile">
+                  <span>Score</span>
+                  <strong>{scoreBreakdown.totalScore}</strong>
+                  {localBestScore && <small>Local best {localBestScore.score}</small>}
+                </div>
+                <div className="score-mini-grid">
+                  <p><span>Result</span><strong>+{scoreBreakdown.resultBonus}</strong></p>
+                  <p><span>Speed</span><strong>+{scoreBreakdown.speedBonus}</strong></p>
+                  <p><span>Captures</span><strong>{scoreBreakdown.capturePoints >= 0 ? `+${scoreBreakdown.capturePoints}` : scoreBreakdown.capturePoints}</strong></p>
+                  <p><span>Moves</span><strong>{scoreBreakdown.fullMoves}</strong></p>
+                  <p><span>Side</span><strong>{scoreSide === 'white' ? 'White' : 'Black'}</strong></p>
+                  <p><span>Setup</span><strong>{backRankCode ?? '—'}</strong></p>
+                </div>
+                {role !== 'spectator' && (
+                  <label className="name-capture-form inline-name-form">
+                    <span>Name</span>
+                    <input value={displayNameDraft} onChange={(event) => setDisplayNameDraft(event.target.value)} maxLength={24} />
+                  </label>
+                )}
               </div>
-              {!hasCustomDisplayName() && role !== 'spectator' && (
-                <label className="name-capture-form">
-                  <span>Display name for score sharing</span>
-                  <input value={displayNameDraft} onChange={(event) => setDisplayNameDraft(event.target.value)} maxLength={24} />
-                </label>
-              )}
               {leaderboard.length > 0 && (
                 <div className="leaderboard-mini">
                   <h3>Today’s Best Scores</h3>

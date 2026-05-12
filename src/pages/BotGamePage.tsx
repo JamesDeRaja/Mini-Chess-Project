@@ -23,7 +23,7 @@ import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, validateSeedInput } from '../game/seed.js';
-import { getDisplayName, hasCustomDisplayName, saveDisplayName } from '../game/localPlayer.js';
+import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { calculateGameScore, getCaptureScore } from '../game/scoring.js';
 import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
@@ -599,7 +599,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         </aside>
 
         <section className="board-column">
-          <CapturedPieces moves={moveHistory} />
+          <CapturedPieces moves={moveHistory} scoringSide={playerColor} />
           <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
           <Board
             key={`${dailySeedInfo.seed}-${roundNumber}-${roundResetId}-${playerColor}`}
@@ -658,28 +658,30 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           result={roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'}
           winner={roundResult.winner}
           eyebrow={matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}
-          title={matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}
-          summary={`Score: White ${score.white} - Black ${score.black}. ${isDailyAI ? 'Daily ladder mode.' : matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}`}
+          title={matchWinner ? 'Match complete' : roundResult.status === 'draw' ? 'Draw' : roundResult.didPlayerWin ? 'You won' : 'You lost'}
+          summary={roundResult.message}
           progressionMessage={roundResult.progressionMessage}
           details={(
             <>
-              <div className="score-breakdown" aria-label="Score breakdown">
-                <p><span>Result bonus</span><strong>+{scoreBreakdown.resultBonus}</strong></p>
-                <p><span>Speed bonus</span><strong>+{scoreBreakdown.speedBonus}</strong></p>
-                <p><span>Capture points</span><strong>+{scoreBreakdown.capturePoints}</strong></p>
-                <p><span>Moves</span><strong>{scoreBreakdown.fullMoves}</strong></p>
-                <p><span>Seed</span><strong>{dailySeedInfo.seed}</strong></p>
-                <p><span>Back rank</span><strong>{dailySeedInfo.backRankCode}</strong></p>
-                <p><span>Side</span><strong>{playerColor === 'white' ? 'White' : 'Black'}</strong></p>
-                <p className="score-breakdown-total"><span>Total score</span><strong>{scoreBreakdown.totalScore}</strong></p>
-                {localBestScore && <p><span>Local best</span><strong>{localBestScore.score}</strong></p>}
-              </div>
-              {!hasCustomDisplayName() && (
-                <label className="name-capture-form">
-                  <span>Display name for score sharing</span>
+              <div className="score-result-bento" aria-label="Score breakdown">
+                <div className="score-hero-tile">
+                  <span>Score</span>
+                  <strong>{scoreBreakdown.totalScore}</strong>
+                  {localBestScore && <small>Local best {localBestScore.score}</small>}
+                </div>
+                <div className="score-mini-grid">
+                  <p><span>Result</span><strong>+{scoreBreakdown.resultBonus}</strong></p>
+                  <p><span>Speed</span><strong>+{scoreBreakdown.speedBonus}</strong></p>
+                  <p><span>Captures</span><strong>{scoreBreakdown.capturePoints >= 0 ? `+${scoreBreakdown.capturePoints}` : scoreBreakdown.capturePoints}</strong></p>
+                  <p><span>Moves</span><strong>{scoreBreakdown.fullMoves}</strong></p>
+                  <p><span>Side</span><strong>{playerColor === 'white' ? 'White' : 'Black'}</strong></p>
+                  <p><span>Setup</span><strong>{dailySeedInfo.backRankCode}</strong></p>
+                </div>
+                <label className="name-capture-form inline-name-form">
+                  <span>Name</span>
                   <input value={displayNameDraft} onChange={(event) => setDisplayNameDraft(event.target.value)} maxLength={24} />
                 </label>
-              )}
+              </div>
               {leaderboard.length > 0 && (
                 <div className="leaderboard-mini">
                   <h3>Today’s Best Scores</h3>

@@ -15,6 +15,7 @@ export type ScoreBreakdown = {
   resultBonus: number;
   speedBonus: number;
   capturePoints: number;
+  capturePenalty: number;
   totalScore: number;
   fullMoves: number;
   captures: CaptureRecord[];
@@ -30,6 +31,10 @@ const captureScores: Partial<Record<PieceType, number>> = {
 
 export function getCaptureScore(pieceType: PieceType | null | undefined): number {
   return pieceType ? captureScores[pieceType] ?? 0 : 0;
+}
+
+export function getCapturePenaltyScore(pieceType: PieceType | null | undefined): number {
+  return Math.floor(getCaptureScore(pieceType) / 2);
 }
 
 function isScoredCapture(pieceType: PieceType | null | undefined): pieceType is Exclude<PieceType, 'king'> {
@@ -89,12 +94,16 @@ export function calculateGameScore({
   const result = getResultForSide(status, side);
   const didWin = result === 'checkmate_win';
   const fullMoves = getFullMoveCount(moveHistory.length);
-  const captures = getCaptureRecords(moveHistory).filter((capture) => capture.capturingSide === side);
+  const allCaptures = getCaptureRecords(moveHistory);
+  const captures = allCaptures.filter((capture) => capture.capturingSide === side);
+  const enemyCaptures = allCaptures.filter((capture) => capture.capturingSide !== side);
   const resultBonus = didWin ? 100 : result === 'stalemate' ? 20 : 0;
   const speedBonus = getSpeedBonus(didWin, fullMoves);
-  const capturePoints = captures.reduce((total, capture) => total + capture.scoreValue, 0);
-  const totalScore = result === 'loss' ? 0 : resultBonus + speedBonus + capturePoints;
-  return { resultBonus, speedBonus, capturePoints, totalScore, fullMoves, captures };
+  const earnedCapturePoints = captures.reduce((total, capture) => total + capture.scoreValue, 0);
+  const capturePenalty = enemyCaptures.reduce((total, capture) => total + getCapturePenaltyScore(capture.capturedPiece), 0);
+  const capturePoints = earnedCapturePoints - capturePenalty;
+  const totalScore = result === 'loss' ? 0 : Math.max(0, resultBonus + speedBonus + capturePoints);
+  return { resultBonus, speedBonus, capturePoints, capturePenalty, totalScore, fullMoves, captures };
 }
 
 export function isPlausibleScore(score: number, moves: number): boolean {

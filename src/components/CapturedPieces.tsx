@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getCaptureRecords } from '../game/scoring.js';
+import { getCapturePenaltyScore, getCaptureRecords } from '../game/scoring.js';
 import type { Color, MoveDelta, MoveRecord, PieceType } from '../game/types.js';
 
 const pieceFallbacks: Record<Color, Record<PieceType, string>> = {
@@ -39,28 +39,29 @@ function groupCapturedPieces(moves: Array<MoveRecord | MoveDelta>, side: Color):
   return [...groups.values()];
 }
 
-function CapturedSide({ side, moves }: { side: Color; moves: Array<MoveRecord | MoveDelta> }) {
+function CapturedSide({ side, moves, scoringSide }: { side: Color; moves: Array<MoveRecord | MoveDelta>; scoringSide?: Color }) {
   const captures = getCaptureRecords(moves).filter((capture) => capture.capturingSide === side);
   const pieceGroups = groupCapturedPieces(moves, side);
-  const points = captures.reduce((total, capture) => total + capture.scoreValue, 0);
+  const isEnemyCaptureRow = Boolean(scoringSide && side !== scoringSide);
+  const points = captures.reduce((total, capture) => total + (isEnemyCaptureRow ? getCapturePenaltyScore(capture.capturedPiece) : capture.scoreValue), 0);
+  const pointsLabel = isEnemyCaptureRow ? `-${points}` : `+${points}`;
   return (
     <div className={`captured-side captured-side-${side}`} aria-label={`Pieces captured by ${side}`}>
-      <span className="captured-label">{side === 'white' ? 'White captures' : 'Black captures'}</span>
       <div className="captured-piece-list">
         {pieceGroups.length === 0 ? <span className="captured-empty">—</span> : pieceGroups.map((group) => (
           <CapturedPieceIcon key={`${side}-${group.color}-${group.type}`} {...group} />
         ))}
       </div>
-      <span className="captured-points">+{points}</span>
+      <span className={isEnemyCaptureRow ? 'captured-points captured-points-penalty' : 'captured-points'}>{pointsLabel}</span>
     </div>
   );
 }
 
-export function CapturedPieces({ moves }: { moves: Array<MoveRecord | MoveDelta> }) {
+export function CapturedPieces({ moves, scoringSide }: { moves: Array<MoveRecord | MoveDelta>; scoringSide?: Color }) {
   return (
     <div className="captured-pieces-row" aria-label="Captured pieces">
-      <CapturedSide side="white" moves={moves} />
-      <CapturedSide side="black" moves={moves} />
+      <CapturedSide side="white" moves={moves} scoringSide={scoringSide} />
+      <CapturedSide side="black" moves={moves} scoringSide={scoringSide} />
     </div>
   );
 }
