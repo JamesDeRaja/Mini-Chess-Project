@@ -1,4 +1,4 @@
-import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
+import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
 
 const SITE_URL = 'https://chess.alphaden.club';
 const SITE_NAME = 'Pocket Shuffle Chess';
@@ -106,7 +106,7 @@ export function getSeoConfig(input: SeoInput): SeoConfig {
   if (input.routeName === 'daily') {
     const dateKey = input.dateKey ?? getUtcDateKey();
     const seed = getDailySeed(dateKey);
-    const backRankCode = backRankCodeFromSeed(seed);
+    const backRankCode = dailyBackRankCodeFromSeed(seed);
     const config = {
       title: 'Daily Shuffle Chess - Today’s Tactical Seed',
       description: `Play the ${dateKey} Pocket Shuffle Chess daily seed (${backRankCode}) and challenge your friends to the same tactical 5x6 setup.`,
