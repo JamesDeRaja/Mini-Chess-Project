@@ -5546,3 +5546,60 @@ button:focus-visible,
     border-radius: 24px;
   }
 }
+
+/* Score help v5: force the drawer to attach to the full result card, not the title row */
+.result-title-row,
+.result-title-row .score-help-shell {
+  position: static !important;
+}
+.winner-card:has(.result-title-row .score-help-drawer) {
+  position: relative !important;
+  overflow: visible !important;
+}
+.result-title-row .score-help-drawer {
+  position: absolute !important;
+  top: 0 !important;
+  right: auto !important;
+  bottom: 0 !important;
+  left: calc(100% - 1px) !important;
+  height: auto !important;
+  min-height: 100% !important;
+  max-height: none !important;
+  transform: none !important;
+}
+@media (max-width: 980px) {
+  .result-title-row .score-help-drawer {
+    position: absolute !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: calc(100% - 1px) !important;
+    width: min(390px, 72vw) !important;
+    min-width: 300px !important;
+    height: auto !important;
+    max-height: none !important;
+    transform: none !important;
+    border-radius: 0 30px 30px 0 !important;
+  }
+}
+@media (max-width: 700px) {
+  .winner-card:has(.result-title-row .score-help-drawer) {
+    transform: none !important;
+  }
+  .winner-card:has(.result-title-row .score-help-drawer)::after,
+  .result-title-row .score-help-drawer::before {
+    display: none !important;
+  }
+  .result-title-row .score-help-drawer {
+    position: fixed !important;
+    inset: 50% auto auto 50% !important;
+    width: min(92vw, 430px) !important;
+    min-width: 0 !important;
+    max-height: 82vh !important;
+    min-height: 0 !important;
+    height: auto !important;
+    transform: translate(-50%, -50%) !important;
+    border: 1px solid rgba(222, 217, 203, 0.9) !important;
+    border-radius: 28px !important;
+    z-index: 90 !important;
+  }
+}
