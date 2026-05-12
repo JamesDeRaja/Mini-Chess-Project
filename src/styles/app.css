@@ -6105,3 +6105,64 @@ button:focus-visible,
     min-height: 42px;
   }
 }
+
+/* Compact live-score chip: icon-only until leaderboard data changes, then briefly expands. */
+.home-leaderboard-chip {
+  overflow: hidden;
+  transition: width 220ms ease, height 220ms ease, padding 220ms ease, transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.home-leaderboard-chip.is-collapsed {
+  grid-template-columns: 1fr;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  border-radius: 999px;
+}
+.home-leaderboard-chip.is-collapsed > svg {
+  width: 24px;
+  height: 24px;
+}
+.home-leaderboard-chip.is-collapsed > div {
+  width: 0;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.home-leaderboard-chip.is-expanded {
+  width: min(300px, calc(100vw - 24px));
+}
+
+.player-greeting {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42em;
+  min-width: 0;
+  color: #7f9f86;
+  font-size: clamp(0.82rem, 1.15vw, 1rem);
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: none;
+}
+.player-greeting input {
+  width: min(15ch, 38vw);
+  min-width: 7ch;
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: #7f9f86;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  outline: none;
+}
+.player-greeting input::placeholder {
+  color: #7f9f86;
+  opacity: 1;
+}
+.player-greeting input:hover,
+.player-greeting input:focus {
+  border-bottom-color: rgba(127, 159, 134, 0.45);
+}

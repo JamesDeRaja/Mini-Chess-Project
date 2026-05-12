@@ -37,3 +37,7 @@ export function saveDisplayName(name: string): string {
 export function hasCustomDisplayName(): boolean {
   return typeof localStorage !== 'undefined' && Boolean(localStorage.getItem(displayNameKey));
 }
+
+export function clearDisplayName(): void {
+  if (typeof localStorage !== 'undefined') localStorage.removeItem(displayNameKey);
+}
