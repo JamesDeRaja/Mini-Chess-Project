@@ -94,7 +94,15 @@ export function Square({
       )}
       {isLastMoveDestination && <span className="move-impact" aria-hidden="true" />}
       {isLastMoveDestination && didLastMoveCapture && <span className="capture-shards" aria-hidden="true" />}
-      {isLastMoveDestination && didLastMoveCapture && captureScoreFeedback ? <span key={`capture-score-${squareIndex}-${captureScoreFeedback}`} className="capture-score-pop" aria-hidden="true">+{captureScoreFeedback}</span> : null}
+      {isLastMoveDestination && didLastMoveCapture && captureScoreFeedback ? (
+        <span
+          key={`capture-score-${squareIndex}-${captureScoreFeedback}`}
+          className={captureScoreFeedback < 0 ? 'capture-score-pop capture-score-penalty' : 'capture-score-pop'}
+          aria-hidden="true"
+        >
+          {captureScoreFeedback > 0 ? `+${captureScoreFeedback}` : captureScoreFeedback}
+        </span>
+      ) : null}
       {isLegalMove && <MoveHint isCapture={isCapture} />}
     </button>
   );

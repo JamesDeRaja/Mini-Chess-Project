@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, Flag, Handshake, RotateCcw, Shuffle } from 'lucide-react';
 import { Board } from '../components/Board.js';
-import { CapturedPieces } from '../components/CapturedPieces.js';
+import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
 import { MoveHistory } from '../components/MoveHistory.js';
@@ -233,7 +233,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [status, setStatus] = useState<GameStatus>('active');
   const [selectedSquare, setSelectedSquare] = useState<number | null>(null);
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
-  const [lastMove, setLastMove] = useState<(Pick<Move, 'from' | 'to'> & { isCapture?: boolean; captureScore?: number | null }) | null>(null);
+  const [lastMove, setLastMove] = useState<(Pick<Move, 'from' | 'to'> & { color?: Color; isCapture?: boolean; captureScore?: number | null }) | null>(null);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
   const [moveAnnouncement, setMoveAnnouncement] = useState('');
   const [score, setScore] = useState<MatchScore>({ white: 0, black: 0 });
@@ -365,7 +365,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setStatus(nextStatus);
     setSelectedSquare(null);
     setLegalMoves([]);
-    setLastMove({ from: move.from, to: move.to, isCapture: move.isCapture, captureScore: move.capturedPiece ? getCaptureScore(move.capturedPiece.type) : null });
+    setLastMove({ from: move.from, to: move.to, color: move.piece.color, isCapture: move.isCapture, captureScore: move.capturedPiece ? getCaptureScore(move.capturedPiece.type) : null });
     setMoveAnnouncement(`${move.piece.color === 'white' ? 'White' : 'Black'} ${move.piece.type} moved from ${squareLabel(move.from % 5, Math.floor(move.from / 5))} to ${squareLabel(move.to % 5, Math.floor(move.to / 5))}${move.isCapture ? ' and captured a piece' : ''}.`);
     setMoveHistory((history) => [...history, createMoveRecord(move)]);
     setPreviewPly(null);
@@ -563,7 +563,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         turn={turn}
         status={status}
         playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
-        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
+        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · ${botLevel} bot`}
         onTitleClick={onHome}
         statusLabelOverride={headerStatusLabel}
         turnLabelOverride={headerTurnLabel}
@@ -578,11 +578,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             <span className="mode-badge">{isDailyAI ? 'Daily' : '1v1'}</span>
           </div>
           <div className="score-stack">
-            <span className={turn === 'white' && status === 'active' ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/white-pawn.png" alt="" draggable={false} />White <strong>{score.white}</strong></span>
-            <span className={turn === 'black' && status === 'active' ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/black-pawn.png" alt="" draggable={false} />Black <strong>{score.black}</strong></span>
+            <CapturedScoreRow side="white" moves={moveHistory} scoringSide={playerColor} isActive={turn === 'white' && status === 'active'} />
+            <CapturedScoreRow side="black" moves={moveHistory} scoringSide={playerColor} isActive={turn === 'black' && status === 'active'} />
           </div>
           <div className="info-stack">
-            <p><span>🎮 Game</span><strong>{roundNumber}/{config.maxGames}</strong></p>
             <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
             <p><span>🌱 Daily seed</span><strong>{dailySeedInfo.seed}</strong></p>
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>
@@ -599,7 +598,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         </aside>
 
         <section className="board-column">
-          <CapturedPieces moves={moveHistory} scoringSide={playerColor} />
           <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
           <Board
             key={`${dailySeedInfo.seed}-${roundNumber}-${roundResetId}-${playerColor}`}
@@ -611,6 +609,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             checkedKingIndex={checkedKingIndex}
             isFlipped={isFlipped}
             isInteractive={!isPreviewing && isBoardReady && status === 'active'}
+            scoringSide={playerColor}
             spawnKey={roundResetId}
             onSquareClick={handleSquareClick}
             onDragStart={handleDragStart}
@@ -634,6 +633,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               emptyPrimary="No moves yet."
               emptySecondary="Select a piece to see legal moves."
               activePly={previewPly}
+              scoringSide={playerColor}
               onSelectPly={(ply) => setPreviewPly(ply >= latestPly ? null : ply)}
             />
           </ol>

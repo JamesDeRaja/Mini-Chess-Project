@@ -849,3 +849,10 @@
   0%, 70% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+.capture-score-penalty {
+  border-color: rgba(181, 79, 70, 0.5);
+  color: #b54f46;
+  background: rgba(255, 241, 236, 0.94);
+  box-shadow: 0 8px 16px rgba(181, 79, 70, 0.16);
+}

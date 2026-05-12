@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { BOARD_FILES, BOARD_RANKS } from '../game/constants.js';
 import { fileLabel, index } from '../game/coordinates.js';
-import type { Board as ChessBoard, Move, Piece as ChessPiece, PieceType } from '../game/types.js';
+import type { Board as ChessBoard, Color, Move, Piece as ChessPiece, PieceType } from '../game/types.js';
 import { Piece } from './Piece.js';
 import { Square } from './Square.js';
 
-type LastMove = (Pick<Move, 'from' | 'to'> & { isCapture?: boolean; captureScore?: number | null }) | null;
+type LastMove = (Pick<Move, 'from' | 'to'> & { color?: Color; piece?: Move['piece'] | PieceType; isCapture?: boolean; captureScore?: number | null }) | null;
 
 type BoardProps = {
   board: ChessBoard;
@@ -16,6 +16,7 @@ type BoardProps = {
   checkedKingIndex: number | null;
   isFlipped?: boolean;
   isInteractive?: boolean;
+  scoringSide?: Color;
   spawnKey?: string | number;
   onSquareClick: (squareIndex: number) => void;
   onDragStart?: (squareIndex: number) => Move[] | null;
@@ -106,6 +107,7 @@ export function Board({
   checkedKingIndex,
   isFlipped = false,
   isInteractive = true,
+  scoringSide,
   spawnKey,
   onSquareClick,
   onDragStart,
@@ -313,6 +315,12 @@ export function Board({
       const legalMove = visibleLegalMoves.find((move) => move.to === squareIndex);
       const isLastMoveDestination = lastMove?.to === squareIndex;
       const movedPieceType = isLastMoveDestination ? board[squareIndex]?.piece?.type ?? null : null;
+      const movedSide = lastMove?.color ?? (lastMove?.piece && typeof lastMove.piece === 'object' ? lastMove.piece.color : null);
+      const captureScoreFeedback = isLastMoveDestination && lastMove?.captureScore
+        ? scoringSide && movedSide && movedSide !== scoringSide
+          ? -lastMove.captureScore
+          : lastMove.captureScore
+        : null;
       const spawnOrder = rank * BOARD_FILES + file;
       squares.push(
         <Square
@@ -326,7 +334,7 @@ export function Board({
           isLastMoveDestination={isLastMoveDestination}
           didLastMoveCapture={Boolean(isLastMoveDestination && lastMove?.isCapture)}
           movedPieceType={movedPieceType}
-          captureScoreFeedback={isLastMoveDestination ? lastMove?.captureScore : null}
+          captureScoreFeedback={captureScoreFeedback}
           spawnOrder={spawnOrder}
           isKingInCheck={checkedKingIndex === squareIndex}
           isInteractive={isInteractive}

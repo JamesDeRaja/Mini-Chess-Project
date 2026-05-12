@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { Board } from '../components/Board.js';
-import { CapturedPieces } from '../components/CapturedPieces.js';
+import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
 import { MoveHistory } from '../components/MoveHistory.js';
@@ -12,7 +12,7 @@ import { createInitialBoard } from '../game/createInitialBoard.js';
 import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
-import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../game/seed.js';
+import { deriveBackRankCodeFromBoard } from '../game/seed.js';
 import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { calculateGameScore, getMoveCaptureRecord } from '../game/scoring.js';
@@ -109,7 +109,6 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [seedSource, setSeedSource] = useState<string | null>(null);
   const [backRankCode, setBackRankCode] = useState<string | null>(null);
   const [roundNumber, setRoundNumber] = useState(1);
-  const [scores, setScores] = useState({ whiteScore: 0, blackScore: 0 });
   const [resultType, setResultType] = useState<string | null>(null);
   const [drawOfferBy, setDrawOfferBy] = useState<Color | null>(null);
   const [gameActionPending, setGameActionPending] = useState(false);
@@ -273,7 +272,6 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     const derivedBackRankCode = game.back_rank_code ?? deriveBackRankCodeFromBoard(game.board);
     const initialBoard = derivedBackRankCode ? createInitialBoard({ backRankCode: derivedBackRankCode }) : safeMoveHistory.length === 0 ? game.board : createInitialBoard();
     const rebuiltBoard = rebuildBoardFromHistory(safeMoveHistory, { backRankCode: derivedBackRankCode, fallbackBoard: game.board });
-    const estimatedScores = estimateMaterialScores(safeMoveHistory);
     const isNewGameRecord = confirmedGameRef.current?.id !== game.id;
     if (isNewGameRecord) {
       setManualBoardFlip(null);
@@ -305,10 +303,6 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     setRoundNumber(game.round_number ?? 1);
     setResultType(game.result_type ?? null);
     setDrawOfferBy(getDrawOfferBy(game));
-    setScores({
-      whiteScore: game.white_score ?? estimatedScores.whiteScore,
-      blackScore: game.black_score ?? estimatedScores.blackScore,
-    });
     updateInviteStateFromGame(game);
   }
 
@@ -452,7 +446,6 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
         setStatus(game.status);
         setWhitePlayerId(game.white_player_id);
         setBlackPlayerId(game.black_player_id);
-        setScores(estimateMaterialScores(nextHistory));
         updateInviteStateFromGame(game);
         const isNewGameRecord = confirmedGameRef.current?.id !== game.id;
     if (isNewGameRecord) {
@@ -529,20 +522,25 @@ Can you beat it?`,
       url: inviteLink,
     };
 
+    const shareText = `${shareData.text}
+
+${inviteLink}`;
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // Native share still gives players an immediate path on browsers that block clipboard writes.
+    }
+
     if (canNativeShare) {
       try {
         await navigator.share(shareData);
-        setCopied(true);
       } catch {
         return;
       }
-    } else {
-      await navigator.clipboard.writeText(`${shareData.text}
-
-${inviteLink}`);
-      setCopied(true);
     }
-    window.setTimeout(() => setCopied(false), 1600);
   }
 
 
@@ -596,12 +594,10 @@ ${inviteLink}`);
     const nextTurn = getOpponent(turn);
     const nextStatus = getStatusForTurn(nextBoard, nextTurn);
     const optimisticHistory = [...moveHistory, createMoveRecord(selectedMove, { clientMoveId, playerId })];
-    const materialScores = estimateMaterialScores(optimisticHistory);
     setBoard(nextBoard);
     setTurn(nextTurn);
     setStatus(nextStatus);
     setMoveHistory(optimisticHistory);
-    setScores(materialScores);
     setLastMove(selectedMove);
     setMoveAnnouncement(`${selectedMove.piece.color === 'white' ? 'White' : 'Black'} ${selectedMove.piece.type} moved from ${squareLabel(selectedMove.from % 5, Math.floor(selectedMove.from / 5))} to ${squareLabel(selectedMove.to % 5, Math.floor(selectedMove.to / 5))}${selectedMove.isCapture ? ' and captured a piece' : ''}.`);
     setSelectedSquare(null);
@@ -701,8 +697,8 @@ ${inviteLink}`);
             <span className="mode-badge">Online</span>
           </div>
           <div className="score-stack">
-            <span className={turn === 'white' && isOnlineGameReady && !isCompleted ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/white-pawn.png" alt="" draggable={false} />White <strong>{scores.whiteScore}</strong></span>
-            <span className={turn === 'black' && isOnlineGameReady && !isCompleted ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/black-pawn.png" alt="" draggable={false} />Black <strong>{scores.blackScore}</strong></span>
+            <CapturedScoreRow side="white" moves={moveHistory} scoringSide={scoreSide} isActive={turn === 'white' && isOnlineGameReady && !isCompleted} />
+            <CapturedScoreRow side="black" moves={moveHistory} scoringSide={scoreSide} isActive={turn === 'black' && isOnlineGameReady && !isCompleted} />
           </div>
           <div className="info-stack">
             <p><span className="info-label-with-piece"><img className="inline-pawn-icon" src={role === 'black' ? '/pieces/black-pawn.png' : '/pieces/white-pawn.png'} alt="" draggable={false} />You are</span><strong>{role === 'spectator' ? 'Spectating' : role === 'white' ? 'White' : 'Black'}</strong></p>
@@ -711,7 +707,6 @@ ${inviteLink}`);
             {isOnlineGameReady && !isCompleted && <p><span>↻ Turn</span><strong>{turn === 'white' ? 'White' : 'Black'}</strong></p>}
             <p><span>🌱 Seed</span><strong>{seedLabel}</strong></p>
             <p><span>Back rank</span><strong>{backRankCode ?? 'Setup pending'}</strong></p>
-            <p><span>🎮 Game</span><strong>{roundNumber}</strong></p>
           </div>
           <p className="panel-note">{isOnlineGameReady ? (drawOfferBy ? `${drawOfferBy === role ? 'You offered a draw.' : 'Opponent offered a draw.'}` : 'Share remains available.') : shareIsLoading ? 'Share the invite link. Your friend joins when they open it.' : 'Send this link to a friend. The game starts when they join.'}</p>
           <div className="match-actions">
@@ -723,7 +718,6 @@ ${inviteLink}`);
         <section className="board-column online-board-column">
           {board.length > 0 && (
             <>
-              <CapturedPieces moves={moveHistory} scoringSide={scoreSide} />
               <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
               <Board
                 key={`${effectiveGameId || 'new'}-${roundNumber}-${backRankCode ?? 'pending'}`}
@@ -735,6 +729,7 @@ ${inviteLink}`);
                 checkedKingIndex={checkedKingIndex}
                 isFlipped={isFlipped}
                 isInteractive={canInteractWithBoard}
+                scoringSide={scoreSide}
                 onSquareClick={handleSquareClick}
                 onDragStart={handleDragStart}
                 onDrop={handleDrop}
@@ -778,6 +773,7 @@ ${inviteLink}`);
               emptyPrimary="No moves yet."
               emptySecondary={isCompleted ? 'Game over.' : isOnlineGameReady ? 'White can make the first move.' : 'Waiting for opponent.'}
               activePly={previewPly}
+              scoringSide={scoreSide}
               onSelectPly={(ply) => setPreviewPly(ply >= latestPly ? null : ply)}
             />
           </ol>

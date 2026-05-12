@@ -13,6 +13,13 @@ type CapturedPieceGroup = {
   count: number;
 };
 
+type CaptureSummary = {
+  pieceGroups: CapturedPieceGroup[];
+  points: number;
+  isPenalty: boolean;
+  pointsLabel: string;
+};
+
 function CapturedPieceIcon({ color, type, count }: CapturedPieceGroup) {
   const [imageFailed, setImageFailed] = useState(false);
   return (
@@ -39,20 +46,46 @@ function groupCapturedPieces(moves: Array<MoveRecord | MoveDelta>, side: Color):
   return [...groups.values()];
 }
 
-function CapturedSide({ side, moves, scoringSide }: { side: Color; moves: Array<MoveRecord | MoveDelta>; scoringSide?: Color }) {
+function getCaptureSummary(moves: Array<MoveRecord | MoveDelta>, side: Color, scoringSide?: Color): CaptureSummary {
   const captures = getCaptureRecords(moves).filter((capture) => capture.capturingSide === side);
-  const pieceGroups = groupCapturedPieces(moves, side);
-  const isEnemyCaptureRow = Boolean(scoringSide && side !== scoringSide);
-  const points = captures.reduce((total, capture) => total + (isEnemyCaptureRow ? getCapturePenaltyScore(capture.capturedPiece) : capture.scoreValue), 0);
-  const pointsLabel = isEnemyCaptureRow ? `-${points}` : `+${points}`;
+  const isPenalty = Boolean(scoringSide && side !== scoringSide);
+  const points = captures.reduce((total, capture) => total + (isPenalty ? getCapturePenaltyScore(capture.capturedPiece) : capture.scoreValue), 0);
+  return {
+    pieceGroups: groupCapturedPieces(moves, side),
+    points,
+    isPenalty,
+    pointsLabel: isPenalty ? `-${points}` : `+${points}`,
+  };
+}
+
+function CapturedPieceList({ pieceGroups }: { pieceGroups: CapturedPieceGroup[] }) {
+  return (
+    <div className="captured-piece-list">
+      {pieceGroups.length === 0 ? <span className="captured-empty">—</span> : pieceGroups.map((group) => (
+        <CapturedPieceIcon key={`${group.color}-${group.type}`} {...group} />
+      ))}
+    </div>
+  );
+}
+
+function CapturedSide({ side, moves, scoringSide }: { side: Color; moves: Array<MoveRecord | MoveDelta>; scoringSide?: Color }) {
+  const summary = getCaptureSummary(moves, side, scoringSide);
   return (
     <div className={`captured-side captured-side-${side}`} aria-label={`Pieces captured by ${side}`}>
-      <div className="captured-piece-list">
-        {pieceGroups.length === 0 ? <span className="captured-empty">—</span> : pieceGroups.map((group) => (
-          <CapturedPieceIcon key={`${side}-${group.color}-${group.type}`} {...group} />
-        ))}
-      </div>
-      <span className={isEnemyCaptureRow ? 'captured-points captured-points-penalty' : 'captured-points'}>{pointsLabel}</span>
+      <CapturedPieceList pieceGroups={summary.pieceGroups} />
+      <span className={summary.isPenalty ? 'captured-points captured-points-penalty' : 'captured-points'}>{summary.pointsLabel}</span>
+    </div>
+  );
+}
+
+export function CapturedScoreRow({ side, moves, scoringSide, isActive = false }: { side: Color; moves: Array<MoveRecord | MoveDelta>; scoringSide?: Color; isActive?: boolean }) {
+  const summary = getCaptureSummary(moves, side, scoringSide);
+  const sideLabel = side === 'white' ? 'White' : 'Black';
+  return (
+    <div className={`score-row score-capture-row ${isActive ? 'active-score-row' : ''}`} aria-label={`${sideLabel} captured pieces and points`}>
+      <strong className="score-side-name">{sideLabel}</strong>
+      <CapturedPieceList pieceGroups={summary.pieceGroups} />
+      <strong className={summary.isPenalty ? 'captured-points captured-points-penalty' : 'captured-points'}>{summary.pointsLabel}</strong>
     </div>
   );
 }
