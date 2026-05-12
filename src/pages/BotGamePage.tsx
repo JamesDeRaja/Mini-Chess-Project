@@ -213,7 +213,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const dailySeedInfo = useMemo(() => {
     if (seedValidation?.ok) {
       const safeBackRankCode = customBackRankCode && isValidBackRankCode(customBackRankCode) ? customBackRankCode.toUpperCase() : seedValidation.backRankCode;
-      return { dateKey: 'Custom', seed: seedValidation.normalizedSeed, backRankCode: safeBackRankCode };
+      return { dateKey: getUtcDateKey(), seed: seedValidation.normalizedSeed, backRankCode: safeBackRankCode };
     }
     const todayKey = getUtcDateKey();
     const dateKey = requestedDateKey && requestedDateKey <= todayKey ? requestedDateKey : todayKey;
@@ -221,6 +221,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     return { dateKey, seed, backRankCode: dailyBackRankCodeFromSeed(seed) };
   }, [customBackRankCode, requestedDateKey, seedValidation]);
   const isDailyAI = !customSeed;
+  const seedInfoLabel = isDailyAI ? '🌱 Daily seed' : '🌱 Random seed';
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
   const dailyAscensionTier = getAscensionTierForDailyDifficulty(dailyAIDifficulty);
@@ -600,7 +601,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           </div>
           <div className="info-stack">
             <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
-            <p><span>🌱 Daily seed</span><strong>{dailySeedInfo.seed}</strong></p>
+            <p><span>{seedInfoLabel}</span><strong>{dailySeedInfo.seed}</strong></p>
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>
             <p><span>Back rank</span><strong>{dailySeedInfo.backRankCode}</strong></p>
           </div>

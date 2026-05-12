@@ -6124,6 +6124,7 @@ button:focus-visible,
   height: 24px;
 }
 .home-leaderboard-chip.is-collapsed > div {
+  display: none;
   width: 0;
   max-width: 0;
   opacity: 0;
@@ -6165,4 +6166,36 @@ button:focus-visible,
 .player-greeting input:hover,
 .player-greeting input:focus {
   border-bottom-color: rgba(127, 159, 134, 0.45);
+}
+
+
+/* Mobile home refinement: keep live scores on the right and let hero content start higher. */
+.home-leaderboard-chip.is-collapsed > svg {
+  display: block;
+  align-self: center;
+  justify-self: center;
+}
+@media (max-width: 760px) {
+  .home-leaderboard-chip,
+  .home-leaderboard-chip.is-expanded,
+  .home-leaderboard-chip.is-collapsed {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    left: auto;
+  }
+  .home-leaderboard-chip.is-expanded {
+    width: min(300px, calc(100vw - 24px));
+  }
+  .home-hero-shell {
+    padding-top: clamp(22px, 7vw, 38px);
+  }
+}
+@media (max-width: 420px) {
+  .home-hero-shell {
+    padding-top: 18px;
+  }
+  .brand-row {
+    padding-right: 68px;
+  }
 }
