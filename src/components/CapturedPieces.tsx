@@ -13,6 +13,8 @@ type CapturedPieceGroup = {
   count: number;
 };
 
+const capturedPieceOrder: PieceType[] = ['pawn', 'knight', 'bishop', 'rook', 'queen'];
+
 type CaptureSummary = {
   pieceGroups: CapturedPieceGroup[];
   points: number;
@@ -51,7 +53,11 @@ function groupCapturedPieces(moves: Array<MoveRecord | MoveDelta>, side: Color):
     group.count += 1;
     groups.set(key, group);
   }
-  return [...groups.values()];
+  return [...groups.values()].sort((a, b) => {
+    const aIndex = capturedPieceOrder.indexOf(a.type);
+    const bIndex = capturedPieceOrder.indexOf(b.type);
+    return (aIndex === -1 ? capturedPieceOrder.length : aIndex) - (bIndex === -1 ? capturedPieceOrder.length : bIndex);
+  });
 }
 
 function getCaptureSummary(moves: Array<MoveRecord | MoveDelta>, side: Color, scoringSide?: Color): CaptureSummary {
@@ -88,7 +94,7 @@ function CapturedSide({ side, moves, scoringSide }: { side: Color; moves: Array<
 
 export function CapturedScoreRow({ side, moves, scoringSide, isActive = false }: { side: Color; moves: Array<MoveRecord | MoveDelta>; scoringSide?: Color; isActive?: boolean }) {
   const summary = getCaptureSummary(moves, side, scoringSide);
-  const sideLabel = side === 'white' ? 'White' : 'Black';
+  const sideLabel = side === 'white' ? 'White:' : 'Black:';
   return (
     <div className={`score-row score-capture-row ${isActive ? 'active-score-row' : ''}`} aria-label={`${sideLabel} captured pieces and points`}>
       <strong className="score-side-name">{sideLabel}</strong>

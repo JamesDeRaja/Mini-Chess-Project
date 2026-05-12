@@ -4558,3 +4558,59 @@ button:focus-visible,
   }
   .score-capture-row .captured-points { font-size: 1.45rem; }
 }
+
+/* Keep capture rows compact while letting larger pieces overlap inside them */
+.score-stack .score-capture-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 4px;
+  height: 54px;
+  min-height: 54px;
+  padding: 8px 12px;
+  overflow: visible;
+}
+.score-capture-row .score-side-name {
+  margin-right: 0;
+  white-space: nowrap;
+}
+.score-capture-row .captured-piece-list {
+  margin-left: -2px;
+  align-self: center;
+  min-height: 0;
+  overflow: visible;
+}
+.score-capture-row .captured-piece-token {
+  --captured-size: clamp(54px, 4.2vw, 66px);
+  --captured-overlap: clamp(38px, 3.2vw, 48px);
+  min-width: calc(var(--captured-size) - 28px);
+  min-height: 44px;
+  margin-right: -26px;
+}
+.score-capture-row .captured-piece-copy {
+  position: relative;
+  z-index: 1;
+}
+.score-capture-row .captured-piece-copy + .captured-piece-copy {
+  margin-left: calc(var(--captured-overlap) * -1);
+}
+.score-capture-row .captured-points {
+  position: relative;
+  z-index: 2;
+  font-size: clamp(1.65rem, 2.1vw + 0.95rem, 2.45rem);
+}
+@media (max-width: 760px) {
+  .score-stack .score-capture-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 3px;
+    height: 52px;
+    min-height: 52px;
+    padding: 7px 10px;
+  }
+  .score-capture-row .captured-piece-token {
+    --captured-size: 52px;
+    --captured-overlap: 39px;
+    min-width: 24px;
+    min-height: 40px;
+    margin-right: -25px;
+  }
+  .score-capture-row .captured-points { font-size: 1.58rem; }
+}
