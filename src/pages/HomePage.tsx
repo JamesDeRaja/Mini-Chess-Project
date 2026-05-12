@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
+import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, RefreshCw, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
-import { getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
+import { createRandomGameSeed, getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { trackEvent } from '../app/analytics.js';
@@ -59,26 +59,10 @@ const randomTaunts = [
 const leaderboardViews: LeaderboardView[] = [
   { scope: 'daily', label: 'Today’s Top 10', title: 'Today’s top 10', description: 'Best scores on today’s shared shuffle.' },
   { scope: 'global', label: 'Global', title: 'Global scores', description: 'Best player scores across every saved game.' },
-  { scope: 'global-start-points', label: 'Global start points', title: 'Global start points', description: 'Best scores grouped by starting setup.' },
 ];
-
-const leaderboardPulseNames = [
-  'MateMeteor', 'Charles', 'Caroline', 'LooseKnight', 'Hannah', 'PawnPigeon', 'SkewerSeal', 'Delilah',
-  'TinyRook', 'ForkFalcon', 'QueenSneak', 'BlitzBadger', 'TempoToast', 'PocketPirate', 'RookPebble', 'MiniMate',
-];
-
-function createPulseScore(index: number): LeaderboardFeedItem {
-  const name = leaderboardPulseNames[index % leaderboardPulseNames.length] ?? 'PocketPlayer';
-  const score = 52 + ((index * 17) % 48);
-  return { id: `pulse-${Date.now()}-${index}`, displayName: name, score, kind: 'new-score' };
-}
 
 function leaderboardEntryToFeedItem(entry: LeaderboardEntry, index: number): LeaderboardFeedItem {
   return { id: entry.id, displayName: entry.display_name, score: entry.score, kind: index < 10 ? 'rank' : 'new-score', rank: index + 1 };
-}
-
-function getLeaderboardBackRankCode(entry: LeaderboardEntry): string | null {
-  return entry.backRankCode ?? (entry as LeaderboardEntry & { back_rank_code?: string | null }).back_rank_code ?? null;
 }
 
 function pickTaunt(messages: string[]): string {
@@ -192,10 +176,10 @@ export function HomePage({
   const [modal, setModal] = useState<ModalName>(initialModal ?? null);
   const [matchmaking, setMatchmaking] = useState<MatchmakingState>({ status: 'idle' });
   const [shuffleMode, setShuffleModeState] = useState<ShuffleMode>(() => getCurrentShuffleMode());
-  const [randomSetup] = useState(() => resolveSeedSourceForMode('random', { randomSeed: getPageSessionRandomGameSeed() }));
+  const [randomSetup, setRandomSetup] = useState(() => resolveSeedSourceForMode('random', { randomSeed: getPageSessionRandomGameSeed() }));
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
   const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(() => getLocalBestScoreForSeedMode(getDailySeed(todayKey), 'daily'));
-  const [leaderboardFeed, setLeaderboardFeed] = useState<LeaderboardFeedItem[]>(() => leaderboardPulseNames.slice(0, 3).map((_, index) => createPulseScore(index)));
+  const [leaderboardFeed, setLeaderboardFeed] = useState<LeaderboardFeedItem[]>([]);
   const [leaderboardFeedIndex, setLeaderboardFeedIndex] = useState(0);
   const [leaderboardDialogOpen, setLeaderboardDialogOpen] = useState(false);
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('daily');
@@ -209,7 +193,7 @@ export function HomePage({
   const canGoNextMonth = shiftMonth(calendarMonthKey, 1) <= monthKeyFromDateKey(todayKey);
   const activeSeedSource = shuffleMode === 'daily' ? resolveSeedSourceForMode('daily', { dateKey: todayKey }) : randomSetup;
   const activeBackRankCode = activeSeedSource.backRankCode;
-  const activeSeedLabel = shuffleMode === 'daily' ? dailyBackRankCode : `Random • ${activeBackRankCode}`;
+  const activeSeedLabel = shuffleMode === 'daily' ? dailyBackRankCode : activeBackRankCode;
   const activeHeaderLabel = shuffleMode === 'daily' ? 'Today’s setup' : 'Random setup';
   const activeHeaderDescription = shuffleMode === 'daily' ? 'Same board for everyone today.' : 'Active until refresh.';
   const blackBackRankCode = [...activeBackRankCode].reverse().join('');
@@ -245,11 +229,9 @@ export function HomePage({
   useEffect(() => {
     fetchLeaderboard(dailySeed, 'daily').then((scores) => {
       const topScores = scores.slice(0, 10);
-      setLeaderboardFeed((currentFeed) => {
-        const rankedFeed = topScores.map(leaderboardEntryToFeedItem);
-        return [...rankedFeed, ...currentFeed.filter((item) => item.kind === 'new-score')].slice(0, 18);
-      });
-    }).catch(() => setLeaderboardFeed((currentFeed) => currentFeed.filter((item) => item.kind === 'new-score')));
+      setLeaderboardFeed(topScores.map(leaderboardEntryToFeedItem));
+      setLeaderboardFeedIndex(0);
+    }).catch(() => setLeaderboardFeed([]));
   }, [dailySeed]);
 
   useEffect(() => {
@@ -258,16 +240,6 @@ export function HomePage({
     }, 2600);
     return () => window.clearInterval(scrollId);
   }, [leaderboardFeed.length]);
-
-  useEffect(() => {
-    let pulseIndex = 0;
-    const pulseId = window.setInterval(() => {
-      pulseIndex += 1;
-      setLeaderboardFeed((currentFeed) => [createPulseScore(pulseIndex), ...currentFeed].slice(0, 18));
-      setLeaderboardFeedIndex(0);
-    }, 11000);
-    return () => window.clearInterval(pulseId);
-  }, []);
 
   useEffect(() => {
     if (!leaderboardDialogOpen) return;
@@ -316,6 +288,14 @@ export function HomePage({
     setCurrentShuffleMode(mode);
     setShuffleModeState(mode);
     trackEvent('homepage_cta_click', { cta: 'shuffle_mode_toggle', mode });
+  }
+
+  function reshuffleRandomSetup() {
+    const nextRandomSetup = resolveSeedSourceForMode('random', { randomSeed: createRandomGameSeed() });
+    setRandomSetup(nextRandomSetup);
+    setCurrentShuffleMode('random');
+    setShuffleModeState('random');
+    trackEvent('homepage_cta_click', { cta: 'random_shuffle_refresh', backRankCode: nextRandomSetup.backRankCode });
   }
 
   async function copyActiveSeed() {
@@ -498,7 +478,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               </li>
             )) : <li><span>No daily scores yet</span><b>—</b></li>}
           </ol>
-          <small>Tap for top 10, global, and starts</small>
+          <small>Tap for top 10 and global scores</small>
         </div>
       </button>
       {leaderboardDialogOpen && (
@@ -522,8 +502,8 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
                 <li key={entry.id}>
                   <span className="leaderboard-rank">{index + 1}</span>
                   <span className="leaderboard-player">
-                    <strong>{leaderboardScope === 'global-start-points' ? (getLeaderboardBackRankCode(entry) ?? entry.seed) : entry.display_name}</strong>
-                    <small>{leaderboardScope === 'global-start-points' ? `Best by ${entry.display_name}` : `${entry.mode} • ${entry.seed.replace('daily-', '')}`}</small>
+                    <strong>{entry.display_name}</strong>
+                    <small>{entry.mode} • {entry.seed.replace('daily-', '')}</small>
                   </span>
                   <b>{entry.score}</b>
                 </li>
@@ -557,21 +537,36 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
                 <span>{copyStatus === 'copied' ? 'Copied' : 'Copy'}</span>
               </button>
               <span className="copy-status" aria-live="polite">{copyStatus === 'copied' ? 'Copied.' : ''}</span>
-              {localBestScore && <span className="today-high-score-chip">High Score: {localBestScore.score}</span>}
             </div>
             {localBestScore && <span className="today-high-score-chip">High Score: {localBestScore.score}</span>}
             <div className="shuffle-mode-toggle" role="group" aria-label="Choose global shuffle mode">
-              {(['daily', 'random'] as const).map((mode) => (
+              <button
+                type="button"
+                className={shuffleMode === 'daily' ? 'selected' : ''}
+                onClick={() => setShuffleMode('daily')}
+                aria-pressed={shuffleMode === 'daily'}
+              >
+                Daily Shuffle
+              </button>
+              <span className="random-shuffle-toggle">
                 <button
-                  key={mode}
                   type="button"
-                  className={mode === shuffleMode ? 'selected' : ''}
-                  onClick={() => setShuffleMode(mode)}
-                  aria-pressed={mode === shuffleMode}
+                  className={shuffleMode === 'random' ? 'selected' : ''}
+                  onClick={() => setShuffleMode('random')}
+                  aria-pressed={shuffleMode === 'random'}
                 >
-                  {mode === 'daily' ? 'Daily Shuffle' : 'Random Shuffle'}
+                  Random Shuffle
                 </button>
-              ))}
+                <button
+                  type="button"
+                  className="shuffle-refresh-button"
+                  onClick={reshuffleRandomSetup}
+                  aria-label="Shuffle a new random setup"
+                  title="Shuffle again"
+                >
+                  <RefreshCw size={16} aria-hidden="true" />
+                </button>
+              </span>
             </div>
           </div>
 
