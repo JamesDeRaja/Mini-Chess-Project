@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { Color } from '../game/types.js';
 
-export type GameResult = 'win' | 'loss' | 'draw' | 'spectator';
+export type GameResult = 'win' | 'loss' | 'draw' | 'stalemate' | 'spectator';
 
 type GameResultPanelProps = {
   result: GameResult;
@@ -10,15 +10,17 @@ type GameResultPanelProps = {
   title: string;
   summary: string;
   progressionMessage?: string;
+  details?: ReactNode;
   actions: ReactNode;
 };
 
-function ResultAvatar({ winner }: { winner: Color | null }) {
+function ResultAvatar({ winner, result }: { winner: Color | null; result: GameResult }) {
   if (!winner) {
+    const pieceType = result === 'stalemate' ? 'king' : 'pawn';
     return (
-      <div className="result-piece-pair" role="img" aria-label="Draw result">
-        <img className="result-piece-img" data-piece="pawn" src="/pieces/white-pawn.png" alt="" draggable={false} />
-        <img className="result-piece-img" data-piece="pawn" src="/pieces/black-pawn.png" alt="" draggable={false} />
+      <div className="result-piece-pair" role="img" aria-label={result === 'stalemate' ? 'Stalemate result' : 'Draw result'}>
+        <img className="result-piece-img" data-piece={pieceType} src={`/pieces/white-${pieceType}.png`} alt="" draggable={false} />
+        <img className="result-piece-img" data-piece={pieceType} src={`/pieces/black-${pieceType}.png`} alt="" draggable={false} />
       </div>
     );
   }
@@ -36,18 +38,31 @@ function ResultAvatar({ winner }: { winner: Color | null }) {
   );
 }
 
-export function GameResultPanel({ result, winner, eyebrow, title, summary, progressionMessage, actions }: GameResultPanelProps) {
+export function GameResultPanel({ result, winner, eyebrow, title, summary, progressionMessage, details, actions }: GameResultPanelProps) {
+  const [dismissedResultKey, setDismissedResultKey] = useState<string | null>(null);
   const didWin = result === 'win';
+  const resultKey = `${result}:${winner ?? 'none'}:${title}:${summary}`;
+
+  if (dismissedResultKey === resultKey) return null;
 
   return (
     <div className="winner-overlay" role="status">
       {didWin && <div className="confetti" />}
-      <div className={didWin ? 'winner-card player-winner-card' : 'winner-card calm-result-card'}>
-        <ResultAvatar winner={winner} />
+      <div className={didWin ? 'winner-card player-winner-card' : result === 'stalemate' ? 'winner-card calm-result-card stalemate-result-card' : 'winner-card calm-result-card'}>
+        <button
+          type="button"
+          className="result-close-button"
+          aria-label="Close result panel"
+          onClick={() => setDismissedResultKey(resultKey)}
+        >
+          ×
+        </button>
+        <ResultAvatar winner={winner} result={result} />
         <p className="eyebrow">{eyebrow}</p>
         <h2>{title}</h2>
         <p>{summary}</p>
         {progressionMessage && <p className="panel-note">{progressionMessage}</p>}
+        {details}
         <div className="panel-actions centered-actions">{actions}</div>
       </div>
     </div>

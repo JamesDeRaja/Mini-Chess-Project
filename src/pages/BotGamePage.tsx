@@ -2,19 +2,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, Flag, Handshake, RotateCcw, Shuffle } from 'lucide-react';
 import { Board } from '../components/Board.js';
+import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
 import { MoveHistory } from '../components/MoveHistory.js';
+import { ScoreHelpPanel } from '../components/ScoreHelpPanel.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
-import { type BotLevel, getBotMoveByLevel } from '../game/bot.js';
+import { type BotLevel, getBotMoveByLevel, getMoveIdentity } from '../game/bot.js';
 import {
   type DailyAIDifficulty,
   type DailyAIProgress,
   getDailyAIDifficulty,
   getDailyAIPlayerColor,
-  handleDailyAIGameResult,
+  getNextDailyAIProgress,
   resetDailyAIProgressIfNeeded,
+  saveDailyAIProgress,
 } from '../game/dailyAIProgress.js';
 import { findKingIndex, isKingInCheck } from '../game/check.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
@@ -22,6 +25,10 @@ import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, validateSeedInput } from '../game/seed.js';
+import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
+import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
+import { calculateGameScore, getCaptureScore } from '../game/scoring.js';
+import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
 import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord, PieceType } from '../game/types.js';
 
@@ -32,6 +39,7 @@ type BotGamePageProps = {
   dateKey?: string;
   customSeed?: string;
   customBackRankCode?: string;
+  playerSide?: Color;
   onHome: () => void;
   onCustomSeed: () => void;
   onDaily: () => void;
@@ -45,6 +53,7 @@ type RoundResult = {
   message: string;
   progressionMessage?: string;
   didPlayerWin: boolean;
+  drawReason?: 'agreed' | 'stalemate';
 };
 
 type PendingAction = 'resign' | 'draw' | 'restart' | null;
@@ -72,6 +81,50 @@ function getAscensionMissingNote(tier: AscensionTier): string | null {
   return `Missing your ${missingPieces}? Not a bug. You climbed the daily ladder, so we politely confiscated ${tier === 1 ? 'it' : 'them'} to make the bot feel important. Keep winning and yes, we may borrow more.`;
 }
 
+
+type AscensionPopupTier = Exclude<AscensionTier, 0>;
+
+type AscensionPopupCopy = {
+  title: string;
+  body: string;
+  detail: string;
+};
+
+const ascensionPopupCopy: Record<AscensionPopupTier, AscensionPopupCopy> = {
+  1: {
+    title: 'Knight removed',
+    body: 'Your knight is sitting out this daily AI round because you earned your first star.',
+    detail: 'The bot keeps its full army, so look for pawn breaks and queen activity to make up for the missing jumper.',
+  },
+  2: {
+    title: 'Bishop removed',
+    body: 'Your bishop is now removed too after your second daily AI star.',
+    detail: 'You are playing without your knight and bishop. Keep lanes open and trade carefully before the bot uses its extra minor pieces.',
+  },
+  3: {
+    title: 'Knight, bishop, and rook removed',
+    body: 'You reached the final daily boss: your knight, bishop, and rook are all removed from your side.',
+    detail: 'This is intentional ascension difficulty. The bot still starts complete, so every tempo and capture matters.',
+  },
+};
+
+function ascensionPopupStorageKey(tier: AscensionPopupTier) {
+  return `daily-ai-ascension-removal-popup-seen-${tier}`;
+}
+
+function hasSeenAscensionPopup(tier: AscensionPopupTier) {
+  return typeof localStorage !== 'undefined' && localStorage.getItem(ascensionPopupStorageKey(tier)) === 'true';
+}
+
+function markAscensionPopupSeen(tier: AscensionPopupTier) {
+  if (typeof localStorage !== 'undefined') localStorage.setItem(ascensionPopupStorageKey(tier), 'true');
+}
+
+function getPendingAscensionPopupTier(isDailyAI: boolean, tier: AscensionTier): AscensionPopupTier | null {
+  if (!isDailyAI || tier === 0) return null;
+  return hasSeenAscensionPopup(tier) ? null : tier;
+}
+
 const modeConfig: Record<MatchMode, { label: string; maxGames: number; winsRequired: number }> = {
   single: { label: 'One Match', maxGames: 1, winsRequired: 1 },
   'best-of-3': { label: 'Best 2 / 3', maxGames: 3, winsRequired: 2 },
@@ -84,9 +137,10 @@ function getWinner(status: GameStatus): Color | null {
   return null;
 }
 
-function getRoundMessage(status: GameStatus): string {
+function getRoundMessage(status: GameStatus, drawReason?: RoundResult['drawReason']): string {
   if (status === 'white_won') return 'Checkmate - White wins this game!';
   if (status === 'black_won') return 'Checkmate - Black wins this game!';
+  if (status === 'draw' && drawReason === 'stalemate') return 'Stalemate - no legal moves, so the game is drawn.';
   if (status === 'draw') return 'Draw agreed for this game.';
   return '';
 }
@@ -155,7 +209,7 @@ export function BotGamePage(props: BotGamePageProps) {
   return <BotGameContent {...props} seedValidation={seedValidation} />;
 }
 
-function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, customBackRankCode, onHome, seedValidation }: BotGameContentProps) {
+function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, customBackRankCode, playerSide, onHome, seedValidation }: BotGameContentProps) {
   const dailySeedInfo = useMemo(() => {
     if (seedValidation?.ok) {
       const safeBackRankCode = customBackRankCode && isValidBackRankCode(customBackRankCode) ? customBackRankCode.toUpperCase() : seedValidation.backRankCode;
@@ -171,7 +225,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
   const dailyAscensionTier = getAscensionTierForDailyDifficulty(dailyAIDifficulty);
   const ascensionMissingNote = isDailyAI ? getAscensionMissingNote(dailyAscensionTier) : null;
-  const playerColor = isDailyAI ? getDailyAIPlayerColor(dailyAIProgress) : 'white';
+  const playerColor = playerSide ?? (isDailyAI ? getDailyAIPlayerColor(dailyAIProgress) : 'white');
   const botColor = getOpponent(playerColor);
   const initialBoardForMount = useMemo(() => {
     const dailyBoard = createInitialBoard({ backRankCode: dailySeedInfo.backRankCode });
@@ -183,17 +237,30 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [status, setStatus] = useState<GameStatus>('active');
   const [selectedSquare, setSelectedSquare] = useState<number | null>(null);
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
-  const [lastMove, setLastMove] = useState<Pick<Move, 'from' | 'to'> | null>(null);
+  const [lastMove, setLastMove] = useState<(Pick<Move, 'from' | 'to'> & { color?: Color; isCapture?: boolean; captureScore?: number | null }) | null>(null);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
-  const [moveAnnouncement, setMoveAnnouncement] = useState('Board ready. Select a piece to move.');
+  const [moveAnnouncement, setMoveAnnouncement] = useState('');
   const [score, setScore] = useState<MatchScore>({ white: 0, black: 0 });
   const [roundNumber, setRoundNumber] = useState(1);
+  const [roundResetId, setRoundResetId] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [matchWinner, setMatchWinner] = useState<Color | null>(null);
   const [isFlipped, setIsFlipped] = useState(() => playerColor === 'black');
+  const [isBoardReady, setIsBoardReady] = useState(false);
+  const [ascensionPopupTier, setAscensionPopupTier] = useState<AscensionPopupTier | null>(() => getPendingAscensionPopupTier(isDailyAI, dailyAscensionTier));
+  const pendingDailyAIProgressRef = useRef<DailyAIProgress | null>(null);
   const [previewPly, setPreviewPly] = useState<number | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [displayNameDraft, setDisplayNameDraft] = useState(() => getDisplayName());
+  const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(null);
+  const [submittedScore, setSubmittedScore] = useState(false);
+  const [scoreSubmitMessage, setScoreSubmitMessage] = useState<string | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [showScoreHelp, setShowScoreHelp] = useState(false);
   const historyListRef = useRef<HTMLOListElement | null>(null);
+  const botMoveTimerRef = useRef<number | null>(null);
+  const lastQueuedBotMoveKeyRef = useRef('');
+  const recentBotMoveKeysRef = useRef<string[]>([]);
   const config = modeConfig[matchMode];
   const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber);
   const latestPly = boardTimeline.length - 1;
@@ -206,8 +273,43 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   );
 
   useEffect(() => {
+    pendingDailyAIProgressRef.current = null;
     if (isDailyAI) setDailyAIProgress(resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   }, [dailySeedInfo.dateKey, isDailyAI]);
+
+  useEffect(() => () => {
+    if (botMoveTimerRef.current !== null) window.clearTimeout(botMoveTimerRef.current);
+  }, []);
+
+
+  const scoreBreakdown = useMemo(() => calculateGameScore({
+    status,
+    side: playerColor,
+    moveHistory,
+    handicapPieces: isDailyAI ? ascensionRemovedPieces.slice(0, dailyAscensionTier) : [],
+  }), [dailyAscensionTier, isDailyAI, moveHistory, playerColor, status]);
+  const headerScoreValue = scoreBreakdown.totalScore;
+  const headerScoreLabel = `Score ${headerScoreValue}`;
+  const scoreMode = isDailyAI ? 'daily' : 'bot';
+
+  useEffect(() => {
+    if (!roundResult) return;
+    const entry = saveLocalScoreEntry({
+      seed: dailySeedInfo.seed,
+      backRankCode: dailySeedInfo.backRankCode,
+      mode: scoreMode,
+      side: playerColor,
+      result: roundResult.status,
+      score: scoreBreakdown.totalScore,
+      moves: scoreBreakdown.fullMoves,
+    });
+    setLocalBestScore(getLocalBestScore(dailySeedInfo.seed, scoreMode, playerColor) ?? entry);
+  }, [dailySeedInfo.backRankCode, dailySeedInfo.seed, playerColor, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode]);
+
+  useEffect(() => {
+    if (!roundResult || !isDailyAI) return;
+    fetchLeaderboard(dailySeedInfo.seed, scoreMode).then(setLeaderboard).catch(() => setLeaderboard([]));
+  }, [dailySeedInfo.seed, isDailyAI, roundResult, scoreMode, submittedScore]);
 
   useEffect(() => {
     const historyList = historyListRef.current;
@@ -248,16 +350,14 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [latestPly]);
 
-  const finishRound = useCallback((nextStatus: GameStatus) => {
+  const finishRound = useCallback((nextStatus: GameStatus, drawReason?: RoundResult['drawReason']) => {
     const winner = getWinner(nextStatus);
     const didPlayerWin = winner === playerColor;
     let progressionMessage: string | undefined;
 
     if (isDailyAI) {
       progressionMessage = getDailyProgressionMessage(dailyAIProgress, didPlayerWin);
-      const nextProgress = handleDailyAIGameResult(dailyAIProgress, didPlayerWin ? 'win' : 'loss');
-      setDailyAIProgress(nextProgress);
-      setIsFlipped(getDailyAIPlayerColor(nextProgress) === 'black');
+      pendingDailyAIProgressRef.current = getNextDailyAIProgress(dailyAIProgress, didPlayerWin ? 'win' : 'loss');
     }
 
     if (winner) {
@@ -265,7 +365,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       setScore(updatedScore);
       if (!isDailyAI && updatedScore[winner] >= config.winsRequired) setMatchWinner(winner);
     }
-    setRoundResult({ status: nextStatus, winner, message: getRoundMessage(nextStatus), progressionMessage, didPlayerWin });
+    setRoundResult({ status: nextStatus, winner, message: getRoundMessage(nextStatus, drawReason), progressionMessage, didPlayerWin, drawReason });
   }, [config.winsRequired, dailyAIProgress, isDailyAI, playerColor, score]);
 
   const completeMove = useCallback((move: Move) => {
@@ -278,22 +378,31 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setStatus(nextStatus);
     setSelectedSquare(null);
     setLegalMoves([]);
-    setLastMove({ from: move.from, to: move.to });
+    setLastMove({ from: move.from, to: move.to, color: move.piece.color, isCapture: move.isCapture, captureScore: move.capturedPiece ? getCaptureScore(move.capturedPiece.type) : null });
     setMoveAnnouncement(`${move.piece.color === 'white' ? 'White' : 'Black'} ${move.piece.type} moved from ${squareLabel(move.from % 5, Math.floor(move.from / 5))} to ${squareLabel(move.to % 5, Math.floor(move.to / 5))}${move.isCapture ? ' and captured a piece' : ''}.`);
     setMoveHistory((history) => [...history, createMoveRecord(move)]);
     setPreviewPly(null);
     playMoveSound(move.isCapture);
     if (nextStatus !== 'active') {
       playResultSound(getWinner(nextStatus) === playerColor);
-      finishRound(nextStatus);
+      finishRound(nextStatus, nextStatus === 'draw' ? 'stalemate' : undefined);
     } else if (isKingInCheck(nextBoard, nextTurn)) {
       playCheckSound();
     }
   }, [board, finishRound, playerColor]);
 
   function resetRound(nextRoundNumber = roundNumber) {
+    const pendingDailyProgress = isDailyAI ? pendingDailyAIProgressRef.current : null;
+    const appliedDailyProgress = pendingDailyProgress ? saveDailyAIProgress(pendingDailyProgress) : dailyAIProgress;
+    if (pendingDailyProgress) {
+      pendingDailyAIProgressRef.current = null;
+      setDailyAIProgress(appliedDailyProgress);
+    }
+    const roundDailyDifficulty = isDailyAI ? getDailyAIDifficulty(appliedDailyProgress) : null;
+    const roundAscensionTier = getAscensionTierForDailyDifficulty(roundDailyDifficulty);
+    const roundPlayerColor = isDailyAI ? getDailyAIPlayerColor(appliedDailyProgress) : playerColor;
     const dailyBoard = createInitialBoard({ backRankCode: dailySeedInfo.backRankCode });
-    const initialBoard = isDailyAI ? removeAscensionPieces(dailyBoard, dailyAscensionTier, playerColor) : dailyBoard;
+    const initialBoard = isDailyAI ? removeAscensionPieces(dailyBoard, roundAscensionTier, roundPlayerColor) : dailyBoard;
     setBoard(initialBoard);
     setBoardTimeline([cloneBoard(initialBoard)]);
     setTurn('white');
@@ -302,9 +411,21 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setLegalMoves([]);
     setLastMove(null);
     setMoveHistory([]);
-    setMoveAnnouncement('New round ready. Select a piece to move.');
+    setMoveAnnouncement('');
+    setSubmittedScore(false);
+    setScoreSubmitMessage(null);
+    setShowScoreHelp(false);
     setRoundResult(null);
+    setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, roundAscensionTier));
     setPreviewPly(null);
+    setIsFlipped(roundPlayerColor === 'black');
+    setIsBoardReady(false);
+    lastQueuedBotMoveKeyRef.current = '';
+    if (botMoveTimerRef.current !== null) {
+      window.clearTimeout(botMoveTimerRef.current);
+      botMoveTimerRef.current = null;
+    }
+    setRoundResetId((resetId) => resetId + 1);
     setRoundNumber(nextRoundNumber);
   }
 
@@ -383,7 +504,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   function requestDraw() {
     if (status !== 'active') return;
     setStatus('draw');
-    finishRound('draw');
+    finishRound('draw', 'agreed');
   }
 
   function confirmPendingAction() {
@@ -394,25 +515,69 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }
 
   useEffect(() => {
-    if (status !== 'active' || turn !== botColor || isPreviewing) return;
+    if (botMoveTimerRef.current !== null) {
+      window.clearTimeout(botMoveTimerRef.current);
+      botMoveTimerRef.current = null;
+    }
 
-    const timeoutId = window.setTimeout(() => {
-      const botMove = getBotMoveByLevel(board, botColor, botLevel);
-      if (botMove) completeMove(botMove);
+    if (!isBoardReady || status !== 'active' || turn !== botColor || isPreviewing) return undefined;
+
+    const botMoveKey = `${roundResetId}-${moveHistory.length}-${turn}`;
+    if (lastQueuedBotMoveKeyRef.current === botMoveKey) return undefined;
+    lastQueuedBotMoveKeyRef.current = botMoveKey;
+
+    botMoveTimerRef.current = window.setTimeout(() => {
+      botMoveTimerRef.current = null;
+      const botMove = getBotMoveByLevel(board, botColor, botLevel, { avoidMoveKeys: new Set(recentBotMoveKeysRef.current) });
+      if (botMove) {
+        recentBotMoveKeysRef.current = [...recentBotMoveKeysRef.current.slice(-11), getMoveIdentity(botMove)];
+        completeMove(botMove);
+      }
     }, 300);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [board, botColor, botLevel, completeMove, isPreviewing, status, turn]);
+    return () => {
+      if (botMoveTimerRef.current !== null) {
+        window.clearTimeout(botMoveTimerRef.current);
+        botMoveTimerRef.current = null;
+      }
+    };
+  }, [board, botColor, botLevel, completeMove, isBoardReady, isPreviewing, moveHistory.length, roundResetId, status, turn]);
 
-  const activeLegalMoves = isPreviewing ? [] : legalMoves;
+  const handleBoardSpawnComplete = useCallback(() => {
+    setIsBoardReady(true);
+  }, []);
+
+  const activeLegalMoves = isPreviewing || !isBoardReady ? [] : legalMoves;
   const headerStatusLabel = roundResult ? 'Game Over' : undefined;
   const headerTurnLabel = roundResult
     ? roundResult.status === 'draw'
-      ? 'Draw'
+      ? roundResult.drawReason === 'stalemate' ? 'Stalemate' : 'Draw agreed'
       : roundResult.didPlayerWin
         ? 'You won'
         : 'You lost'
     : undefined;
+
+  async function handleSubmitScore() {
+    if (!roundResult) return;
+    setScoreSubmitMessage('Submitting...');
+    try {
+      saveDisplayName(displayNameDraft);
+      await submitScore({
+        seed: dailySeedInfo.seed,
+        backRankCode: dailySeedInfo.backRankCode,
+        mode: scoreMode,
+        side: playerColor,
+        result: roundResult.status,
+        score: scoreBreakdown.totalScore,
+        moves: scoreBreakdown.fullMoves,
+      });
+      setSubmittedScore(true);
+      setScoreSubmitMessage('Score submitted to today’s best scores.');
+    } catch {
+      setScoreSubmitMessage('Could not submit online, but your local score is saved.');
+    }
+  }
+
 
   return (
     <main className="game-page">
@@ -421,10 +586,11 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         turn={turn}
         status={status}
         playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
-        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · Game ${roundNumber}/${config.maxGames} · ${botLevel} bot`}
+        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · ${botLevel} bot`}
         onTitleClick={onHome}
         statusLabelOverride={headerStatusLabel}
         turnLabelOverride={headerTurnLabel}
+        scoreLabel={headerScoreLabel}
       />
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel">
@@ -436,11 +602,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             <span className="mode-badge">{isDailyAI ? 'Daily' : '1v1'}</span>
           </div>
           <div className="score-stack">
-            <span className={turn === 'white' && status === 'active' ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/white-pawn.png" alt="" draggable={false} />White <strong>{score.white}</strong></span>
-            <span className={turn === 'black' && status === 'active' ? 'active-score-row' : ''}><img className="score-dot piece-score-icon" src="/pieces/black-pawn.png" alt="" draggable={false} />Black <strong>{score.black}</strong></span>
+            <CapturedScoreRow side="white" moves={moveHistory} scoringSide={playerColor} isActive={turn === 'white' && status === 'active'} />
+            <CapturedScoreRow side="black" moves={moveHistory} scoringSide={playerColor} isActive={turn === 'black' && status === 'active'} />
           </div>
           <div className="info-stack">
-            <p><span>🎮 Game</span><strong>{roundNumber}/{config.maxGames}</strong></p>
             <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
             <p><span>🌱 Daily seed</span><strong>{dailySeedInfo.seed}</strong></p>
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>
@@ -459,6 +624,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         <section className="board-column">
           <p className="sr-only" aria-live="polite">{moveAnnouncement}</p>
           <Board
+            key={`${dailySeedInfo.seed}-${roundNumber}-${roundResetId}-${playerColor}`}
             ariaLabel={`Pocket Shuffle Chess ${dailySeedInfo.backRankCode} board. ${playerColor === 'white' ? 'White' : 'Black'} to play as you.`}
             board={displayBoard}
             selectedSquare={isPreviewing ? null : selectedSquare}
@@ -466,11 +632,14 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             lastMove={displayMove}
             checkedKingIndex={checkedKingIndex}
             isFlipped={isFlipped}
-            isInteractive={!isPreviewing && status === 'active'}
+            isInteractive={!isPreviewing && isBoardReady && status === 'active'}
+            scoringSide={playerColor}
+            spawnKey={roundResetId}
             onSquareClick={handleSquareClick}
             onDragStart={handleDragStart}
             onDrop={handleDrop}
             onDragCancel={() => { setSelectedSquare(null); setLegalMoves([]); }}
+            onSpawnComplete={handleBoardSpawnComplete}
           />
         </section>
 
@@ -488,6 +657,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               emptyPrimary="No moves yet."
               emptySecondary="Select a piece to see legal moves."
               activePly={previewPly}
+              scoringSide={playerColor}
               onSelectPly={(ply) => setPreviewPly(ply >= latestPly ? null : ply)}
             />
           </ol>
@@ -509,20 +679,78 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       </div>
       {roundResult && (
         <GameResultPanel
-          result={roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'}
+          result={roundResult.status === 'draw' && roundResult.drawReason === 'stalemate' ? 'stalemate' : roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'}
           winner={roundResult.winner}
-          eyebrow={matchWinner ? 'Match complete' : `Game ${roundNumber} complete`}
-          title={matchWinner ? `${matchWinner === 'white' ? 'White' : 'Black'} wins the match!` : roundResult.message}
-          summary={`Score: White ${score.white} - Black ${score.black}. ${isDailyAI ? 'Daily ladder mode.' : matchMode === 'single' ? 'Single match mode.' : `First to ${config.winsRequired} wins.`}`}
+          eyebrow={matchWinner ? 'Match complete' : roundResult.drawReason === 'stalemate' ? 'Stalemate' : `Game ${roundNumber} complete`}
+          title={matchWinner ? 'Match complete' : roundResult.drawReason === 'stalemate' ? 'Stalemate' : roundResult.status === 'draw' ? 'Draw agreed' : roundResult.didPlayerWin ? 'You won' : 'You lost'}
+          summary={roundResult.message}
           progressionMessage={roundResult.progressionMessage}
+          details={(
+            <>
+              <div className="score-result-bento" aria-label="Score breakdown">
+                <div className="score-hero-tile">
+                  <span>Score <button type="button" className="score-help-trigger" onClick={() => setShowScoreHelp((visible) => !visible)} aria-expanded={showScoreHelp} aria-label="Explain score">?</button></span>
+                  <strong>{scoreBreakdown.totalScore}</strong>
+                  {localBestScore && <small>Local best {localBestScore.score}</small>}
+                </div>
+                <div className="score-mini-grid">
+                  <p><span>Result</span><strong>+{scoreBreakdown.resultBonus}</strong></p>
+                  <p><span>Speed</span><strong>+{scoreBreakdown.speedBonus}</strong></p>
+                  <p><span>Captures</span><strong>{scoreBreakdown.capturePoints >= 0 ? `+${scoreBreakdown.capturePoints}` : scoreBreakdown.capturePoints}</strong></p>
+                  <p><span>Missing pieces</span><strong>+{scoreBreakdown.handicapBonus}</strong></p>
+                  <p><span>Moves</span><strong>{scoreBreakdown.fullMoves}</strong></p>
+                  <p><span>Side</span><strong>{playerColor === 'white' ? 'White' : 'Black'}</strong></p>
+                  <p><span>Setup</span><strong>{dailySeedInfo.backRankCode}</strong></p>
+                </div>
+                <label className="name-capture-form inline-name-form">
+                  <span>Name</span>
+                  <input value={displayNameDraft} onChange={(event) => setDisplayNameDraft(event.target.value)} maxLength={24} />
+                </label>
+                {showScoreHelp && <ScoreHelpPanel breakdown={scoreBreakdown} onClose={() => setShowScoreHelp(false)} />}
+              </div>
+              {leaderboard.length > 0 && (
+                <div className="leaderboard-mini">
+                  <h3>Today’s Best Scores</h3>
+                  <div className="leaderboard-table">
+                    <div className="leaderboard-row leaderboard-head"><span>Rank</span><span>Name</span><span>Score</span><span>Moves</span><span>Side</span><span>Result</span></div>
+                    {leaderboard.slice(0, 5).map((entry, index) => (
+                      <div className="leaderboard-row" key={entry.id}><span>{index + 1}</span><span>{entry.display_name}</span><span>{entry.score}</span><span>{entry.moves}</span><span>{entry.side}</span><span>{entry.result}</span></div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {scoreSubmitMessage && <p className="panel-note">{scoreSubmitMessage}</p>}
+            </>
+          )}
           actions={(
             <>
-              {!matchWinner && roundResult.status !== 'draw' && <button type="button" onClick={nextRound}>Next Game</button>}
-              {!matchWinner && roundResult.status === 'draw' && <button type="button" onClick={nextRound}>Replay Game</button>}
+              <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Submit Score'}</button>
+              {!matchWinner && <button type="button" onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay Game' : 'Next Game'}</button>}
               <button type="button" onClick={requestRestart}>Restart Match</button>
             </>
           )}
         />
+      )}
+      {ascensionPopupTier && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="ascension-removal-title">
+          <div className="confirm-card ascension-removal-card">
+            <p className="eyebrow">Daily ascension</p>
+            <h2 id="ascension-removal-title">{ascensionPopupCopy[ascensionPopupTier].title}</h2>
+            <p>{ascensionPopupCopy[ascensionPopupTier].body}</p>
+            <p>{ascensionPopupCopy[ascensionPopupTier].detail}</p>
+            <div className="panel-actions centered-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  markAscensionPopupSeen(ascensionPopupTier);
+                  setAscensionPopupTier(null);
+                }}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {pendingAction && (
         <div className="confirm-overlay" role="dialog" aria-modal="true">

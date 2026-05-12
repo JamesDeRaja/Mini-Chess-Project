@@ -10,6 +10,7 @@ type PieceProps = {
 
 export function Piece({ piece, isDraggable = false, isSelected = false }: PieceProps) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const pieceImageSrc = getPieceImageSrc(piece);
   const ariaLabel = `${piece.color} ${piece.type}`;
 
@@ -19,16 +20,18 @@ export function Piece({ piece, isDraggable = false, isSelected = false }: PieceP
       draggable={false}
       aria-label={ariaLabel}
       data-draggable={isDraggable ? 'true' : undefined}
+      data-piece-id={piece.id}
+      data-piece-type={piece.type}
     >
-      {imageFailed ? (
-        <span className="piece-fallback" data-piece={piece.type} aria-hidden="true">{getPieceFallbackSymbol(piece)}</span>
-      ) : (
+      <span className={imageLoaded && !imageFailed ? 'piece-fallback piece-fallback-hidden' : 'piece-fallback'} data-piece={piece.type} aria-hidden="true">{getPieceFallbackSymbol(piece)}</span>
+      {!imageFailed && (
         <img
-          className="piece-img"
+          className={imageLoaded ? 'piece-img piece-img-loaded' : 'piece-img'}
           data-piece={piece.type}
           src={pieceImageSrc}
           alt=""
           draggable={false}
+          onLoad={() => setImageLoaded(true)}
           onError={() => {
             setImageFailed(true);
             if (import.meta.env.DEV) console.warn(`Could not load piece image: ${pieceImageSrc}`);

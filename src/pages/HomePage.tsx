@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, Shuffle, Users, X, Zap } from 'lucide-react';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
+import { getBestLocalScoreForSeed } from '../game/localScoreHistory.js';
 import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
 import { getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
@@ -39,6 +40,10 @@ function randomPastDate(todayKey: string): string {
 
 function spacedCode(backRankCode: string): string {
   return backRankCode.split('').join(' ');
+}
+
+function modeFromSeed(seed: string): ShuffleMode {
+  return seed.startsWith('daily-') ? 'daily' : 'random';
 }
 
 function monthKeyFromDateKey(dateKey: string): string {
@@ -126,6 +131,7 @@ export function HomePage({
   const [shuffleMode, setShuffleModeState] = useState<ShuffleMode>(() => getCurrentShuffleMode());
   const [randomSetup] = useState(() => resolveSeedSourceForMode('random', { randomSeed: getPageSessionRandomGameSeed() }));
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
+
   const [matchTarget, setMatchTarget] = useState({ seed: getDailySeed(todayKey), backRankCode: backRankCodeFromSeed(getDailySeed(todayKey)), mode: 'daily' as ShuffleMode });
   const dailySeed = getDailySeed(todayKey);
   const dailyBackRankCode = backRankCodeFromSeed(dailySeed);
@@ -143,6 +149,8 @@ export function HomePage({
   const customSeedError = customSeedWasSubmitted && !customSeedValidation.ok ? customSeedValidation.error : null;
   const customBackRankCode = customSeedValidation.ok ? customSeedValidation.backRankCode : null;
   const dailyAIStatusLine = getDailyAIStatusLine(dailyAIProgress);
+  const dailyBestScore = getBestLocalScoreForSeed(dailySeed, ['daily']);
+  const dailyBestScoreLabel = dailyBestScore ? `High score ${dailyBestScore.score} · ${dailyBestScore.moves} moves` : 'No high score yet';
 
   useEffect(() => {
     const dateRefreshId = window.setInterval(() => setTodayKey(getUtcDateKey()), 60000);
@@ -264,14 +272,17 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
     else await onSeeded(activeSeedSource.seed, activeSeedSource.backRankCode);
   }
 
-  async function requestMatchFor(seed: string, backRankCode: string, mode: ShuffleMode = seed.startsWith('random-') ? 'random' : 'daily') {
+  async function requestMatchFor(seed: string, backRankCode: string, mode: ShuffleMode = modeFromSeed(seed)) {
     trackEvent('homepage_cta_click', { cta: 'find_match', seed, mode });
     setMatchTarget({ seed, backRankCode, mode });
     setModal('matchmaking');
     setMatchmaking((current) => ({ status: 'finding', queueId: current.status === 'finding' ? current.queueId : undefined }));
     try {
       const result = await onFindMatch(seed, backRankCode);
-      if (result.status === 'waiting') setMatchmaking({ status: 'finding', queueId: result.queueId });
+      if (result.status === 'waiting') {
+        setMatchTarget({ seed: result.seed, backRankCode: result.backRankCode, mode: modeFromSeed(result.seed) });
+        setMatchmaking({ status: 'finding', queueId: result.queueId });
+      }
       if (result.status === 'unavailable') setMatchmaking({ status: 'failed', message: result.message });
     } catch (error) {
       setMatchmaking({ status: 'failed', message: error instanceof Error ? error.message : 'Unable to start matchmaking.' });
@@ -331,7 +342,10 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
     const pollId = window.setInterval(() => {
       onFindMatch(matchTarget.seed, matchTarget.backRankCode)
         .then((result) => {
-          if (result.status === 'waiting') setMatchmaking((current) => (current.status === 'finding' ? { ...current, queueId: result.queueId } : current));
+          if (result.status === 'waiting') {
+            setMatchTarget({ seed: result.seed, backRankCode: result.backRankCode, mode: modeFromSeed(result.seed) });
+            setMatchmaking((current) => (current.status === 'finding' ? { ...current, queueId: result.queueId } : current));
+          }
           if (result.status === 'unavailable') setMatchmaking({ status: 'failed', message: result.message });
         })
         .catch((error: Error) => setMatchmaking({ status: 'failed', message: error.message }));
@@ -393,16 +407,17 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
           <div className="home-action-grid" aria-label="Choose how to play">
             <button type="button" className="home-action-card home-action-ai" onClick={playActiveModeAgainstAi}>
               <span className="action-badge"><Bot size={14} aria-hidden="true" /> AI</span>
+              {shuffleMode === 'daily' && <span className="home-high-score-chip" aria-label={dailyBestScoreLabel}>{dailyBestScore ? `Best ${dailyBestScore.score}` : 'No best yet'}</span>}
               <span className="card-sparkle card-sparkle-one" aria-hidden="true" />
               <img className="action-piece action-piece-pawn" src="/pieces/white-pawn.png" alt="White pawn" draggable={false} />
               {shuffleMode === 'daily' && <span className="daily-ai-stars" aria-label={`Daily AI progress: ${getDailyAIProgressAria(dailyAIProgress)}`}><DailyAIStarMarks progress={dailyAIProgress} /></span>}
-              <span className="action-card-copy"><strong>Play AI</strong><small>{shuffleMode === 'daily' ? 'Instant daily game' : 'Use displayed setup'}</small>{shuffleMode === 'daily' && <small className="daily-ai-status">{dailyAIStatusLine}</small>}</span>
+              <span className="action-card-copy"><strong>Play AI</strong><small>{shuffleMode === 'daily' ? 'Instant daily game' : 'Use displayed setup'}</small>{shuffleMode === 'daily' && <small className="daily-ai-status">{dailyAIStatusLine}</small>}{shuffleMode === 'daily' && dailyBestScore && <small className="daily-ai-status">{dailyBestScoreLabel}</small>}</span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
             <button type="button" className="home-action-card home-action-match" onClick={() => { void requestActiveMatch(); }}>
               <span className="card-sparkle card-sparkle-two" aria-hidden="true" />
               <img className="action-piece action-piece-rook" src="/pieces/white-rook.png" alt="White rook" draggable={false} />
-              <span className="action-card-copy"><strong>Find Match</strong><small>{shuffleMode === 'daily' ? 'Match today’s seed' : 'Use displayed setup'}</small></span>
+              <span className="action-card-copy"><strong>Find Match</strong><small>Join any open player</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
             <button type="button" className="home-action-card home-action-invite" onClick={() => { void inviteActiveMode(); }}>
@@ -571,7 +586,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             <input
               id={seedInputId}
               name="seed"
-              placeholder="boss-battle-1 or BRKNQ"
+              placeholder="boss-battle-1 or PPKPP"
               maxLength={48}
               value={customSeed}
               onChange={(event) => {
@@ -582,7 +597,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               aria-invalid={customSeedError ? 'true' : 'false'}
               autoFocus
             />
-            <p id="custom-seed-help" className="custom-seed-example">Use a direct code like BRKNQ or a text seed like boss-battle-1.</p>
+            <p id="custom-seed-help" className="custom-seed-example">Use any 5-piece direct code with one K, like PPKPP, or a text seed like boss-battle-1.</p>
             {customSeedError && <p id={seedErrorId} className="error-message inline-message">{customSeedError}</p>}
             {customBackRankCode && <p className="seed-readout"><span>Generated back rank</span><span>{customBackRankCode}</span></p>}
             <div className="panel-actions centered-actions">
@@ -629,8 +644,9 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             <button type="button" className="modal-close" onClick={cancelMatch} aria-label="Cancel matchmaking"><X size={18} /></button>
             <p className="eyebrow">Find Match</p>
             <h2 id="matchmaking-modal-title">{matchmaking.status === 'timeout' ? 'No opponent found yet.' : matchmaking.status === 'failed' ? 'Matchmaking unavailable' : 'Finding opponent...'}</h2>
-            <p>{matchTarget.mode === 'daily' ? 'Daily seed' : 'Random seed'}: <strong>{matchTarget.seed}</strong></p>
+            <p>Queued seed: <strong>{matchTarget.seed}</strong></p>
             <p>Back rank: {matchTarget.backRankCode}</p>
+            <p className="panel-note">Your setup stays open online. The next player who taps Find Match joins this board, and colors are picked at random.</p>
             {matchmaking.status === 'failed' && <p className="error-message inline-message">{matchmaking.message}</p>}
             {matchmaking.status === 'timeout' && <p>No one matched within about a minute. You can keep waiting or send an invite link.</p>}
             <div className="panel-actions centered-actions">
