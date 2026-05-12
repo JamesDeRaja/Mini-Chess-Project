@@ -5483,3 +5483,66 @@ button:focus-visible,
     padding: 22px;
   }
 }
+
+/* Score help v4: make the drawer read as an attached extension of the result card */
+.winner-card:has(.result-title-row .score-help-drawer) {
+  isolation: isolate;
+  overflow: visible;
+}
+.winner-card:has(.result-title-row .score-help-drawer)::after {
+  position: absolute;
+  top: 0;
+  right: -22px;
+  bottom: 0;
+  z-index: 1;
+  width: 34px;
+  border-top: 1px solid rgba(222, 217, 203, 0.82);
+  border-bottom: 1px solid rgba(222, 217, 203, 0.82);
+  background: #fbf8ee;
+  content: '';
+  pointer-events: none;
+}
+.winner-card:has(.result-title-row .score-help-drawer) .result-close-button,
+.winner-card:has(.result-title-row .score-help-drawer) > :not(.score-help-drawer) {
+  position: relative;
+  z-index: 2;
+}
+.result-title-row .score-help-drawer {
+  top: 0;
+  bottom: 0;
+  left: calc(100% - 1px);
+  z-index: 0;
+  width: min(430px, calc(100vw - 610px));
+  max-height: none;
+  padding: clamp(28px, 3vw, 38px) clamp(22px, 2.6vw, 34px) clamp(22px, 2.6vw, 34px) clamp(46px, 4vw, 58px);
+  border-left: 0;
+  border-radius: 0 34px 34px 0;
+  background: #fbf8ee;
+  box-shadow: 28px 22px 44px rgba(101, 111, 92, 0.14);
+}
+.result-title-row .score-help-drawer::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -18px;
+  width: 22px;
+  background: #fbf8ee;
+  content: '';
+}
+.result-title-row .score-help-drawer .score-help-close {
+  z-index: 3;
+}
+@media (max-width: 980px) {
+  .winner-card:has(.result-title-row .score-help-drawer)::after,
+  .result-title-row .score-help-drawer::before {
+    display: none;
+  }
+  .result-title-row .score-help-drawer {
+    bottom: auto;
+    left: 50%;
+    width: min(90vw, 430px);
+    padding: 22px;
+    border-left: 1px solid rgba(222, 217, 203, 0.9);
+    border-radius: 24px;
+  }
+}
