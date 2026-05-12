@@ -102,7 +102,7 @@ export function calculateGameScore({
   const earnedCapturePoints = captures.reduce((total, capture) => total + capture.scoreValue, 0);
   const capturePenalty = enemyCaptures.reduce((total, capture) => total + getCapturePenaltyScore(capture.capturedPiece), 0);
   const capturePoints = earnedCapturePoints - capturePenalty;
-  const totalScore = result === 'loss' ? 0 : Math.max(0, resultBonus + speedBonus + capturePoints);
+  const totalScore = Math.max(1, resultBonus + speedBonus + capturePoints);
   return { resultBonus, speedBonus, capturePoints, capturePenalty, totalScore, fullMoves, captures };
 }
 

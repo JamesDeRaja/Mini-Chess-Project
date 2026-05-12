@@ -4483,3 +4483,26 @@ button:focus-visible,
   .score-result-bento { grid-template-columns: 1fr; }
   .score-hero-tile { min-height: 112px; }
 }
+
+/* Final home/capture layout corrections */
+.today-pill {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.today-pill .copy-seed-button {
+  grid-column: auto;
+  width: auto;
+}
+.captured-side {
+  grid-template-columns: auto auto;
+  justify-content: start;
+  gap: 4px;
+}
+.captured-points {
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+}
+@media (max-width: 760px) {
+  .today-pill { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .today-pill .copy-seed-button { grid-column: auto; width: auto; }
+  .captured-points { font-size: 0.9rem; }
+}
