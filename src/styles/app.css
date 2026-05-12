@@ -4798,3 +4798,17 @@ button:focus-visible,
   .score-capture-row .captured-piece-list { margin-left: -18px; }
   .score-capture-row .captured-piece-token { min-width: var(--captured-size); margin-right: 0; }
 }
+
+/* Balanced capture spacing for up to nine non-king pieces */
+.score-capture-row .captured-piece-list {
+  margin-left: -12px;
+}
+.score-capture-row .captured-piece-token {
+  --captured-overlap: clamp(32px, 2.55vw, 39px);
+  min-width: var(--captured-size);
+  margin-right: 0;
+}
+@media (max-width: 760px) {
+  .score-capture-row .captured-piece-list { margin-left: -12px; }
+  .score-capture-row .captured-piece-token { --captured-overlap: 34px; }
+}
