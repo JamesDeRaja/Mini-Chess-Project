@@ -1,8 +1,25 @@
 const playerIdKey = 'miniShuffleChess.playerId';
 const displayNameKey = 'miniShuffleChess.displayName';
 
-function shortSuffix(value: string) {
-  return value.replace(/[^a-z0-9]/gi, '').slice(-5).toUpperCase() || Math.random().toString(36).slice(2, 7).toUpperCase();
+const defaultDisplayNames = [
+  'Amigo', 'Randomxo', 'Comrade', 'Buddy', 'Paloma', 'Chingu', 'Dost', 'Yaar', 'Sathi', 'Mitra',
+  'Tomo', 'Tomodachi', 'Habibi', 'Habibti', 'Amica', 'Amico', 'Compadre', 'Compa', 'Parce', 'Kumpel',
+  'Freund', 'Vriend', 'Kaveri', 'KaveriX', 'Sahib', 'Sahiba', 'Saheli', 'Sangi', 'Druzhok', 'Prijatelj',
+  'Mafriend', 'Monami', 'AmiGoGo', 'LudoPal', 'RookAmigo', 'Knighto', 'Pawnbuddy', 'MateMigo', 'ShuffleMitra', 'TinyDost',
+  'PocketPal', 'RandoMate', 'SeedSathi', 'BoardBuddy', 'ChessChingu', 'MiniAmigo', 'BlitzYaar', 'TempoTomo', 'ForkFriend', 'RookRafiq',
+  'Rafiq', 'Sadiq', 'Zuma', 'Kito', 'Niko', 'Luma', 'Mika', 'Tavi', 'Kavi', 'Zuri',
+  'Ayo', 'Bayo', 'Nia', 'Lio', 'Rio', 'Momo', 'Koko', 'Pipo', 'Tiko', 'Namu',
+  'Sora', 'Yuki', 'Kuma', 'Hana', 'Lani', 'Noa', 'Iko', 'Oni', 'Pasha', 'Rumi',
+  'Juno', 'Novi', 'Vela', 'Tala', 'Mira', 'Asha', 'Kira', 'Zeno', 'Beni', 'Dima',
+  'Luka', 'Nuri', 'Sami', 'Tari', 'Omaro', 'Enzo', 'Mateo', 'Rico', 'SolMate', 'Wanderxo',
+] as const;
+
+function defaultNameIndex(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash % defaultDisplayNames.length;
 }
 
 function createPlayerId() {
@@ -20,7 +37,7 @@ export function getAnonymousPlayerId(): string {
 }
 
 export function getDefaultDisplayName(playerId = getAnonymousPlayerId()) {
-  return `Guest ${shortSuffix(playerId)}`;
+  return defaultDisplayNames[defaultNameIndex(playerId)] ?? 'Amigo';
 }
 
 export function getDisplayName(): string {
@@ -36,8 +53,4 @@ export function saveDisplayName(name: string): string {
 
 export function hasCustomDisplayName(): boolean {
   return typeof localStorage !== 'undefined' && Boolean(localStorage.getItem(displayNameKey));
-}
-
-export function clearDisplayName(): void {
-  if (typeof localStorage !== 'undefined') localStorage.removeItem(displayNameKey);
 }

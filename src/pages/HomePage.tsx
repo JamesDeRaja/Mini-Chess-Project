@@ -7,7 +7,7 @@ import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInter
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { trackEvent } from '../app/analytics.js';
 import { getLocalBestScoreForSeedMode, type CompletedScoreEntry } from '../game/localScoreHistory.js';
-import { clearDisplayName, getDisplayName, hasCustomDisplayName, saveDisplayName } from '../game/localPlayer.js';
+import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getShareUrl } from '../app/seo.js';
 import { fetchLeaderboard, fetchScoreboard, type LeaderboardEntry, type LeaderboardScope } from '../multiplayer/scoreApi.js';
 
@@ -174,7 +174,7 @@ export function HomePage({
   const [customSeed, setCustomSeed] = useState('');
   const [customSeedWasSubmitted, setCustomSeedWasSubmitted] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
-  const [displayNameDraft, setDisplayNameDraft] = useState(() => (hasCustomDisplayName() ? getDisplayName() : ''));
+  const [displayNameDraft, setDisplayNameDraft] = useState(() => getDisplayName());
   const [modal, setModal] = useState<ModalName>(initialModal ?? null);
   const [matchmaking, setMatchmaking] = useState<MatchmakingState>({ status: 'idle' });
   const [shuffleMode, setShuffleModeState] = useState<ShuffleMode>(() => getCurrentShuffleMode());
@@ -315,11 +315,6 @@ export function HomePage({
 
   function commitDisplayNameDraft() {
     const normalizedDraft = displayNameDraft.trim();
-    if (!normalizedDraft) {
-      clearDisplayName();
-      setDisplayNameDraft('');
-      return;
-    }
     setDisplayNameDraft(saveDisplayName(normalizedDraft));
   }
 
@@ -556,7 +551,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
                 onChange={(event) => setDisplayNameDraft(event.target.value)}
                 onBlur={commitDisplayNameDraft}
                 onKeyDown={handleDisplayNameKeyDown}
-                placeholder="Stranger"
+                placeholder="Player name"
                 maxLength={24}
               />
             </form>
