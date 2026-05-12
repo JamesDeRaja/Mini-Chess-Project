@@ -2123,6 +2123,38 @@ button:active:not(:disabled) {
 
 .shuffle-mode-toggle button:focus-visible { outline: 3px solid rgba(127, 159, 134, 0.42); outline-offset: 2px; }
 
+.random-shuffle-toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.shuffle-mode-toggle .shuffle-refresh-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  color: #67756d;
+  background: rgba(255, 248, 215, 0.74);
+  border-color: rgba(222, 201, 135, 0.68);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.shuffle-mode-toggle .shuffle-refresh-button:hover,
+.shuffle-mode-toggle .shuffle-refresh-button:focus-visible {
+  color: #4f6f5a;
+  background: rgba(255, 232, 161, 0.92);
+  border-color: rgba(211, 183, 92, 0.82);
+}
+
+.shuffle-mode-toggle .shuffle-refresh-button:active {
+  transform: translateY(1px) rotate(18deg);
+}
+
 .home-action-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -5727,7 +5759,8 @@ button:focus-visible,
   background: rgba(255, 248, 215, 0.82);
 }
 .shuffle-mode-toggle {
-  width: min(100%, 300px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.36fr);
+  width: min(100%, 340px);
 }
 @media (max-width: 760px) {
   .shuffle-mode-panel,
@@ -5788,6 +5821,9 @@ button:focus-visible,
   .shuffle-mode-panel .today-high-score-chip {
     justify-self: start;
     margin-left: 4px;
+  }
+  .shuffle-mode-panel .shuffle-mode-toggle {
+    width: 100%;
   }
 }
 
@@ -6067,5 +6103,99 @@ button:focus-visible,
   }
   .leaderboard-tabs button {
     min-height: 42px;
+  }
+}
+
+/* Compact live-score chip: icon-only until leaderboard data changes, then briefly expands. */
+.home-leaderboard-chip {
+  overflow: hidden;
+  transition: width 220ms ease, height 220ms ease, padding 220ms ease, transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.home-leaderboard-chip.is-collapsed {
+  grid-template-columns: 1fr;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  border-radius: 999px;
+}
+.home-leaderboard-chip.is-collapsed > svg {
+  width: 24px;
+  height: 24px;
+}
+.home-leaderboard-chip.is-collapsed > div {
+  display: none;
+  width: 0;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.home-leaderboard-chip.is-expanded {
+  width: min(300px, calc(100vw - 24px));
+}
+
+.player-greeting {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42em;
+  min-width: 0;
+  color: #7f9f86;
+  font-size: clamp(0.82rem, 1.15vw, 1rem);
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: none;
+}
+.player-greeting input {
+  width: min(15ch, 38vw);
+  min-width: 7ch;
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: #7f9f86;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  outline: none;
+}
+.player-greeting input::placeholder {
+  color: #7f9f86;
+  opacity: 1;
+}
+.player-greeting input:hover,
+.player-greeting input:focus {
+  border-bottom-color: rgba(127, 159, 134, 0.45);
+}
+
+
+/* Mobile home refinement: keep live scores on the right and let hero content start higher. */
+.home-leaderboard-chip.is-collapsed > svg {
+  display: block;
+  align-self: center;
+  justify-self: center;
+}
+@media (max-width: 760px) {
+  .home-leaderboard-chip,
+  .home-leaderboard-chip.is-expanded,
+  .home-leaderboard-chip.is-collapsed {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    left: auto;
+  }
+  .home-leaderboard-chip.is-expanded {
+    width: min(300px, calc(100vw - 24px));
+  }
+  .home-hero-shell {
+    padding-top: clamp(22px, 7vw, 38px);
+  }
+}
+@media (max-width: 420px) {
+  .home-hero-shell {
+    padding-top: 18px;
+  }
+  .brand-row {
+    padding-right: 68px;
   }
 }

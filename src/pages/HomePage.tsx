@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, RefreshCw, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
-import { getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
+import { createRandomGameSeed, getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { trackEvent } from '../app/analytics.js';
 import { getLocalBestScoreForSeedMode, type CompletedScoreEntry } from '../game/localScoreHistory.js';
+import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getShareUrl } from '../app/seo.js';
 import { fetchLeaderboard, fetchScoreboard, type LeaderboardEntry, type LeaderboardScope } from '../multiplayer/scoreApi.js';
 
@@ -173,14 +174,17 @@ export function HomePage({
   const [customSeed, setCustomSeed] = useState('');
   const [customSeedWasSubmitted, setCustomSeedWasSubmitted] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
+  const [displayNameDraft, setDisplayNameDraft] = useState(() => getDisplayName());
   const [modal, setModal] = useState<ModalName>(initialModal ?? null);
   const [matchmaking, setMatchmaking] = useState<MatchmakingState>({ status: 'idle' });
   const [shuffleMode, setShuffleModeState] = useState<ShuffleMode>(() => getCurrentShuffleMode());
-  const [randomSetup] = useState(() => resolveSeedSourceForMode('random', { randomSeed: getPageSessionRandomGameSeed() }));
+  const [randomSetup, setRandomSetup] = useState(() => resolveSeedSourceForMode('random', { randomSeed: getPageSessionRandomGameSeed() }));
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
   const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(() => getLocalBestScoreForSeedMode(getDailySeed(todayKey), 'daily'));
   const [leaderboardFeed, setLeaderboardFeed] = useState<LeaderboardFeedItem[]>([]);
   const [leaderboardFeedIndex, setLeaderboardFeedIndex] = useState(0);
+  const [leaderboardChipExpanded, setLeaderboardChipExpanded] = useState(false);
+  const previousLeaderboardFeedSignatureRef = useRef('');
   const [leaderboardDialogOpen, setLeaderboardDialogOpen] = useState(false);
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('daily');
   const [leaderboardDialogRows, setLeaderboardDialogRows] = useState<LeaderboardEntry[]>([]);
@@ -202,6 +206,7 @@ export function HomePage({
   const customBackRankCode = customSeedValidation.ok ? customSeedValidation.backRankCode : null;
   const dailyAIStatusLine = getDailyAIStatusLine(dailyAIProgress);
   const activeLeaderboardView = leaderboardViews.find((view) => view.scope === leaderboardScope) ?? leaderboardViews[0];
+  const leaderboardFeedSignature = useMemo(() => leaderboardFeed.map((entry) => `${entry.id}:${entry.score}:${entry.rank ?? ''}`).join('|'), [leaderboardFeed]);
   const visibleLeaderboardFeed = leaderboardFeed.length > 0
     ? [0, 1, 2].map((offset) => leaderboardFeed[(leaderboardFeedIndex + offset) % leaderboardFeed.length]).filter(Boolean) as LeaderboardFeedItem[]
     : [];
@@ -240,6 +245,16 @@ export function HomePage({
     }, 2600);
     return () => window.clearInterval(scrollId);
   }, [leaderboardFeed.length]);
+
+  useEffect(() => {
+    const previousSignature = previousLeaderboardFeedSignatureRef.current;
+    previousLeaderboardFeedSignatureRef.current = leaderboardFeedSignature;
+    if (!leaderboardFeedSignature || leaderboardFeedSignature === previousSignature) return undefined;
+
+    setLeaderboardChipExpanded(true);
+    const collapseId = window.setTimeout(() => setLeaderboardChipExpanded(false), 7800);
+    return () => window.clearTimeout(collapseId);
+  }, [leaderboardFeedSignature]);
 
   useEffect(() => {
     if (!leaderboardDialogOpen) return;
@@ -288,6 +303,26 @@ export function HomePage({
     setCurrentShuffleMode(mode);
     setShuffleModeState(mode);
     trackEvent('homepage_cta_click', { cta: 'shuffle_mode_toggle', mode });
+  }
+
+  function reshuffleRandomSetup() {
+    const nextRandomSetup = resolveSeedSourceForMode('random', { randomSeed: createRandomGameSeed() });
+    setRandomSetup(nextRandomSetup);
+    setCurrentShuffleMode('random');
+    setShuffleModeState('random');
+    trackEvent('homepage_cta_click', { cta: 'random_shuffle_refresh', backRankCode: nextRandomSetup.backRankCode });
+  }
+
+  function commitDisplayNameDraft() {
+    const normalizedDraft = displayNameDraft.trim();
+    setDisplayNameDraft(saveDisplayName(normalizedDraft));
+  }
+
+  function handleDisplayNameKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      event.currentTarget.blur();
+    }
   }
 
   async function copyActiveSeed() {
@@ -459,7 +494,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
 
   return (
     <main className="home-page">
-      <button type="button" className="home-leaderboard-chip" onClick={() => setLeaderboardDialogOpen(true)} aria-label="Open leaderboards">
+      <button type="button" className={`home-leaderboard-chip ${leaderboardChipExpanded ? 'is-expanded' : 'is-collapsed'}`} onClick={() => setLeaderboardDialogOpen(true)} aria-label="Open leaderboards">
         <Trophy size={18} aria-hidden="true" />
         <div>
           <strong>Live scores</strong>
@@ -508,7 +543,18 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
         <div className="hero-copy">
           <div className="brand-row">
             <span className="brand-icon-tile" aria-hidden="true"><img src="/Icon.png" alt="" draggable={false} /></span>
-            <span>POCKET SHUFFLE CHESS</span>
+            <form className="player-greeting" onSubmit={(event) => { event.preventDefault(); commitDisplayNameDraft(); }}>
+              <span>Hello</span>
+              <input
+                aria-label="Player name"
+                value={displayNameDraft}
+                onChange={(event) => setDisplayNameDraft(event.target.value)}
+                onBlur={commitDisplayNameDraft}
+                onKeyDown={handleDisplayNameKeyDown}
+                placeholder="Player name"
+                maxLength={24}
+              />
+            </form>
           </div>
 
           <span className="title-spark title-spark-yellow" aria-hidden="true" />
@@ -532,17 +578,33 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             </div>
             {localBestScore && <span className="today-high-score-chip">High Score: {localBestScore.score}</span>}
             <div className="shuffle-mode-toggle" role="group" aria-label="Choose global shuffle mode">
-              {(['daily', 'random'] as const).map((mode) => (
+              <button
+                type="button"
+                className={shuffleMode === 'daily' ? 'selected' : ''}
+                onClick={() => setShuffleMode('daily')}
+                aria-pressed={shuffleMode === 'daily'}
+              >
+                Daily Shuffle
+              </button>
+              <span className="random-shuffle-toggle">
                 <button
-                  key={mode}
                   type="button"
-                  className={mode === shuffleMode ? 'selected' : ''}
-                  onClick={() => setShuffleMode(mode)}
-                  aria-pressed={mode === shuffleMode}
+                  className={shuffleMode === 'random' ? 'selected' : ''}
+                  onClick={() => setShuffleMode('random')}
+                  aria-pressed={shuffleMode === 'random'}
                 >
-                  {mode === 'daily' ? 'Daily Shuffle' : 'Random Shuffle'}
+                  Random Shuffle
                 </button>
-              ))}
+                <button
+                  type="button"
+                  className="shuffle-refresh-button"
+                  onClick={reshuffleRandomSetup}
+                  aria-label="Shuffle a new random setup"
+                  title="Shuffle again"
+                >
+                  <RefreshCw size={16} aria-hidden="true" />
+                </button>
+              </span>
             </div>
           </div>
 
