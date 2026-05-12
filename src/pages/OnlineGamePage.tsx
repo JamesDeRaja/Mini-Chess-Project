@@ -6,6 +6,7 @@ import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
 import { MoveHistory } from '../components/MoveHistory.js';
+import { ScoreExplanation } from '../components/ScoreExplanation.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { findKingIndex, isKingInCheck } from '../game/check.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
@@ -166,13 +167,14 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const drawOfferIsFromOpponent = (role === 'white' || role === 'black') && drawOfferBy !== null && drawOfferBy !== role;
   const drawActionLabel = drawOfferIsFromOpponent ? 'Accept Draw' : drawOfferBy === role ? 'Draw Requested' : 'Request Draw';
   const canUseGameActions = isOnlineGameReady && !isCompleted && (role === 'white' || role === 'black') && !gameActionPending;
-  const onlineResult: 'win' | 'loss' | 'draw' | 'spectator' = isLifecycleTerminal || status === 'draw' ? 'draw' : role === 'spectator' ? 'spectator' : winner === role ? 'win' : 'loss';
+  const isStalemateResult = status === 'draw' && resultType === 'stalemate';
+  const onlineResult: 'win' | 'loss' | 'draw' | 'stalemate' | 'spectator' = isStalemateResult ? 'stalemate' : isLifecycleTerminal || status === 'draw' ? 'draw' : role === 'spectator' ? 'spectator' : winner === role ? 'win' : 'loss';
   const onlineResultTitle = status === 'expired'
     ? 'This challenge link has expired.'
     : status === 'timeout'
       ? 'This game session is over.'
       : status === 'draw'
-        ? 'Draw'
+        ? isStalemateResult ? 'Stalemate' : 'Draw'
         : role === 'spectator'
           ? `${winner === 'white' ? 'White' : 'Black'} won`
           : winner === role
@@ -185,7 +187,9 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     ? 'Challenge links expire after 60 minutes. Create a new challenge to keep playing.'
     : status === 'timeout'
       ? 'No moves were made for 60 minutes. Create a new challenge to keep playing.'
-      : resultType === 'draw_agreement'
+      : resultType === 'stalemate'
+        ? `Stalemate: the player to move had no legal moves and was not in check. ${moveHistory.length} moves. Seed: ${seedLabel}.`
+        : resultType === 'draw_agreement'
         ? `Players agreed to a draw. ${moveHistory.length} moves. Seed: ${seedLabel}.`
         : resultType === 'resignation'
           ? `${winner === 'white' ? 'White' : 'Black'} wins by resignation. ${moveHistory.length} moves. Seed: ${seedLabel}.`
@@ -197,7 +201,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
       : status === 'timeout'
         ? 'Timed out'
         : status === 'draw'
-          ? 'Draw'
+          ? isStalemateResult ? 'Stalemate' : 'Draw'
           : role === 'spectator'
             ? `${winner === 'white' ? 'White' : 'Black'} won`
             : winner === role
@@ -799,12 +803,13 @@ ${inviteLink}`;
           result={onlineResult}
           winner={winner}
           eyebrow="Game complete"
-          title={onlineResult === 'win' ? 'You won' : onlineResult === 'loss' ? 'You lost' : onlineResult === 'spectator' ? 'Game complete' : 'Draw'}
+          title={onlineResult === 'win' ? 'You won' : onlineResult === 'loss' ? 'You lost' : onlineResult === 'stalemate' ? 'Stalemate' : onlineResult === 'spectator' ? 'Game complete' : 'Draw'}
           summary={onlineResultSummary}
           details={(
             <>
               <div className="score-result-bento" aria-label="Score breakdown">
                 <div className="score-hero-tile">
+                  <ScoreExplanation breakdown={scoreBreakdown} resultLabel={onlineResult === 'stalemate' ? 'stalemate' : onlineResult} />
                   <span>Score</span>
                   <strong>{scoreBreakdown.totalScore}</strong>
                   {localBestScore && <small>Local best {localBestScore.score}</small>}

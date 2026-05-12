@@ -6,6 +6,7 @@ import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
 import { MoveHistory } from '../components/MoveHistory.js';
+import { ScoreExplanation } from '../components/ScoreExplanation.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
 import { type BotLevel, getBotMoveByLevel, getMoveIdentity } from '../game/bot.js';
@@ -23,7 +24,7 @@ import { createInitialBoard } from '../game/createInitialBoard.js';
 import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
-import { backRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, validateSeedInput } from '../game/seed.js';
+import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, validateSeedInput } from '../game/seed.js';
 import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { calculateGameScore, getCaptureScore } from '../game/scoring.js';
@@ -217,7 +218,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     const todayKey = getUtcDateKey();
     const dateKey = requestedDateKey && requestedDateKey <= todayKey ? requestedDateKey : todayKey;
     const seed = getDailySeed(dateKey);
-    return { dateKey, seed, backRankCode: backRankCodeFromSeed(seed) };
+    return { dateKey, seed, backRankCode: dailyBackRankCodeFromSeed(seed) };
   }, [customBackRankCode, requestedDateKey, seedValidation]);
   const isDailyAI = !customSeed;
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
@@ -280,7 +281,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }, []);
 
 
-  const scoreBreakdown = useMemo(() => calculateGameScore({ status, side: playerColor, moveHistory }), [moveHistory, playerColor, status]);
+  const scoreBreakdown = useMemo(() => calculateGameScore({ status, side: playerColor, moveHistory, missingPlayerPieces: dailyAscensionTier }), [dailyAscensionTier, moveHistory, playerColor, status]);
   const headerScoreValue = status === 'active' ? scoreBreakdown.capturePoints : scoreBreakdown.totalScore;
   const headerScoreLabel = `Score ${headerScoreValue > 0 && status === 'active' ? '+' : ''}${headerScoreValue}`;
   const scoreMode = isDailyAI ? 'daily' : 'bot';
@@ -681,6 +682,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             <>
               <div className="score-result-bento" aria-label="Score breakdown">
                 <div className="score-hero-tile">
+                  <ScoreExplanation breakdown={scoreBreakdown} resultLabel={roundResult.drawReason === 'stalemate' ? 'stalemate' : roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'} />
                   <span>Score</span>
                   <strong>{scoreBreakdown.totalScore}</strong>
                   {localBestScore && <small>Local best {localBestScore.score}</small>}
@@ -689,6 +691,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                   <p><span>Result</span><strong>+{scoreBreakdown.resultBonus}</strong></p>
                   <p><span>Speed</span><strong>+{scoreBreakdown.speedBonus}</strong></p>
                   <p><span>Captures</span><strong>{scoreBreakdown.capturePoints >= 0 ? `+${scoreBreakdown.capturePoints}` : scoreBreakdown.capturePoints}</strong></p>
+                  {scoreBreakdown.materialAdjustment > 0 && <p><span>Fairness</span><strong>+{scoreBreakdown.materialAdjustment}</strong></p>}
                   <p><span>Moves</span><strong>{scoreBreakdown.fullMoves}</strong></p>
                   <p><span>Side</span><strong>{playerColor === 'white' ? 'White' : 'Black'}</strong></p>
                   <p><span>Setup</span><strong>{dailySeedInfo.backRankCode}</strong></p>
