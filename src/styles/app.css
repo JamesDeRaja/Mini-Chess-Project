@@ -5699,3 +5699,43 @@ button:focus-visible,
     display: none;
   }
 }
+
+/* Final compact home setup: keep high score as a separate capsule, not inside setup data. */
+.shuffle-mode-panel {
+  width: min(100%, 430px);
+  justify-items: start;
+}
+.today-pill {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  width: min(100%, 430px);
+  gap: 11px;
+  padding: 10px 12px 10px 10px;
+}
+.today-pill-copy strong {
+  font-size: clamp(1.55rem, 3.2vw, 2.15rem);
+}
+.today-pill-copy small {
+  max-width: none;
+}
+.today-high-score-chip {
+  display: inline-flex;
+  width: fit-content;
+  margin: 0 0 0 10px;
+  min-height: 32px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: rgba(255, 248, 215, 0.82);
+}
+.shuffle-mode-toggle {
+  width: min(100%, 300px);
+}
+@media (max-width: 760px) {
+  .shuffle-mode-panel,
+  .today-pill {
+    width: 100%;
+  }
+  .today-high-score-chip {
+    grid-column: auto;
+    margin-left: 4px;
+  }
+}
