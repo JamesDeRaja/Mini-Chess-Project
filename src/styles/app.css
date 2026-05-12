@@ -4812,3 +4812,53 @@ button:focus-visible,
   .score-capture-row .captured-piece-list { margin-left: -12px; }
   .score-capture-row .captured-piece-token { --captured-overlap: 34px; }
 }
+
+/* Grouped captured pieces: overlap inside a type, leave a tiny gap between types, never spill outside row */
+.score-stack .score-capture-row {
+  overflow: hidden;
+}
+.score-capture-row .captured-piece-list {
+  gap: clamp(2px, 0.45vw, 5px);
+  margin-left: -8px;
+  overflow: hidden;
+}
+.score-capture-row .captured-piece-group {
+  --captured-size: clamp(38px, 3.1vw, 48px);
+  --captured-inner-overlap: clamp(21px, 1.9vw, 28px);
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.score-capture-row .captured-piece-group .captured-piece-copy {
+  width: var(--captured-size);
+  height: var(--captured-size);
+  flex: 0 0 var(--captured-size);
+}
+.score-capture-row .captured-piece-group .captured-piece-copy + .captured-piece-copy {
+  margin-left: calc(var(--captured-inner-overlap) * -1);
+}
+.score-capture-row .captured-piece-group img {
+  width: var(--captured-size);
+  height: var(--captured-size);
+}
+.score-capture-row .captured-piece-list-dense {
+  gap: 2px;
+}
+.score-capture-row .captured-piece-list-dense .captured-piece-group {
+  --captured-size: clamp(34px, 2.75vw, 42px);
+  --captured-inner-overlap: clamp(20px, 1.7vw, 25px);
+}
+.score-capture-row .captured-piece-list-full {
+  gap: 1px;
+}
+.score-capture-row .captured-piece-list-full .captured-piece-group {
+  --captured-size: clamp(30px, 2.45vw, 38px);
+  --captured-inner-overlap: clamp(18px, 1.55vw, 23px);
+}
+@media (max-width: 760px) {
+  .score-capture-row .captured-piece-list { gap: 1px; margin-left: -8px; }
+  .score-capture-row .captured-piece-group { --captured-size: 34px; --captured-inner-overlap: 21px; }
+  .score-capture-row .captured-piece-list-dense .captured-piece-group { --captured-size: 31px; --captured-inner-overlap: 20px; }
+  .score-capture-row .captured-piece-list-full .captured-piece-group { --captured-size: 28px; --captured-inner-overlap: 18px; }
+}
