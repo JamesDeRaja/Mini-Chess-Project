@@ -4862,3 +4862,27 @@ button:focus-visible,
   .score-capture-row .captured-piece-list-dense .captured-piece-group { --captured-size: 31px; --captured-inner-overlap: 20px; }
   .score-capture-row .captured-piece-list-full .captured-piece-group { --captured-size: 28px; --captured-inner-overlap: 18px; }
 }
+
+/* Let same-type captures overlap harder so common pawn stacks can stay large */
+.score-capture-row .captured-piece-group {
+  --captured-size: clamp(42px, 3.35vw, 52px);
+  --captured-inner-overlap: clamp(31px, 2.65vw, 40px);
+}
+.score-capture-row .captured-piece-list-dense .captured-piece-group {
+  --captured-size: clamp(39px, 3.1vw, 48px);
+  --captured-inner-overlap: clamp(32px, 2.55vw, 39px);
+}
+.score-capture-row .captured-piece-list-full .captured-piece-group {
+  --captured-size: clamp(36px, 2.85vw, 44px);
+  --captured-inner-overlap: clamp(30px, 2.35vw, 37px);
+}
+.score-capture-row .captured-piece-list-many-groups .captured-piece-group {
+  --captured-size: clamp(30px, 2.45vw, 38px);
+  --captured-inner-overlap: clamp(26px, 2.05vw, 33px);
+}
+@media (max-width: 760px) {
+  .score-capture-row .captured-piece-group { --captured-size: 38px; --captured-inner-overlap: 30px; }
+  .score-capture-row .captured-piece-list-dense .captured-piece-group { --captured-size: 35px; --captured-inner-overlap: 29px; }
+  .score-capture-row .captured-piece-list-full .captured-piece-group { --captured-size: 32px; --captured-inner-overlap: 27px; }
+  .score-capture-row .captured-piece-list-many-groups .captured-piece-group { --captured-size: 28px; --captured-inner-overlap: 24px; }
+}

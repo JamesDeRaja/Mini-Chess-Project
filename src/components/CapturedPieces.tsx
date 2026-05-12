@@ -24,7 +24,7 @@ function CapturedPieceGroupIcon({ color, type, count }: CapturedPieceGroup) {
   const copies = Array.from({ length: count }, (_, index) => index);
 
   return (
-    <span className="captured-piece-group" title={`${count} ${color} ${type}${count === 1 ? '' : 's'}`}>
+    <span className="captured-piece-group" aria-label={`${count} ${color} ${type}${count === 1 ? '' : 's'}`}>
       {copies.map((index) => (
         <span className="captured-piece-copy" key={`${color}-${type}-${index}`} aria-hidden="true">
           {!imageFailed ? (
@@ -63,9 +63,10 @@ function getCaptureSummary(moves: Array<MoveRecord | MoveDelta>, side: Color): C
 function CapturedPieceList({ pieceGroups }: { pieceGroups: CapturedPieceGroup[] }) {
   const capturedCount = pieceGroups.reduce((total, group) => total + group.count, 0);
   const densityClass = capturedCount >= 8 ? 'captured-piece-list-full' : capturedCount >= 6 ? 'captured-piece-list-dense' : '';
+  const groupDensityClass = pieceGroups.length >= 5 ? 'captured-piece-list-many-groups' : '';
 
   return (
-    <div className={`captured-piece-list ${densityClass}`.trim()}>
+    <div className={`captured-piece-list ${densityClass} ${groupDensityClass}`.trim()}>
       {pieceGroups.length === 0 ? <span className="captured-empty">—</span> : pieceGroups.map((group) => (
         <CapturedPieceGroupIcon key={`${group.color}-${group.type}`} {...group} />
       ))}
