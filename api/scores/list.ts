@@ -109,6 +109,15 @@ function sortScores(scores: ScoreRow[]): ScoreRow[] {
   return [...scores].sort((a, b) => b.score - a.score || a.moves - b.moves || a.created_at.localeCompare(b.created_at));
 }
 
+function bestScoresByKey(scores: ScoreRow[], createKey: (row: ScoreRow) => string): ScoreRow[] {
+  const bestByKey = new Map<string, ScoreRow>();
+  for (const row of sortScores(scores)) {
+    const key = createKey(row);
+    if (!bestByKey.has(key)) bestByKey.set(key, row);
+  }
+  return [...bestByKey.values()];
+}
+
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== 'GET') {
     response.status(405).send('Method not allowed');
@@ -117,36 +126,49 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   const seed = typeof request.query.seed === 'string' ? request.query.seed : null;
   const mode = typeof request.query.mode === 'string' ? request.query.mode : 'daily';
-  if (!seed) {
+  const scope = typeof request.query.scope === 'string' ? request.query.scope : 'daily';
+  const requiresSeed = scope === 'daily';
+  if (requiresSeed && !seed) {
     response.status(400).send('Missing seed');
     return;
   }
 
   const supabase = getServerSupabase();
-  const { data, error } = await supabase
+  let query = supabase
     .from('scores')
     .select('*')
-    .eq('seed', seed)
-    .eq('mode', mode)
     .order('score', { ascending: false })
     .order('moves', { ascending: true })
     .order('created_at', { ascending: true })
-    .limit(100);
+    .limit(scope === 'daily' ? 100 : 500);
+
+  if (scope === 'daily') query = query.eq('seed', seed).eq('mode', mode);
+  if (scope === 'global-start-points') query = query.not('back_rank_code', 'is', null);
+
+  const { data, error } = await query;
 
   if (error) {
     response.status(500).send(error.message);
     return;
   }
 
+  if (scope === 'global-start-points') {
+    const bestByStartingPoint = bestScoresByKey((data ?? []) as ScoreRow[], (row) => row.back_rank_code ?? row.seed);
+    response.status(200).json({ scores: sortScores(bestByStartingPoint).slice(0, 25) });
+    return;
+  }
+
   const bestByPlayerSeedModeSide = new Map<string, ScoreRow>();
   for (const row of (data ?? []) as ScoreRow[]) {
-    const key = `${row.player_id}:${row.seed}:${row.mode}:${row.side}`;
+    const key = scope === 'global' ? `${row.player_id}:${row.mode}:${row.side}` : `${row.player_id}:${row.seed}:${row.mode}:${row.side}`;
     if (!bestByPlayerSeedModeSide.has(key)) bestByPlayerSeedModeSide.set(key, row);
   }
 
-  for (const row of createDailyLeaderboardFillers(seed, mode)) {
-    const key = `${row.player_id}:${row.seed}:${row.mode}:${row.side}`;
-    if (!bestByPlayerSeedModeSide.has(key)) bestByPlayerSeedModeSide.set(key, row);
+  if (scope === 'daily' && seed) {
+    for (const row of createDailyLeaderboardFillers(seed, mode)) {
+      const key = `${row.player_id}:${row.seed}:${row.mode}:${row.side}`;
+      if (!bestByPlayerSeedModeSide.has(key)) bestByPlayerSeedModeSide.set(key, row);
+    }
   }
 
   response.status(200).json({ scores: sortScores([...bestByPlayerSeedModeSide.values()]).slice(0, 25) });
