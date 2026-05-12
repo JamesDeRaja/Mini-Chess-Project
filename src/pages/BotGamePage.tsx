@@ -1,12 +1,13 @@
 /* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Flag, Handshake, RotateCcw, Shuffle } from 'lucide-react';
+import { CalendarDays, Copy, Flag, Handshake, RotateCcw, Share2, Shuffle, Trophy } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
 import { MoveHistory } from '../components/MoveHistory.js';
 import { ScoreExplanation } from '../components/ScoreExplanation.js';
+import { ShareChallengeModal } from '../components/ShareChallengeModal.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
 import { type BotLevel, getBotMoveByLevel, getMoveIdentity } from '../game/bot.js';
@@ -25,10 +26,14 @@ import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, validateSeedInput } from '../game/seed.js';
-import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
+import { getSeedDisplayName, normalizeSeedSlug } from '../game/curatedSeeds.js';
+import { compareChallengeResult, createChallengePayload, createSeedChallengeUrl, createChallengeUrl, type ActiveChallengeContext } from '../game/challenge.js';
+import { buildShareMessage, getContextualTauntContext, getRandomComparisonText, getRandomShareTaunt, type TauntContext } from '../game/shareTaunts.js';
+import { getAnonymousPlayerId, getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { calculateGameScore, getCaptureScore } from '../game/scoring.js';
 import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
+import { createChallenge, submitSeedScore } from '../multiplayer/challengeApi.js';
 import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord, PieceType } from '../game/types.js';
 
@@ -40,6 +45,7 @@ type BotGamePageProps = {
   customSeed?: string;
   customBackRankCode?: string;
   playerSide?: Color;
+  activeChallengeContext?: ActiveChallengeContext;
   onHome: () => void;
   onCustomSeed: () => void;
   onDaily: () => void;
@@ -209,7 +215,7 @@ export function BotGamePage(props: BotGamePageProps) {
   return <BotGameContent {...props} seedValidation={seedValidation} />;
 }
 
-function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, customBackRankCode, playerSide, onHome, seedValidation }: BotGameContentProps) {
+function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, customBackRankCode, playerSide, activeChallengeContext, onHome, seedValidation }: BotGameContentProps) {
   const dailySeedInfo = useMemo(() => {
     if (seedValidation?.ok) {
       const safeBackRankCode = customBackRankCode && isValidBackRankCode(customBackRankCode) ? customBackRankCode.toUpperCase() : seedValidation.backRankCode;
@@ -257,6 +263,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [submittedScore, setSubmittedScore] = useState(false);
   const [scoreSubmitMessage, setScoreSubmitMessage] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareTaunt, setShareTaunt] = useState('');
+  const [challengeUrl, setChallengeUrl] = useState('');
+  const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
   const historyListRef = useRef<HTMLOListElement | null>(null);
   const botMoveTimerRef = useRef<number | null>(null);
   const lastQueuedBotMoveKeyRef = useRef('');
@@ -305,6 +315,23 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     if (!roundResult || !isDailyAI) return;
     fetchLeaderboard(dailySeedInfo.seed, scoreMode).then(setLeaderboard).catch(() => setLeaderboard([]));
   }, [dailySeedInfo.seed, isDailyAI, roundResult, scoreMode, submittedScore]);
+
+  useEffect(() => {
+    if (!roundResult) return;
+    const seedSlugForScore = normalizeSeedSlug(dailySeedInfo.seed);
+    submitSeedScore({
+      seed_slug: seedSlugForScore,
+      seed: dailySeedInfo.seed,
+      back_rank_code: dailySeedInfo.backRankCode,
+      player_id: getAnonymousPlayerId(),
+      player_name: displayNameDraft,
+      score: scoreBreakdown.totalScore,
+      moves: scoreBreakdown.fullMoves,
+      result: roundResult.status,
+      color: playerColor,
+      challenge_id: activeChallengeContext?.challengeId,
+    }).catch((error) => console.warn('Seed score unavailable.', error));
+  }, [activeChallengeContext?.challengeId, dailySeedInfo.backRankCode, dailySeedInfo.seed, displayNameDraft, playerColor, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore]);
 
   useEffect(() => {
     const historyList = historyListRef.current;
@@ -409,6 +436,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setMoveAnnouncement('');
     setSubmittedScore(false);
     setScoreSubmitMessage(null);
+    setShareTaunt('');
+    setChallengeUrl('');
+    setCreatedChallengeId(null);
+    setShareModalOpen(false);
     setRoundResult(null);
     setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, roundAscensionTier));
     setPreviewPly(null);
@@ -550,6 +581,80 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         ? 'You won'
         : 'You lost'
     : undefined;
+
+
+  const seedSlug = normalizeSeedSlug(dailySeedInfo.seed);
+  const displaySeedName = getSeedDisplayName(seedSlug);
+  const resultLabel = roundResult?.drawReason === 'stalemate' ? 'stalemate' : roundResult?.status === 'draw' ? 'stalemate' : roundResult?.didPlayerWin ? 'win' : 'loss';
+  const challengeComparison = useMemo(() => roundResult && activeChallengeContext ? compareChallengeResult({
+    previousScore: activeChallengeContext.previousScore,
+    previousMoves: activeChallengeContext.previousMoves,
+    newScore: scoreBreakdown.totalScore,
+    newMoves: scoreBreakdown.fullMoves,
+    previousPlayerName: activeChallengeContext.previousPlayerName,
+    newPlayerName: displayNameDraft,
+    seedSlug,
+  }) : null, [activeChallengeContext, displayNameDraft, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, seedSlug]);
+  const comparisonText = useMemo(() => challengeComparison ? getRandomComparisonText({ outcome: challengeComparison.outcome, previousPlayerName: activeChallengeContext?.previousPlayerName, points: Math.abs(challengeComparison.pointsDelta) }) : undefined, [activeChallengeContext?.previousPlayerName, challengeComparison]);
+  const tauntContext: TauntContext = roundResult ? getContextualTauntContext({
+    result: resultLabel,
+    score: scoreBreakdown.totalScore,
+    moves: scoreBreakdown.fullMoves,
+    previousScore: activeChallengeContext?.previousScore,
+    beatPrevious: challengeComparison?.beatPrevious,
+    isDaily: isDailyAI,
+  }) : 'generic';
+  const currentShareTaunt = useMemo(() => shareTaunt || (roundResult ? getRandomShareTaunt(tauntContext) : ''), [roundResult, shareTaunt, tauntContext]);
+  const effectiveChallengeUrl = challengeUrl || createSeedChallengeUrl(seedSlug);
+
+  async function ensureChallengeRecord(finalShareText?: string, finalTaunt?: string): Promise<string> {
+    if (!roundResult) return effectiveChallengeUrl;
+    if (createdChallengeId) return createChallengeUrl(createdChallengeId);
+    const savedName = saveDisplayName(displayNameDraft);
+    const fallbackUrl = createSeedChallengeUrl(seedSlug);
+    try {
+      const parentChallengeId = activeChallengeContext?.challengeId ?? null;
+      const chainRootId = activeChallengeContext?.chainRootId ?? parentChallengeId;
+      const payload = createChallengePayload({
+        seed: dailySeedInfo.seed,
+        seedSlug,
+        backRankCode: dailySeedInfo.backRankCode,
+        displaySeedName,
+        playerName: savedName,
+        playerId: getAnonymousPlayerId(),
+        score: scoreBreakdown.totalScore,
+        moves: scoreBreakdown.fullMoves,
+        result: roundResult.status,
+        color: playerColor,
+        parentChallengeId,
+        chainRootId,
+        chainDepth: activeChallengeContext ? (activeChallengeContext.chainDepth ?? 0) + 1 : 0,
+        shareTaunt: finalTaunt ?? currentShareTaunt,
+        shareText: finalShareText ?? null,
+      });
+      const record = await createChallenge(payload);
+      setCreatedChallengeId(record.id);
+      const url = createChallengeUrl(record.id);
+      setChallengeUrl(url);
+      return url;
+    } catch (error) {
+      console.warn('Challenge sharing unavailable; falling back to seed link.', error);
+      setChallengeUrl(fallbackUrl);
+      return fallbackUrl;
+    }
+  }
+
+  async function copyChallengeLink() {
+    const url = await ensureChallengeRecord();
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
+    setScoreSubmitMessage('Challenge link copied.');
+  }
+
+  function openShareModal() {
+    setShareTaunt(getRandomShareTaunt(tauntContext, shareTaunt));
+    setChallengeUrl((url) => url || createSeedChallengeUrl(seedSlug));
+    setShareModalOpen(true);
+  }
 
   async function handleSubmitScore() {
     if (!roundResult) return;
@@ -694,14 +799,24 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                   <p><span>Captures</span><strong>{scoreBreakdown.capturePoints >= 0 ? `+${scoreBreakdown.capturePoints}` : scoreBreakdown.capturePoints}</strong></p>
                   {scoreBreakdown.materialAdjustment > 0 && <p><span>Fairness</span><strong>+{scoreBreakdown.materialAdjustment}</strong></p>}
                   <p><span>Moves</span><strong>{scoreBreakdown.fullMoves}</strong></p>
+                  <p><span>Seed</span><strong>{seedSlug}</strong></p>
                   <p><span>Side</span><strong>{playerColor === 'white' ? 'White' : 'Black'}</strong></p>
                   <p><span>Setup</span><strong>{dailySeedInfo.backRankCode}</strong></p>
                 </div>
                 <label className="name-capture-form inline-name-form">
                   <span>Name</span>
-                  <input value={displayNameDraft} onChange={(event) => setDisplayNameDraft(event.target.value)} maxLength={24} />
+                  <input value={displayNameDraft} onChange={(event) => setDisplayNameDraft(event.target.value)} onBlur={() => setDisplayNameDraft(saveDisplayName(displayNameDraft))} maxLength={20} />
                 </label>
               </div>
+              {activeChallengeContext && (
+                <div className="challenge-comparison-box">
+                  <h3>Previous challenge</h3>
+                  <p>{activeChallengeContext.previousPlayerName} scored {activeChallengeContext.previousScore} in {activeChallengeContext.previousMoves} moves.</p>
+                  <strong>{comparisonText ?? challengeComparison?.message}</strong>
+                </div>
+              )}
+              <blockquote className="result-taunt">“{currentShareTaunt}”</blockquote>
+              <p className="panel-note">{activeChallengeContext && challengeComparison?.beatPrevious ? 'Now challenge someone else.' : activeChallengeContext ? 'Try again or share your attempt.' : `Share ${displaySeedName} as a beat-my-score challenge.`}</p>
               {leaderboard.length > 0 && (
                 <div className="leaderboard-mini">
                   <h3>Today’s Best Scores</h3>
@@ -718,11 +833,40 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           )}
           actions={(
             <>
-              <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Submit Score'}</button>
-              {!matchWinner && <button type="button" onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay Game' : 'Next Game'}</button>}
+              <button type="button" onClick={openShareModal}><Share2 size={17} /> Challenge a Friend</button>
+              <button type="button" className="secondary-action" onClick={() => { void copyChallengeLink(); }}><Copy size={17} /> Copy Link</button>
+              <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seedSlug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}><Trophy size={17} /> View Seed Leaderboard</button>
+              <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Save Score'}</button>
+              {!matchWinner && <button type="button" onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay Seed' : 'Replay Seed'}</button>}
+              <button type="button" onClick={() => { window.history.pushState(null, '', `/bot?seed=${encodeURIComponent(seedSlug)}&setup=${encodeURIComponent(dailySeedInfo.backRankCode)}&side=${playerColor === 'white' ? 'black' : 'white'}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Other Side</button>
               <button type="button" onClick={requestRestart}>Restart Match</button>
             </>
           )}
+        />
+      )}
+      {roundResult && (
+        <ShareChallengeModal
+          open={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          result={resultLabel}
+          playerName={displayNameDraft}
+          score={scoreBreakdown.totalScore}
+          moves={scoreBreakdown.fullMoves}
+          seedSlug={seedSlug}
+          backRankCode={dailySeedInfo.backRankCode}
+          challengeUrl={effectiveChallengeUrl}
+          comparisonText={comparisonText ?? challengeComparison?.message}
+          context={tauntContext}
+          style={isDailyAI ? 'daily' : 'trashTalk'}
+          initialTaunt={currentShareTaunt}
+          onUseShareText={async (shareText, taunt) => {
+            setShareTaunt(taunt);
+            const url = await ensureChallengeRecord(shareText, taunt);
+            if (url !== effectiveChallengeUrl) {
+              const updatedText = buildShareMessage({ style: isDailyAI ? 'daily' : 'trashTalk', taunt, playerName: displayNameDraft, score: scoreBreakdown.totalScore, moves: scoreBreakdown.fullMoves, seedSlug, backRankCode: dailySeedInfo.backRankCode, challengeUrl: url, comparisonText: comparisonText ?? challengeComparison?.message });
+              void updatedText;
+            }
+          }}
         />
       )}
       {ascensionPopupTier && (

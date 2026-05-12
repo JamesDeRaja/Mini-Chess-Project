@@ -6199,3 +6199,36 @@ button:focus-visible,
     padding-right: 68px;
   }
 }
+.challenge-page { min-height: 100vh; min-height: 100svh; overflow: auto; padding: clamp(18px, 4vw, 44px); background: linear-gradient(180deg, var(--page-bg), var(--page-bg-2)); }
+.challenge-card { width: min(100%, 760px); margin: 0 auto; padding: clamp(24px, 5vw, 48px); border: 1px solid var(--panel-border); border-radius: 34px; background: var(--panel-bg); box-shadow: 0 28px 70px rgba(80, 122, 108, 0.2); text-align: center; }
+.challenge-card.wide { width: min(100%, 1180px); }
+.challenge-card h1 { margin: 0 auto 16px; font-size: clamp(2.4rem, 7vw, 5.4rem); }
+.challenge-card blockquote, .result-taunt, .result-share-card blockquote { margin: 16px auto; padding: 14px 18px; border-radius: 20px; background: rgba(247, 207, 114, 0.24); color: #2d2b28; font-weight: 950; line-height: 1.45; }
+.challenge-stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 20px auto; }
+.challenge-stats-grid span, .seed-card, .popular-seed-home-card { border: 1px solid rgba(222, 217, 203, 0.78); border-radius: 22px; background: rgba(255, 251, 239, 0.76); padding: 14px; }
+.challenge-stats-grid span { display: grid; gap: 4px; color: #647067; font-weight: 850; }
+.challenge-stats-grid strong { color: #222428; font-size: 1.3rem; }
+.challenge-comparison-box { width: min(100%, 480px); margin: 10px auto; padding: 14px; border-radius: 20px; background: rgba(158, 208, 192, 0.2); text-align: left; }
+.challenge-comparison-box h3, .challenge-comparison-box p { margin: 0 0 6px; }
+.share-challenge-modal { width: min(96vw, 720px); max-height: 92svh; overflow: auto; }
+.result-share-card { display: grid; gap: 10px; margin: 14px auto; padding: 18px; border-radius: 26px; background: linear-gradient(135deg, #fff8e9, #cfe8de); border: 1px solid rgba(43,40,35,0.12); text-align: left; }
+.result-share-card h3 { margin: 0; color: #222428; font-size: clamp(1.8rem, 4vw, 2.8rem); }
+.share-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.share-card-grid span { display: grid; padding: 10px; border-radius: 14px; background: rgba(255,255,255,0.55); color: #647067; font-weight: 850; }
+.share-card-grid strong { color: #222428; }
+.share-card-comparison, .share-card-cta { margin: 0; color: #2d2b28; font-weight: 950; }
+.share-preview-label { display: grid; gap: 8px; text-align: left; font-weight: 900; color: #647067; }
+.share-preview-label textarea { width: 100%; min-height: 170px; resize: vertical; border: 1px solid rgba(222,217,203,.9); border-radius: 18px; padding: 12px; background: rgba(255,255,255,.72); font: inherit; color: #2d2b28; }
+.seed-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 22px 0; text-align: left; }
+.seed-card h2 { margin: 0; }
+.seed-card p { margin: 6px 0; line-height: 1.35; }
+.seed-leaderboard-table .leaderboard-row { grid-template-columns: 44px minmax(110px, 1fr) 70px 64px 90px 64px 90px; }
+.popular-seeds-home { display: grid; gap: 12px; margin-top: 16px; padding: 14px; border: 1px solid rgba(222, 217, 203, 0.65); border-radius: 26px; background: rgba(255, 251, 239, 0.5); }
+.popular-seeds-home h2 { margin: 0; font-size: clamp(1.2rem, 2vw, 1.6rem); }
+.popular-seed-home-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.popular-seed-home-card { display: grid; gap: 5px; }
+.popular-seed-home-card span, .popular-seed-home-card small { color: #647067; font-weight: 850; }
+.popular-seed-home-card .panel-actions { gap: 6px; }
+.popular-seed-home-card button { padding: 8px 10px; border-radius: 14px; font-size: .85rem; }
+.leaderboard-tabs .selected { outline: 3px solid rgba(125, 159, 134, 0.5); }
+@media (max-width: 760px) { .challenge-stats-grid, .share-card-grid, .popular-seed-home-grid { grid-template-columns: 1fr; } .seed-leaderboard-table { overflow-x: auto; } }
