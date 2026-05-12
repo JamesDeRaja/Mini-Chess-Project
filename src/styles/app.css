@@ -5262,3 +5262,96 @@ button:focus-visible,
     justify-self: start;
   }
 }
+
+/* Score explanation v2: button lives inside the score card; drawer opens beside the unchanged result card */
+.winner-card:has(.score-help-drawer) {
+  max-width: min(92vw, 580px);
+  transform: translateX(clamp(-220px, -16vw, -110px));
+}
+.score-result-bento:has(.score-help-drawer) {
+  width: min(100%, 480px);
+  grid-template-columns: 0.9fr 1.1fr;
+  align-items: stretch;
+}
+.score-hero-tile {
+  position: static;
+}
+.score-hero-tile .score-help-shell {
+  display: block;
+  justify-self: end;
+  align-self: start;
+  margin: -4px -2px 0 0;
+}
+.score-hero-tile .score-help-button {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 999px;
+  font-size: 1.15rem;
+  box-shadow: 0 8px 0 rgba(180, 145, 44, 0.2), inset 0 -3px rgba(45, 43, 40, 0.08);
+}
+.score-help-drawer {
+  position: absolute;
+  top: clamp(18px, 3vw, 32px);
+  left: calc(100% - 14px);
+  z-index: -1;
+  display: block;
+  width: min(420px, calc(100vw - 620px));
+  min-width: 330px;
+  max-height: min(74vh, 650px);
+  padding: clamp(22px, 2.5vw, 34px) clamp(20px, 2.4vw, 30px) clamp(18px, 2vw, 26px) calc(clamp(20px, 2.4vw, 30px) + 14px);
+  overflow: auto;
+  border: 1px solid rgba(222, 217, 203, 0.9);
+  border-radius: 0 30px 30px 0;
+  background: #fffbf0;
+  box-shadow: 18px 22px 44px rgba(101, 111, 92, 0.16);
+  text-align: left;
+  animation: score-drawer-slide 220ms ease-out;
+}
+.score-help-drawer .score-help-close {
+  top: 12px;
+  right: 12px;
+}
+.score-help-drawer h3 {
+  margin: 0 0 16px;
+  color: #282a2e;
+  font-size: clamp(1.1rem, 1.6vw, 1.45rem);
+  text-align: center;
+}
+.score-help-drawer h4 {
+  margin: 18px 0 8px;
+  color: #282a2e;
+  text-align: center;
+}
+.score-help-drawer p,
+.score-help-drawer li {
+  color: #607068;
+}
+.score-help-drawer ul {
+  margin: 0;
+  padding-left: 22px;
+}
+@keyframes score-drawer-slide {
+  from { opacity: 0; transform: translateX(-22px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (max-width: 980px) {
+  .winner-card:has(.score-help-drawer) {
+    transform: none;
+  }
+  .score-help-drawer {
+    position: static;
+    z-index: 1;
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    max-height: 40vh;
+    margin-top: 10px;
+    padding: 18px;
+    border-radius: 24px;
+  }
+  .score-result-bento:has(.score-help-drawer) {
+    grid-template-columns: 1fr;
+  }
+}
+.score-help-drawer { z-index: 0; }

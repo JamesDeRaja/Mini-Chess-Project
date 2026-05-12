@@ -17,7 +17,7 @@ export function ScoreExplanation({ breakdown, resultLabel }: ScoreExplanationPro
     <div className="score-help-shell">
       <button type="button" className="score-help-button" onClick={() => setIsOpen((current) => !current)} aria-expanded={isOpen} aria-label="Explain this score">?</button>
       {isOpen && (
-        <aside className="score-help-inline-panel" role="region" aria-labelledby="score-help-title">
+        <aside className="score-help-drawer" role="region" aria-labelledby="score-help-title">
           <button type="button" className="score-help-close" onClick={() => setIsOpen(false)} aria-label="Close score explanation">×</button>
           <p className="eyebrow">Score Details</p>
           <h3 id="score-help-title">How this score was calculated</h3>

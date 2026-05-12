@@ -809,6 +809,7 @@ ${inviteLink}`;
             <>
               <div className="score-result-bento" aria-label="Score breakdown">
                 <div className="score-hero-tile">
+                  <ScoreExplanation breakdown={scoreBreakdown} resultLabel={onlineResult === 'stalemate' ? 'stalemate' : onlineResult} />
                   <span>Score</span>
                   <strong>{scoreBreakdown.totalScore}</strong>
                   {localBestScore && <small>Local best {localBestScore.score}</small>}
@@ -821,7 +822,6 @@ ${inviteLink}`;
                   <p><span>Side</span><strong>{scoreSide === 'white' ? 'White' : 'Black'}</strong></p>
                   <p><span>Setup</span><strong>{backRankCode ?? '—'}</strong></p>
                 </div>
-                <ScoreExplanation breakdown={scoreBreakdown} resultLabel={onlineResult === 'stalemate' ? 'stalemate' : onlineResult} />
                 {role !== 'spectator' && (
                   <label className="name-capture-form inline-name-form">
                     <span>Name</span>

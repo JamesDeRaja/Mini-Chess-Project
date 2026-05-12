@@ -682,6 +682,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             <>
               <div className="score-result-bento" aria-label="Score breakdown">
                 <div className="score-hero-tile">
+                  <ScoreExplanation breakdown={scoreBreakdown} resultLabel={roundResult.drawReason === 'stalemate' ? 'stalemate' : roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'} />
                   <span>Score</span>
                   <strong>{scoreBreakdown.totalScore}</strong>
                   {localBestScore && <small>Local best {localBestScore.score}</small>}
@@ -695,7 +696,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                   <p><span>Side</span><strong>{playerColor === 'white' ? 'White' : 'Black'}</strong></p>
                   <p><span>Setup</span><strong>{dailySeedInfo.backRankCode}</strong></p>
                 </div>
-                <ScoreExplanation breakdown={scoreBreakdown} resultLabel={roundResult.drawReason === 'stalemate' ? 'stalemate' : roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'} />
                 <label className="name-capture-form inline-name-form">
                   <span>Name</span>
                   <input value={displayNameDraft} onChange={(event) => setDisplayNameDraft(event.target.value)} maxLength={24} />
