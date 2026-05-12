@@ -1,0 +1,41 @@
+import { getAnonymousPlayerId, getDisplayName } from '../game/localPlayer.js';
+import { isPlausibleScore } from '../game/scoring.js';
+import type { Color, GameStatus } from '../game/types.js';
+
+type ScorePayload = {
+  seed: string;
+  backRankCode: string | null;
+  mode: string;
+  side: Color;
+  result: GameStatus;
+  score: number;
+  moves: number;
+  gameId?: string;
+};
+
+export type LeaderboardEntry = ScorePayload & {
+  id: string;
+  player_id: string;
+  display_name: string;
+  created_at: string;
+};
+
+async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(url, { headers: { 'Content-Type': 'application/json', ...options?.headers }, ...options });
+  if (!response.ok) throw new Error(await response.text());
+  return response.json() as Promise<T>;
+}
+
+export async function submitScore(payload: ScorePayload): Promise<{ ok: boolean; score?: LeaderboardEntry }> {
+  if (!isPlausibleScore(payload.score, payload.moves)) throw new Error('Score is outside allowed bounds.');
+  return requestJson('/api/scores/submit', {
+    method: 'POST',
+    body: JSON.stringify({ ...payload, playerId: getAnonymousPlayerId(), displayName: getDisplayName() }),
+  });
+}
+
+export async function fetchLeaderboard(seed: string, mode = 'daily'): Promise<LeaderboardEntry[]> {
+  const params = new URLSearchParams({ seed, mode });
+  const result = await requestJson<{ scores: LeaderboardEntry[] }>(`/api/scores/list?${params.toString()}`);
+  return result.scores;
+}
