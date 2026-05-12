@@ -16,9 +16,11 @@ export type ScoreBreakdown = {
   speedBonus: number;
   capturePoints: number;
   capturePenalty: number;
+  materialAdjustment: number;
   totalScore: number;
   fullMoves: number;
   captures: CaptureRecord[];
+  recommendations: string[];
 };
 
 const captureScores: Partial<Record<PieceType, number>> = {
@@ -69,10 +71,21 @@ export function getCaptureRecords(moveHistory: Array<MoveRecord | MoveDelta>): C
 
 function getSpeedBonus(didWin: boolean, fullMoves: number): number {
   if (!didWin) return 0;
-  if (fullMoves < 10) return 40;
-  if (fullMoves < 15) return 25;
-  if (fullMoves < 20) return 10;
-  return 0;
+  return Math.max(0, Math.round(55 - fullMoves * 2.6));
+}
+
+function getMaterialAdjustment(missingPlayerPieces: number): number {
+  return Math.max(0, missingPlayerPieces) * 12;
+}
+
+function getScoreRecommendations(didWin: boolean, fullMoves: number, capturePoints: number): string[] {
+  const recommendations: string[] = [];
+  if (!didWin) recommendations.push('Convert the attack into checkmate; result points are the largest scoring source.');
+  if (didWin && fullMoves > 12) recommendations.push('Look for forcing checks and threats earlier to increase the speed bonus.');
+  if (capturePoints < 20) recommendations.push('Win more material before mate when it is safe; queens, rooks, bishops, and knights are worth the most capture points.');
+  if (capturePoints < 0) recommendations.push('Avoid losing pieces for free because opponent captures subtract from your capture score.');
+  if (recommendations.length === 0) recommendations.push('Great score: keep mating quickly while collecting safe captures on the way.');
+  return recommendations;
 }
 
 export function getResultForSide(status: GameStatus, side: Color): ScoreResult {
@@ -86,10 +99,12 @@ export function calculateGameScore({
   status,
   side,
   moveHistory,
+  missingPlayerPieces = 0,
 }: {
   status: GameStatus;
   side: Color;
   moveHistory: Array<MoveRecord | MoveDelta>;
+  missingPlayerPieces?: number;
 }): ScoreBreakdown {
   const result = getResultForSide(status, side);
   const didWin = result === 'checkmate_win';
@@ -102,8 +117,10 @@ export function calculateGameScore({
   const earnedCapturePoints = captures.reduce((total, capture) => total + capture.scoreValue, 0);
   const capturePenalty = enemyCaptures.reduce((total, capture) => total + getCapturePenaltyScore(capture.capturedPiece), 0);
   const capturePoints = earnedCapturePoints - capturePenalty;
-  const totalScore = Math.max(1, resultBonus + speedBonus + capturePoints);
-  return { resultBonus, speedBonus, capturePoints, capturePenalty, totalScore, fullMoves, captures };
+  const materialAdjustment = getMaterialAdjustment(missingPlayerPieces);
+  const totalScore = Math.max(1, resultBonus + speedBonus + capturePoints + materialAdjustment);
+  const recommendations = getScoreRecommendations(didWin, fullMoves, capturePoints);
+  return { resultBonus, speedBonus, capturePoints, capturePenalty, materialAdjustment, totalScore, fullMoves, captures, recommendations };
 }
 
 export function isPlausibleScore(score: number, moves: number): boolean {
