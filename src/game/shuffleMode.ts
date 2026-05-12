@@ -24,10 +24,16 @@ export function setCurrentShuffleMode(mode: ShuffleMode): void {
 }
 
 export function createRandomGameSeed(): string {
-  const randomPart = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID().replace(/-/g, '').slice(0, 16)
-    : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
-  return `random-${randomPart}`.slice(0, 32);
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const randomValues = new Uint8Array(6);
+  if (typeof crypto !== 'undefined' && 'getRandomValues' in crypto) {
+    crypto.getRandomValues(randomValues);
+  } else {
+    for (let index = 0; index < randomValues.length; index += 1) {
+      randomValues[index] = Math.floor(Math.random() * 256);
+    }
+  }
+  return Array.from(randomValues, (value) => alphabet[value % alphabet.length]).join('');
 }
 
 export function getPageSessionRandomGameSeed(): string {

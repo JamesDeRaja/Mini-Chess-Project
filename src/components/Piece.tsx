@@ -19,6 +19,8 @@ export function Piece({ piece, isDraggable = false, isSelected = false }: PieceP
       draggable={false}
       aria-label={ariaLabel}
       data-draggable={isDraggable ? 'true' : undefined}
+      data-piece-id={piece.id}
+      data-piece-type={piece.type}
     >
       {imageFailed ? (
         <span className="piece-fallback" data-piece={piece.type} aria-hidden="true">{getPieceFallbackSymbol(piece)}</span>

@@ -19,7 +19,7 @@ type Route =
   | { name: 'daily' }
   | { name: 'seed'; seed: string }
   | { name: 'how-it-works' }
-  | { name: 'bot'; dateKey?: string; seed?: string; backRankCode?: string }
+  | { name: 'bot'; dateKey?: string; seed?: string; backRankCode?: string; side?: 'white' | 'black' }
   | { name: 'online'; gameId: string; matchMode: MatchMode }
   | { name: 'not-found' };
 
@@ -43,6 +43,7 @@ function routeFromLocation(): Route {
       dateKey: search.get('date') ?? undefined,
       seed: search.get('seed') ?? undefined,
       backRankCode: setup && isValidBackRankCode(setup) ? setup.toUpperCase() : undefined,
+      side: search.get('side') === 'black' ? 'black' : search.get('side') === 'white' ? 'white' : undefined,
     };
   }
   if (window.location.pathname === '/') return { name: 'home' };
@@ -156,7 +157,7 @@ export function App() {
     return <BotGamePage key={`seed-${route.seed}`} matchMode="single" customSeed={route.seed} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />;
   }
   if (route.name === 'bot') {
-    return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}-${route.backRankCode ?? ''}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} customBackRankCode={route.backRankCode} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />;
+    return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}-${route.backRankCode ?? ''}-${route.side ?? ''}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} customBackRankCode={route.backRankCode} playerSide={route.side} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />;
   }
   if (route.name === 'not-found') {
     return <NotFoundPage onHome={() => navigate('/')} onBot={() => navigate('/bot')} onDaily={() => navigate('/daily')} />;
