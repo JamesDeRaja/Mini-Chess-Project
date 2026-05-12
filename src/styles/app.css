@@ -4690,3 +4690,56 @@ button:focus-visible,
     font-size: 1.28rem;
   }
 }
+
+/* Score lives in the status card now; capture rows only show pieces */
+.status-main-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.status-copy .status-score-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 5px 10px;
+  border: 1px solid rgba(126, 172, 142, 0.22);
+  border-radius: 999px;
+  color: #4f735f;
+  background: rgba(227, 241, 233, 0.86);
+  font-size: clamp(0.82rem, 0.9vw, 0.95rem);
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.score-stack .score-capture-row {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px;
+}
+.score-capture-row .score-side-name {
+  min-width: 70px;
+  margin-right: -8px;
+}
+.score-capture-row .captured-piece-list {
+  margin-left: -10px;
+}
+.score-capture-row .captured-piece-token {
+  margin-right: -24px;
+}
+@media (max-width: 760px) {
+  .status-main-line { gap: 7px; }
+  .status-copy .status-score-pill {
+    padding: 4px 8px;
+    font-size: 0.76rem;
+  }
+  .score-stack .score-capture-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 1px;
+  }
+  .score-capture-row .score-side-name {
+    min-width: 58px;
+    margin-right: -7px;
+  }
+  .score-capture-row .captured-piece-list { margin-left: -10px; }
+}

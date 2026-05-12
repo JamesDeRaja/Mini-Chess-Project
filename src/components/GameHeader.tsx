@@ -9,6 +9,7 @@ type GameHeaderProps = {
   onTitleClick?: () => void;
   statusLabelOverride?: string;
   turnLabelOverride?: string;
+  scoreLabel?: string;
 };
 
 function roleColor(playerRole?: string): Color | null {
@@ -35,7 +36,7 @@ function getStatusAvatarColor(status: GameStatus, turn: Color, playerColor: Colo
   return turn;
 }
 
-export function GameHeader({ title, turn, status, playerRole, details, onTitleClick, statusLabelOverride, turnLabelOverride }: GameHeaderProps) {
+export function GameHeader({ title, turn, status, playerRole, details, onTitleClick, statusLabelOverride, turnLabelOverride, scoreLabel }: GameHeaderProps) {
   const playerColor = roleColor(playerRole);
   const isOwnTurn = status === 'active' && playerColor === turn;
   const dotState = isGameOver(status) || !playerColor ? 'neutral' : isOwnTurn ? 'active' : 'waiting';
@@ -63,7 +64,10 @@ export function GameHeader({ title, turn, status, playerRole, details, onTitleCl
         </div>
         <div className="status-copy">
           {playerRole && <span>{playerRole}</span>}
-          <strong className={`status-word status-word-${dotState}`}>{statusLabelOverride ?? statusLabel(status, isOwnTurn)}</strong>
+          <span className="status-main-line">
+            <strong className={`status-word status-word-${dotState}`}>{statusLabelOverride ?? statusLabel(status, isOwnTurn)}</strong>
+            {scoreLabel && <span className="status-score-pill">{scoreLabel}</span>}
+          </span>
           <span className="turn-line">{turnLabelOverride ?? `${turn === 'white' ? 'White' : 'Black'} to move`}</span>
         </div>
       </div>

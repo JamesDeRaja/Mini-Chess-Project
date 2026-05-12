@@ -276,6 +276,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
 
   const scoreBreakdown = useMemo(() => calculateGameScore({ status, side: playerColor, moveHistory }), [moveHistory, playerColor, status]);
+  const headerScoreValue = status === 'active' ? scoreBreakdown.capturePoints : scoreBreakdown.totalScore;
+  const headerScoreLabel = `Score ${headerScoreValue > 0 && status === 'active' ? '+' : ''}${headerScoreValue}`;
   const scoreMode = isDailyAI ? 'daily' : 'bot';
 
   useEffect(() => {
@@ -567,6 +569,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         onTitleClick={onHome}
         statusLabelOverride={headerStatusLabel}
         turnLabelOverride={headerTurnLabel}
+        scoreLabel={headerScoreLabel}
       />
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel">

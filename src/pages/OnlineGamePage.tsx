@@ -207,6 +207,8 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const scoreSide: Color = role === 'white' || role === 'black' ? role : winner ?? 'white';
   const scoreMode = isDailySeed ? 'daily' : 'online';
   const scoreBreakdown = useMemo(() => calculateGameScore({ status, side: scoreSide, moveHistory }), [moveHistory, scoreSide, status]);
+  const headerScoreValue = isCompleted ? scoreBreakdown.totalScore : scoreBreakdown.capturePoints;
+  const headerScoreLabel = role === 'spectator' ? undefined : `Score ${headerScoreValue > 0 && !isCompleted ? '+' : ''}${headerScoreValue}`;
 
   useEffect(() => {
     if (!isCompleted || isLifecycleTerminal || role === 'spectator') return;
@@ -685,7 +687,7 @@ ${inviteLink}`;
 
   return (
     <main className="game-page">
-      <GameHeader title="Online Game" turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} statusLabelOverride={headerStatusLabel} turnLabelOverride={headerTurnLabel} />
+      <GameHeader title="Online Game" turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} statusLabelOverride={headerStatusLabel} turnLabelOverride={headerTurnLabel} scoreLabel={headerScoreLabel} />
       {toast && <p className="sync-toast" role="status">{toast}</p>}
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel online-match-panel">
