@@ -198,7 +198,7 @@ export function HomePage({
   const canGoNextMonth = shiftMonth(calendarMonthKey, 1) <= monthKeyFromDateKey(todayKey);
   const activeSeedSource = shuffleMode === 'daily' ? resolveSeedSourceForMode('daily', { dateKey: todayKey }) : randomSetup;
   const activeBackRankCode = activeSeedSource.backRankCode;
-  const activeSeedLabel = shuffleMode === 'daily' ? dailyBackRankCode : `Random • ${activeBackRankCode}`;
+  const activeSeedLabel = shuffleMode === 'daily' ? dailyBackRankCode : activeBackRankCode;
   const activeHeaderLabel = shuffleMode === 'daily' ? 'Today’s setup' : 'Random setup';
   const activeHeaderDescription = shuffleMode === 'daily' ? 'Same board for everyone today.' : 'Active until refresh.';
   const blackBackRankCode = [...activeBackRankCode].reverse().join('');
