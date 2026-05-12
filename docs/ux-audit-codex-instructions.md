@@ -129,7 +129,7 @@ Audited on 2026-05-12 against both the production site (`https://chess.alphaden.
 ### Findings
 
 - Production leaderboard returns rows, while local/dev without Supabase data shows “No scores yet.” Both states render.
-- The live leaderboard chip animates fake/new-score pulses locally. This is visually fun but can make production/local audits misleading.
+- Avoid synthetic “got a new score” bursts in the live leaderboard chip; repeated fake names look suspicious and can make production/local audits misleading.
 - Score submission on the result screen has a bare `NAME` label and no visible placeholder guidance in the body text dump.
 
 ### Codex instructions
@@ -137,7 +137,7 @@ Audited on 2026-05-12 against both the production site (`https://chess.alphaden.
 1. Make leaderboard loading/empty/error states explicit.
    - Distinguish “No scores yet” from “Could not load scores.”
    - Add a visible loading state while fetching.
-2. Ensure the live-score pulse uses real data when available and clearly labels mock/demo entries in development if they are synthetic.
+2. Keep the live-score chip grounded in real leaderboard rows. If mock/demo entries are ever needed in development, label them clearly and never rotate several “got a new score” messages at once.
 3. Improve result score submission.
    - Label the name input as “Display name.”
    - Add helper copy explaining max length and leaderboard visibility.

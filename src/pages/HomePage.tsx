@@ -62,17 +62,6 @@ const leaderboardViews: LeaderboardView[] = [
   { scope: 'global-start-points', label: 'Global start points', title: 'Global start points', description: 'Best scores grouped by starting setup.' },
 ];
 
-const leaderboardPulseNames = [
-  'MateMeteor', 'Charles', 'Caroline', 'LooseKnight', 'Hannah', 'PawnPigeon', 'SkewerSeal', 'Delilah',
-  'TinyRook', 'ForkFalcon', 'QueenSneak', 'BlitzBadger', 'TempoToast', 'PocketPirate', 'RookPebble', 'MiniMate',
-];
-
-function createPulseScore(index: number): LeaderboardFeedItem {
-  const name = leaderboardPulseNames[index % leaderboardPulseNames.length] ?? 'PocketPlayer';
-  const score = 52 + ((index * 17) % 48);
-  return { id: `pulse-${Date.now()}-${index}`, displayName: name, score, kind: 'new-score' };
-}
-
 function leaderboardEntryToFeedItem(entry: LeaderboardEntry, index: number): LeaderboardFeedItem {
   return { id: entry.id, displayName: entry.display_name, score: entry.score, kind: index < 10 ? 'rank' : 'new-score', rank: index + 1 };
 }
@@ -195,7 +184,7 @@ export function HomePage({
   const [randomSetup] = useState(() => resolveSeedSourceForMode('random', { randomSeed: getPageSessionRandomGameSeed() }));
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
   const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(() => getLocalBestScoreForSeedMode(getDailySeed(todayKey), 'daily'));
-  const [leaderboardFeed, setLeaderboardFeed] = useState<LeaderboardFeedItem[]>(() => leaderboardPulseNames.slice(0, 3).map((_, index) => createPulseScore(index)));
+  const [leaderboardFeed, setLeaderboardFeed] = useState<LeaderboardFeedItem[]>([]);
   const [leaderboardFeedIndex, setLeaderboardFeedIndex] = useState(0);
   const [leaderboardDialogOpen, setLeaderboardDialogOpen] = useState(false);
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('daily');
@@ -245,11 +234,9 @@ export function HomePage({
   useEffect(() => {
     fetchLeaderboard(dailySeed, 'daily').then((scores) => {
       const topScores = scores.slice(0, 10);
-      setLeaderboardFeed((currentFeed) => {
-        const rankedFeed = topScores.map(leaderboardEntryToFeedItem);
-        return [...rankedFeed, ...currentFeed.filter((item) => item.kind === 'new-score')].slice(0, 18);
-      });
-    }).catch(() => setLeaderboardFeed((currentFeed) => currentFeed.filter((item) => item.kind === 'new-score')));
+      setLeaderboardFeed(topScores.map(leaderboardEntryToFeedItem));
+      setLeaderboardFeedIndex(0);
+    }).catch(() => setLeaderboardFeed([]));
   }, [dailySeed]);
 
   useEffect(() => {
@@ -258,16 +245,6 @@ export function HomePage({
     }, 2600);
     return () => window.clearInterval(scrollId);
   }, [leaderboardFeed.length]);
-
-  useEffect(() => {
-    let pulseIndex = 0;
-    const pulseId = window.setInterval(() => {
-      pulseIndex += 1;
-      setLeaderboardFeed((currentFeed) => [createPulseScore(pulseIndex), ...currentFeed].slice(0, 18));
-      setLeaderboardFeedIndex(0);
-    }, 11000);
-    return () => window.clearInterval(pulseId);
-  }, []);
 
   useEffect(() => {
     if (!leaderboardDialogOpen) return;
