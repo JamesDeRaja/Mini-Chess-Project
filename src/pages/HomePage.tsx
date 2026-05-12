@@ -8,7 +8,7 @@ import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { trackEvent } from '../app/analytics.js';
 import { getLocalBestScoreForSeedMode, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { getShareUrl } from '../app/seo.js';
-import { fetchLeaderboard, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
+import { fetchLeaderboard, fetchScoreboard, type LeaderboardEntry, type LeaderboardScope } from '../multiplayer/scoreApi.js';
 
 type HomePageProps = {
   initialModal?: Exclude<ModalName, null>;
@@ -22,11 +22,73 @@ type HomePageProps = {
 };
 
 type ModalName = 'date' | 'custom' | 'rules' | 'more' | 'matchmaking' | null;
+type LeaderboardFeedItem = { id: string; displayName: string; score: number; kind: 'rank' | 'new-score'; rank?: number };
+type LeaderboardView = { scope: LeaderboardScope; label: string; title: string; description: string };
+
 type MatchmakingState =
   | { status: 'idle' }
   | { status: 'finding'; queueId?: string }
   | { status: 'timeout'; queueId?: string }
   | { status: 'failed'; message: string };
+
+
+const dailyTauntsWithoutScore = [
+  'Today’s setup looked scary for about six seconds. Your move.',
+  'I solved today’s tiny chess problem. Try not to trip over the 5x6 board.',
+  'The pieces were shuffled. My confidence was not. Beat this daily if you can.',
+  'No opening book, no excuses, just you and whatever plan survives move one.',
+  'I handled today’s chaos. Please bring a better excuse than “weird setup.”',
+];
+
+const dailyTauntsWithScore = [
+  (score: number) => `I posted ${score} today. Surely you can beat that, right? Right?`,
+  (score: number) => `My daily score is ${score}. Consider this a very polite threat.`,
+  (score: number) => `${score} is the number to beat today. The board is small; your excuses should be smaller.`,
+  (score: number) => `I put ${score} on today’s seed. Come ruin my leaderboard mood.`,
+  (score: number) => `Today’s target is ${score}. If you beat it, I will pretend the shuffle was unfair.`,
+];
+
+const randomTaunts = [
+  'I survived this random shuffle. Your turn to discover what “random” did to your dignity.',
+  'This setup is nonsense, which makes losing to it even funnier.',
+  'I found a way through this shuffle. Try not to donate your queen immediately.',
+  'Random setup, very real bragging rights. Come get them.',
+  'No memorized openings here. Unfortunately, that means you have to think.',
+];
+
+const leaderboardViews: LeaderboardView[] = [
+  { scope: 'daily', label: 'Today’s Top 10', title: 'Today’s top 10', description: 'Best scores on today’s shared shuffle.' },
+  { scope: 'global', label: 'Global', title: 'Global scores', description: 'Best player scores across every saved game.' },
+  { scope: 'global-start-points', label: 'Global start points', title: 'Global start points', description: 'Best scores grouped by starting setup.' },
+];
+
+const leaderboardPulseNames = [
+  'MateMeteor', 'Charles', 'Caroline', 'LooseKnight', 'Hannah', 'PawnPigeon', 'SkewerSeal', 'Delilah',
+  'TinyRook', 'ForkFalcon', 'QueenSneak', 'BlitzBadger', 'TempoToast', 'PocketPirate', 'RookPebble', 'MiniMate',
+];
+
+function createPulseScore(index: number): LeaderboardFeedItem {
+  const name = leaderboardPulseNames[index % leaderboardPulseNames.length] ?? 'PocketPlayer';
+  const score = 52 + ((index * 17) % 48);
+  return { id: `pulse-${Date.now()}-${index}`, displayName: name, score, kind: 'new-score' };
+}
+
+function leaderboardEntryToFeedItem(entry: LeaderboardEntry, index: number): LeaderboardFeedItem {
+  return { id: entry.id, displayName: entry.display_name, score: entry.score, kind: index < 10 ? 'rank' : 'new-score', rank: index + 1 };
+}
+
+function getLeaderboardBackRankCode(entry: LeaderboardEntry): string | null {
+  return entry.backRankCode ?? (entry as LeaderboardEntry & { back_rank_code?: string | null }).back_rank_code ?? null;
+}
+
+function pickTaunt(messages: string[]): string {
+  return messages[Math.floor(Math.random() * messages.length)] ?? messages[0] ?? 'Can you beat it?';
+}
+
+function getDailyShareTaunt(score?: number): string {
+  if (typeof score === 'number') return pickTaunt(dailyTauntsWithScore.map((createMessage) => createMessage(score)));
+  return pickTaunt(dailyTauntsWithoutScore);
+}
 
 function addUtcDays(dateKey: string, days: number): string {
   const date = new Date(`${dateKey}T00:00:00.000Z`);
@@ -133,7 +195,11 @@ export function HomePage({
   const [randomSetup] = useState(() => resolveSeedSourceForMode('random', { randomSeed: getPageSessionRandomGameSeed() }));
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
   const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(() => getLocalBestScoreForSeedMode(getDailySeed(todayKey), 'daily'));
-  const [homeLeaderboard, setHomeLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardFeed, setLeaderboardFeed] = useState<LeaderboardFeedItem[]>(() => leaderboardPulseNames.slice(0, 3).map((_, index) => createPulseScore(index)));
+  const [leaderboardFeedIndex, setLeaderboardFeedIndex] = useState(0);
+  const [leaderboardDialogOpen, setLeaderboardDialogOpen] = useState(false);
+  const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('daily');
+  const [leaderboardDialogRows, setLeaderboardDialogRows] = useState<LeaderboardEntry[]>([]);
   const [matchTarget, setMatchTarget] = useState({ seed: getDailySeed(todayKey), backRankCode: dailyBackRankCodeFromSeed(getDailySeed(todayKey)), mode: 'daily' as ShuffleMode });
   const dailySeed = getDailySeed(todayKey);
   const dailyBackRankCode = dailyBackRankCodeFromSeed(dailySeed);
@@ -151,6 +217,10 @@ export function HomePage({
   const customSeedError = customSeedWasSubmitted && !customSeedValidation.ok ? customSeedValidation.error : null;
   const customBackRankCode = customSeedValidation.ok ? customSeedValidation.backRankCode : null;
   const dailyAIStatusLine = getDailyAIStatusLine(dailyAIProgress);
+  const activeLeaderboardView = leaderboardViews.find((view) => view.scope === leaderboardScope) ?? leaderboardViews[0];
+  const visibleLeaderboardFeed = leaderboardFeed.length > 0
+    ? [0, 1, 2].map((offset) => leaderboardFeed[(leaderboardFeedIndex + offset) % leaderboardFeed.length]).filter(Boolean) as LeaderboardFeedItem[]
+    : [];
 
   useEffect(() => {
     const dateRefreshId = window.setInterval(() => setTodayKey(getUtcDateKey()), 60000);
@@ -173,8 +243,52 @@ export function HomePage({
   }, [todayKey]);
 
   useEffect(() => {
-    fetchLeaderboard(dailySeed, 'daily').then((scores) => setHomeLeaderboard(scores.slice(0, 10))).catch(() => setHomeLeaderboard([]));
+    fetchLeaderboard(dailySeed, 'daily').then((scores) => {
+      const topScores = scores.slice(0, 10);
+      setLeaderboardFeed((currentFeed) => {
+        const rankedFeed = topScores.map(leaderboardEntryToFeedItem);
+        return [...rankedFeed, ...currentFeed.filter((item) => item.kind === 'new-score')].slice(0, 18);
+      });
+    }).catch(() => setLeaderboardFeed((currentFeed) => currentFeed.filter((item) => item.kind === 'new-score')));
   }, [dailySeed]);
+
+  useEffect(() => {
+    const scrollId = window.setInterval(() => {
+      setLeaderboardFeedIndex((currentIndex) => (leaderboardFeed.length <= 1 ? 0 : (currentIndex + 1) % leaderboardFeed.length));
+    }, 2600);
+    return () => window.clearInterval(scrollId);
+  }, [leaderboardFeed.length]);
+
+  useEffect(() => {
+    let pulseIndex = 0;
+    const pulseId = window.setInterval(() => {
+      pulseIndex += 1;
+      setLeaderboardFeed((currentFeed) => [createPulseScore(pulseIndex), ...currentFeed].slice(0, 18));
+      setLeaderboardFeedIndex(0);
+    }, 11000);
+    return () => window.clearInterval(pulseId);
+  }, []);
+
+  useEffect(() => {
+    if (!leaderboardDialogOpen) return;
+    const loadScores = leaderboardScope === 'daily' ? fetchScoreboard('daily', dailySeed, 'daily') : fetchScoreboard(leaderboardScope);
+    loadScores.then((scores) => setLeaderboardDialogRows(scores.slice(0, 25))).catch(() => setLeaderboardDialogRows([]));
+  }, [dailySeed, leaderboardDialogOpen, leaderboardScope]);
+
+  useEffect(() => {
+    if (!leaderboardDialogOpen) return undefined;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setLeaderboardDialogOpen(false);
+    }
+
+    document.body.classList.add('home-modal-open');
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.classList.remove('home-modal-open');
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [leaderboardDialogOpen]);
 
   function handleDateChange(nextDateKey: string) {
     if (nextDateKey > todayKey) {
@@ -209,14 +323,19 @@ export function HomePage({
     const copyText = shuffleMode === 'daily'
       ? `I beat today’s Pocket Shuffle Chess setup.
 
+${getDailyShareTaunt(localBestScore?.score)}
+
 Seed: ${dailySeed}
 Back rank: ${dailyBackRankCode}
-
+${localBestScore ? `Score to beat: ${localBestScore.score}
+` : ''}
 Fast chess without memorized openings.
 Can you beat it?
 
 ${getShareUrl('/daily')}`
       : `I survived this random shuffle setup.
+
+${pickTaunt(randomTaunts)}
 
 Seed: ${activeSeedSource.seed}
 Back rank: ${activeBackRankCode}
@@ -368,17 +487,51 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
 
   return (
     <main className="home-page">
-      <aside className="home-leaderboard-chip" aria-label="Today’s leaderboard">
+      <button type="button" className="home-leaderboard-chip" onClick={() => setLeaderboardDialogOpen(true)} aria-label="Open leaderboards">
         <Trophy size={18} aria-hidden="true" />
         <div>
-          <strong>Today’s Top 10</strong>
-          <ol>
-            {homeLeaderboard.length > 0 ? homeLeaderboard.map((entry, index) => (
-              <li key={entry.id}><span>{index + 1}. {entry.display_name}</span><b>{entry.score}</b></li>
+          <strong>Live scores</strong>
+          <ol aria-live="polite">
+            {visibleLeaderboardFeed.length > 0 ? visibleLeaderboardFeed.map((entry, index) => (
+              <li key={`${entry.id}-${index}`} className={entry.kind === 'new-score' ? 'new-score-pulse' : ''}>
+                <span>{entry.kind === 'new-score' ? `${entry.displayName} got a new score` : `${entry.rank ?? index + 1}. ${entry.displayName}`}</span><b>{entry.score}</b>
+              </li>
             )) : <li><span>No daily scores yet</span><b>—</b></li>}
           </ol>
+          <small>Tap for top 10, global, and starts</small>
         </div>
-      </aside>
+      </button>
+      {leaderboardDialogOpen && (
+        <div className="modal-backdrop leaderboard-dialog-backdrop" role="presentation" onClick={() => setLeaderboardDialogOpen(false)}>
+          <section className="modal-card leaderboard-dialog" role="dialog" aria-modal="true" aria-labelledby="leaderboard-dialog-title" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="modal-close-button" onClick={() => setLeaderboardDialogOpen(false)} aria-label="Close leaderboards"><X size={18} aria-hidden="true" /></button>
+            <div className="leaderboard-dialog-heading">
+              <span className="eyebrow"><Trophy size={16} aria-hidden="true" /> Leaderboards</span>
+              <h2 id="leaderboard-dialog-title">{activeLeaderboardView.title}</h2>
+              <p>{activeLeaderboardView.description}</p>
+            </div>
+            <div className="leaderboard-tabs" role="tablist" aria-label="Choose leaderboard">
+              {leaderboardViews.map((view) => (
+                <button key={view.scope} type="button" role="tab" aria-selected={leaderboardScope === view.scope} className={leaderboardScope === view.scope ? 'selected' : ''} onClick={() => setLeaderboardScope(view.scope)}>
+                  {view.label}
+                </button>
+              ))}
+            </div>
+            <ol className="leaderboard-dialog-list">
+              {leaderboardDialogRows.length > 0 ? leaderboardDialogRows.slice(0, 10).map((entry, index) => (
+                <li key={entry.id}>
+                  <span className="leaderboard-rank">{index + 1}</span>
+                  <span className="leaderboard-player">
+                    <strong>{leaderboardScope === 'global-start-points' ? (getLeaderboardBackRankCode(entry) ?? entry.seed) : entry.display_name}</strong>
+                    <small>{leaderboardScope === 'global-start-points' ? `Best by ${entry.display_name}` : `${entry.mode} • ${entry.seed.replace('daily-', '')}`}</small>
+                  </span>
+                  <b>{entry.score}</b>
+                </li>
+              )) : <li className="leaderboard-empty">No scores yet. Be the first tiny-board menace.</li>}
+            </ol>
+          </section>
+        </div>
+      )}
       <section className="home-hero-shell" aria-labelledby="home-title">
         <div className="hero-copy">
           <div className="brand-row">
