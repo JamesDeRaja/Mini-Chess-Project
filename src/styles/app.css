@@ -5619,3 +5619,123 @@ button:focus-visible,
     font-size: clamp(0.95rem, 4.3vw, 1.25rem);
   }
 }
+
+/* Home setup compact polish: keep the daily pill informative without feeling like a data dump. */
+.shuffle-mode-panel {
+  gap: 8px;
+  width: min(100%, 500px);
+}
+.today-pill {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 10px;
+  width: min(100%, 500px);
+  padding: 10px 12px;
+  border-radius: 28px;
+}
+.today-pill-icon {
+  width: 42px;
+  height: 42px;
+}
+.today-pill-copy {
+  gap: 1px;
+}
+.today-pill-copy span {
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.today-pill-copy strong {
+  color: #5f826c;
+  font-size: clamp(1.28rem, 2.5vw, 1.78rem);
+  line-height: 0.98;
+  letter-spacing: 0.04em;
+  overflow-wrap: normal;
+}
+.today-pill-copy small {
+  max-width: 24ch;
+  font-size: 0.7rem;
+  line-height: 1.12;
+}
+.today-pill .copy-seed-button {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  padding: 0;
+}
+.today-pill .copy-seed-button span {
+  display: none;
+}
+.today-high-score-chip {
+  min-height: 34px;
+  padding: 7px 11px;
+  font-size: 0.78rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.74);
+}
+.shuffle-mode-toggle {
+  width: min(100%, 310px);
+  padding: 4px;
+}
+.shuffle-mode-toggle button {
+  padding: 8px 10px;
+  font-size: 0.78rem;
+}
+@media (max-width: 760px) {
+  .today-pill {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 9px 10px;
+  }
+  .today-high-score-chip {
+    grid-column: 2 / -1;
+    justify-self: start;
+    min-height: 30px;
+    padding: 6px 10px;
+    font-size: 0.74rem;
+  }
+  .today-pill-copy strong {
+    font-size: 1.08rem;
+  }
+  .today-pill-copy small {
+    display: none;
+  }
+}
+
+/* Final compact home setup: keep high score as a separate capsule, not inside setup data. */
+.shuffle-mode-panel {
+  width: min(100%, 430px);
+  justify-items: start;
+}
+.today-pill {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  width: min(100%, 430px);
+  gap: 11px;
+  padding: 10px 12px 10px 10px;
+}
+.today-pill-copy strong {
+  font-size: clamp(1.55rem, 3.2vw, 2.15rem);
+}
+.today-pill-copy small {
+  max-width: none;
+}
+.today-high-score-chip {
+  display: inline-flex;
+  width: fit-content;
+  margin: 0 0 0 10px;
+  min-height: 32px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: rgba(255, 248, 215, 0.82);
+}
+.shuffle-mode-toggle {
+  width: min(100%, 300px);
+}
+@media (max-width: 760px) {
+  .shuffle-mode-panel,
+  .today-pill {
+    width: 100%;
+  }
+  .today-high-score-chip {
+    grid-column: auto;
+    margin-left: 4px;
+  }
+}

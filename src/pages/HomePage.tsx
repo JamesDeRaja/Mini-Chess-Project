@@ -143,9 +143,9 @@ export function HomePage({
   const canGoNextMonth = shiftMonth(calendarMonthKey, 1) <= monthKeyFromDateKey(todayKey);
   const activeSeedSource = shuffleMode === 'daily' ? resolveSeedSourceForMode('daily', { dateKey: todayKey }) : randomSetup;
   const activeBackRankCode = activeSeedSource.backRankCode;
-  const activeSeedLabel = shuffleMode === 'daily' ? `${dailySeed} • ${dailyBackRankCode}` : `Random Shuffle • ${activeBackRankCode}`;
-  const activeHeaderLabel = shuffleMode === 'daily' ? 'Today’s Daily' : 'Random Shuffle Active';
-  const activeHeaderDescription = shuffleMode === 'daily' ? 'Everyone gets the same setup today.' : 'This setup stays active until refresh.';
+  const activeSeedLabel = shuffleMode === 'daily' ? dailyBackRankCode : `Random • ${activeBackRankCode}`;
+  const activeHeaderLabel = shuffleMode === 'daily' ? 'Today’s setup' : 'Random setup';
+  const activeHeaderDescription = shuffleMode === 'daily' ? 'Same board for everyone today.' : 'Active until refresh.';
   const blackBackRankCode = [...activeBackRankCode].reverse().join('');
   const customSeedValidation = validateSeedInput(customSeed);
   const customSeedError = customSeedWasSubmitted && !customSeedValidation.ok ? customSeedValidation.error : null;
@@ -406,6 +406,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               <span className="copy-status" aria-live="polite">{copyStatus === 'copied' ? 'Copied.' : ''}</span>
               {localBestScore && <span className="today-high-score-chip">High Score: {localBestScore.score}</span>}
             </div>
+            {localBestScore && <span className="today-high-score-chip">High Score: {localBestScore.score}</span>}
             <div className="shuffle-mode-toggle" role="group" aria-label="Choose global shuffle mode">
               {(['daily', 'random'] as const).map((mode) => (
                 <button
