@@ -518,7 +518,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               ))}
             </div>
             <ol className="leaderboard-dialog-list">
-              {leaderboardDialogRows.length > 0 ? leaderboardDialogRows.slice(0, leaderboardScope === 'daily' ? 10 : 25).map((entry, index) => (
+              {leaderboardDialogRows.length > 0 ? leaderboardDialogRows.slice(0, 10).map((entry, index) => (
                 <li key={entry.id}>
                   <span className="leaderboard-rank">{index + 1}</span>
                   <span className="leaderboard-player">

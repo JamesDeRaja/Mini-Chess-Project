@@ -105,6 +105,48 @@ function createDailyLeaderboardFillers(seed: string, mode: string): ScoreRow[] {
   });
 }
 
+const defaultStartCodes = ['QNRBK', 'RKBQN', 'BNQKR', 'KRBNQ', 'NQBRK', 'RBKQN', 'QKNRB', 'BRQNK', 'NRKBQ', 'KQBRN'];
+
+function createGlobalLeaderboardFillers(): ScoreRow[] {
+  const random = seededRandom('global-leaderboard-defaults');
+  return shuffledDailyNames('global-leaderboard-defaults').slice(0, 10).map((displayName, index) => {
+    const score = 110 - index - Math.floor(random() * 2);
+    return {
+      id: `global-bot-${index}`,
+      player_id: `global-bot-${index}`,
+      display_name: displayName,
+      seed: `global-default-${index + 1}`,
+      back_rank_code: defaultStartCodes[index % defaultStartCodes.length] ?? null,
+      mode: 'daily',
+      side: index % 2 === 0 ? 'white' : 'black',
+      result: index % 2 === 0 ? 'white_won' : 'black_won',
+      score: Math.max(100, score),
+      moves: 7 + index,
+      created_at: new Date(Date.UTC(2026, 0, 2, 0, index, 0)).toISOString(),
+    };
+  });
+}
+
+function createGlobalStartPointFillers(): ScoreRow[] {
+  const random = seededRandom('global-start-point-defaults');
+  return defaultStartCodes.map((backRankCode, index) => {
+    const displayName = shuffledDailyNames(`start-point-${backRankCode}`)[0] ?? `StartPlayer${index + 1}`;
+    return {
+      id: `start-point-bot-${backRankCode}`,
+      player_id: `start-point-bot-${index}`,
+      display_name: displayName,
+      seed: `default-start-${backRankCode}`,
+      back_rank_code: backRankCode,
+      mode: 'daily',
+      side: index % 2 === 0 ? 'white' : 'black',
+      result: index % 2 === 0 ? 'white_won' : 'black_won',
+      score: 20 - index - Math.floor(random() * 2),
+      moves: 10 + index,
+      created_at: new Date(Date.UTC(2026, 0, 3, 0, index, 0)).toISOString(),
+    };
+  }).map((row) => ({ ...row, score: Math.max(5, row.score) }));
+}
+
 function sortScores(scores: ScoreRow[]): ScoreRow[] {
   return [...scores].sort((a, b) => b.score - a.score || a.moves - b.moves || a.created_at.localeCompare(b.created_at));
 }
@@ -153,13 +195,16 @@ export default async function handler(request: VercelRequest, response: VercelRe
   }
 
   if (scope === 'global-start-points') {
-    const bestByStartingPoint = bestScoresByKey((data ?? []) as ScoreRow[], (row) => row.back_rank_code ?? row.seed);
+    const bestByStartingPoint = bestScoresByKey([...(data ?? []) as ScoreRow[], ...createGlobalStartPointFillers()], (row) => row.back_rank_code ?? row.seed);
     response.status(200).json({ scores: sortScores(bestByStartingPoint).slice(0, 25) });
     return;
   }
 
+  const databaseRows = (data ?? []) as ScoreRow[];
+  const sourceRows = scope === 'global' ? [...databaseRows, ...createGlobalLeaderboardFillers()] : databaseRows;
+
   const bestByPlayerSeedModeSide = new Map<string, ScoreRow>();
-  for (const row of (data ?? []) as ScoreRow[]) {
+  for (const row of sourceRows) {
     const key = scope === 'global' ? `${row.player_id}:${row.mode}:${row.side}` : `${row.player_id}:${row.seed}:${row.mode}:${row.side}`;
     if (!bestByPlayerSeedModeSide.has(key)) bestByPlayerSeedModeSide.set(key, row);
   }

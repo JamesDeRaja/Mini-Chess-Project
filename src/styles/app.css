@@ -5962,3 +5962,110 @@ button:focus-visible,
     border-radius: 24px;
   }
 }
+
+/* Leaderboard popup polish: match the soft card treatment used by other home modals. */
+.leaderboard-dialog {
+  position: relative;
+  width: min(100%, 640px);
+  max-height: min(86vh, 760px);
+  border: 1px solid rgba(222, 217, 203, 0.86);
+  border-radius: clamp(28px, 4vw, 42px);
+  color: var(--text-primary);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.96), transparent 20rem),
+    radial-gradient(circle at 92% 12%, rgba(247, 207, 114, 0.24), transparent 18rem),
+    linear-gradient(180deg, rgba(255, 252, 241, 0.98), rgba(246, 239, 219, 0.96));
+  box-shadow: 0 30px 80px rgba(80, 122, 108, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px);
+  animation: home-modal-pop 220ms cubic-bezier(.2, 1.1, .4, 1);
+}
+.leaderboard-dialog::before,
+.leaderboard-dialog::after {
+  content: '+';
+  position: absolute;
+  color: rgba(229, 190, 74, 0.78);
+  font-size: 2rem;
+  font-weight: 950;
+  line-height: 1;
+  pointer-events: none;
+}
+.leaderboard-dialog::before {
+  right: 76px;
+  top: 28px;
+  transform: rotate(12deg);
+}
+.leaderboard-dialog::after {
+  left: 34px;
+  bottom: 28px;
+  transform: rotate(-8deg);
+}
+.leaderboard-dialog .modal-close-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(222, 217, 203, 0.86);
+  border-radius: 50%;
+  padding: 0;
+  color: #4a4d4f;
+  background: rgba(255, 248, 233, 0.92);
+  box-shadow: 0 8px 0 rgba(45, 43, 40, 0.06), 0 14px 24px rgba(97, 87, 50, 0.12);
+  cursor: pointer;
+}
+.leaderboard-dialog .modal-close-button:hover,
+.leaderboard-dialog .modal-close-button:focus-visible {
+  transform: translateY(-1px);
+  background: #ffffff;
+}
+.leaderboard-dialog-heading,
+.leaderboard-tabs,
+.leaderboard-dialog-list {
+  position: relative;
+  z-index: 1;
+}
+.leaderboard-dialog-heading {
+  padding: 4px 54px 2px 2px;
+}
+.leaderboard-dialog-heading h2 {
+  max-width: 10ch;
+  letter-spacing: -0.07em;
+}
+.leaderboard-tabs {
+  padding: 6px;
+  border-radius: 24px;
+  background: rgba(255, 251, 239, 0.78);
+  box-shadow: inset 0 -5px rgba(247, 207, 114, 0.18);
+}
+.leaderboard-tabs button {
+  min-height: 48px;
+  white-space: nowrap;
+}
+.leaderboard-dialog-list {
+  max-height: min(42vh, 360px);
+  padding-right: 6px;
+}
+.leaderboard-dialog-list li {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 10px 20px rgba(97, 87, 50, 0.06);
+}
+@media (max-width: 760px) {
+  .leaderboard-dialog {
+    width: min(100%, 440px);
+    border-radius: 30px;
+  }
+  .leaderboard-dialog-heading h2 {
+    max-width: none;
+  }
+  .leaderboard-tabs {
+    display: grid;
+    grid-template-columns: 1fr;
+    border-radius: 22px;
+  }
+  .leaderboard-tabs button {
+    min-height: 42px;
+  }
+}
