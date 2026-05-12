@@ -28,6 +28,40 @@ type MatchmakingState =
   | { status: 'timeout'; queueId?: string }
   | { status: 'failed'; message: string };
 
+
+const dailyTauntsWithoutScore = [
+  'Today’s setup looked scary for about six seconds. Your move.',
+  'I solved today’s tiny chess problem. Try not to trip over the 5x6 board.',
+  'The pieces were shuffled. My confidence was not. Beat this daily if you can.',
+  'No opening book, no excuses, just you and whatever plan survives move one.',
+  'I handled today’s chaos. Please bring a better excuse than “weird setup.”',
+];
+
+const dailyTauntsWithScore = [
+  (score: number) => `I posted ${score} today. Surely you can beat that, right? Right?`,
+  (score: number) => `My daily score is ${score}. Consider this a very polite threat.`,
+  (score: number) => `${score} is the number to beat today. The board is small; your excuses should be smaller.`,
+  (score: number) => `I put ${score} on today’s seed. Come ruin my leaderboard mood.`,
+  (score: number) => `Today’s target is ${score}. If you beat it, I will pretend the shuffle was unfair.`,
+];
+
+const randomTaunts = [
+  'I survived this random shuffle. Your turn to discover what “random” did to your dignity.',
+  'This setup is nonsense, which makes losing to it even funnier.',
+  'I found a way through this shuffle. Try not to donate your queen immediately.',
+  'Random setup, very real bragging rights. Come get them.',
+  'No memorized openings here. Unfortunately, that means you have to think.',
+];
+
+function pickTaunt(messages: string[]): string {
+  return messages[Math.floor(Math.random() * messages.length)] ?? messages[0] ?? 'Can you beat it?';
+}
+
+function getDailyShareTaunt(score?: number): string {
+  if (typeof score === 'number') return pickTaunt(dailyTauntsWithScore.map((createMessage) => createMessage(score)));
+  return pickTaunt(dailyTauntsWithoutScore);
+}
+
 function addUtcDays(dateKey: string, days: number): string {
   const date = new Date(`${dateKey}T00:00:00.000Z`);
   date.setUTCDate(date.getUTCDate() + days);
@@ -209,14 +243,19 @@ export function HomePage({
     const copyText = shuffleMode === 'daily'
       ? `I beat today’s Pocket Shuffle Chess setup.
 
+${getDailyShareTaunt(localBestScore?.score)}
+
 Seed: ${dailySeed}
 Back rank: ${dailyBackRankCode}
-
+${localBestScore ? `Score to beat: ${localBestScore.score}
+` : ''}
 Fast chess without memorized openings.
 Can you beat it?
 
 ${getShareUrl('/daily')}`
       : `I survived this random shuffle setup.
+
+${pickTaunt(randomTaunts)}
 
 Seed: ${activeSeedSource.seed}
 Back rank: ${activeBackRankCode}
