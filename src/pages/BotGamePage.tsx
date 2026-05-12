@@ -300,6 +300,14 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }, [dailySeedInfo.seed, isDailyAI, roundResult, scoreMode, submittedScore]);
 
   useEffect(() => {
+    setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, dailyAscensionTier));
+  }, [dailyAscensionTier, isDailyAI]);
+
+  useEffect(() => () => {
+    if (botMoveTimerRef.current !== null) window.clearTimeout(botMoveTimerRef.current);
+  }, []);
+
+  useEffect(() => {
     const historyList = historyListRef.current;
     if (!historyList) return;
 
