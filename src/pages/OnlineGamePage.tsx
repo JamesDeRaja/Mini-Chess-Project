@@ -545,38 +545,6 @@ ${inviteLink}`);
     window.setTimeout(() => setCopied(false), 1600);
   }
 
-  async function handleShareResult() {
-    trackEvent('share_button_click', { type: 'result', seed: seedLabel, result: onlineResultTitle });
-    const resultText = `${onlineResultTitle} in Pocket Shuffle Chess.
-
-${shareSetupLine}
-
-${onlineResultSummary}
-
-Seed: ${seedLabel}
-Back rank: ${backRankCode ?? 'Setup pending'}
-
-Fast chess without memorized openings.
-Can you beat it?`;
-    const shareData = {
-      title: 'Pocket Shuffle Chess result',
-      text: resultText,
-      url: inviteLink ?? window.location.href,
-    };
-
-    if (canNativeShare) {
-      try {
-        await navigator.share(shareData);
-        setCopied(true);
-      } catch {
-        return;
-      }
-    } else {
-      await navigator.clipboard.writeText(`${resultText} ${shareData.url}`);
-      setCopied(true);
-    }
-    window.setTimeout(() => setCopied(false), 1600);
-  }
 
   async function handleCreateNewChallenge() {
     setError(null);
@@ -871,10 +839,8 @@ Can you beat it?`;
           actions={(
             <>
               {role !== 'spectator' && <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Submit Score'}</button>}
-              <button type="button" onClick={handleShareResult}>Copy Result</button>
-              <button type="button" onClick={handleShareInvite}>Challenge Friend</button>
-              {isLifecycleTerminal ? <button type="button" onClick={handleCreateNewChallenge}>Replay Seed</button> : <button type="button" onClick={onNewOnlineGame}>Replay Seed</button>}
-              <button type="button" onClick={onNewOnlineGame}>Play Other Side</button>
+              {isLifecycleTerminal ? <button type="button" onClick={handleCreateNewChallenge}>Create New Challenge</button> : <button type="button" onClick={onNewOnlineGame}>New Online Game</button>}
+              <button type="button" onClick={onHome}>Back Home</button>
             </>
           )}
         />

@@ -223,7 +223,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const ascensionMissingNote = isDailyAI ? getAscensionMissingNote(dailyAscensionTier) : null;
   const playerColor = playerSide ?? (isDailyAI ? getDailyAIPlayerColor(dailyAIProgress) : 'white');
   const botColor = getOpponent(playerColor);
-  const oppositeSide = getOpponent(playerColor);
   const initialBoardForMount = useMemo(() => {
     const dailyBoard = createInitialBoard({ backRankCode: dailySeedInfo.backRankCode });
     return isDailyAI ? removeAscensionPieces(dailyBoard, dailyAscensionTier, playerColor) : dailyBoard;
@@ -556,18 +555,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     }
   }
 
-  async function handleCopyResult() {
-    if (!roundResult) return;
-    const text = `Pocket Shuffle Chess ${dailySeedInfo.seed} (${dailySeedInfo.backRankCode})\n${playerColor === 'white' ? 'White' : 'Black'} score: ${scoreBreakdown.totalScore} in ${scoreBreakdown.fullMoves} moves`;
-    await navigator.clipboard?.writeText(text);
-    setScoreSubmitMessage('Result copied.');
-  }
-
-  async function handleChallengeFriend() {
-    const url = `${window.location.origin}/seed/${encodeURIComponent(dailySeedInfo.seed)}`;
-    await navigator.clipboard?.writeText(url);
-    setScoreSubmitMessage('Challenge link copied.');
-  }
 
   return (
     <main className="game-page">
@@ -710,10 +697,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           actions={(
             <>
               <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Submit Score'}</button>
-              <button type="button" onClick={handleCopyResult}>Copy Result</button>
-              <button type="button" onClick={handleChallengeFriend}>Challenge Friend</button>
-              <button type="button" onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay Seed' : 'Replay Seed'}</button>
-              <button type="button" onClick={() => { window.location.href = `/bot?seed=${encodeURIComponent(dailySeedInfo.seed)}&setup=${encodeURIComponent(dailySeedInfo.backRankCode)}&side=${oppositeSide}`; }}>Play Other Side</button>
+              {!matchWinner && <button type="button" onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay Game' : 'Next Game'}</button>}
+              <button type="button" onClick={requestRestart}>Restart Match</button>
             </>
           )}
         />
