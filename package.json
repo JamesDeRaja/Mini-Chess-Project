@@ -7,24 +7,25 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "latest",
-    "react-dom": "latest",
+    "@supabase/supabase-js": "latest",
+    "html-to-image": "^1.11.13",
     "lucide-react": "latest",
-    "@supabase/supabase-js": "latest"
+    "react": "latest",
+    "react-dom": "latest"
   },
   "devDependencies": {
-    "typescript": "latest",
-    "eslint": "latest",
     "@eslint/js": "latest",
-    "typescript-eslint": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vercel/node": "latest",
+    "@vitejs/plugin-react": "latest",
+    "eslint": "latest",
     "eslint-plugin-react-hooks": "latest",
     "eslint-plugin-react-refresh": "latest",
     "globals": "latest",
-    "@types/node": "latest",
-    "@vercel/node": "latest",
-    "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest"
+    "typescript": "latest",
+    "typescript-eslint": "latest",
+    "vite": "latest"
   }
 }
