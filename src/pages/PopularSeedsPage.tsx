@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Home, Share2, Trophy, Users } from 'lucide-react';
 import { CURATED_SEEDS } from '../game/curatedSeeds.js';
 import { createSeedFromInput } from '../game/seed.js';
-import { createSeedChallengeUrl } from '../game/challenge.js';
 import { fetchPopularSeedStats, type SeedStatsRecord } from '../multiplayer/challengeApi.js';
 
 type SortMode = 'popular' | 'new' | 'highest' | 'shared' | 'daily';
