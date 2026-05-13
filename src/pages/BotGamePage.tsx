@@ -609,6 +609,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }) : 'generic';
   const currentShareTaunt = useMemo(() => shareTaunt || (roundResult ? getRandomShareTaunt(tauntContext) : ''), [roundResult, shareTaunt, tauntContext]);
   const effectiveChallengeUrl = challengeUrl || createSeedChallengeUrl(seedSlug);
+  const canUseBotGameActions = status === 'active' && !roundResult;
+  const restartActionLabel = canUseBotGameActions ? 'Restart Match' : 'Rematch';
 
   async function ensureChallengeRecord(finalShareText?: string, finalTaunt?: string): Promise<string> {
     if (!roundResult) return effectiveChallengeUrl;
@@ -779,9 +781,9 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               <button type="button" onClick={() => setPreviewPly(null)} disabled={moveHistory.length === 0}>⏭</button>
             </div>
             <div className="panel-actions stacked-actions">
-              <button type="button" className="secondary-action" onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
-              <button type="button" className="danger-action" onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
-              <button type="button" className="gold-action" onClick={requestRestart}>Restart Match</button>
+              <button type="button" className="secondary-action" onClick={() => setPendingAction('draw')} disabled={!canUseBotGameActions}><Handshake size={18} /> Request Draw</button>
+              <button type="button" className="danger-action" onClick={() => setPendingAction('resign')} disabled={!canUseBotGameActions}><Flag size={18} /> Resign</button>
+              <button type="button" className="gold-action" onClick={requestRestart}>{restartActionLabel}</button>
             </div>
           </div>
         </aside>
@@ -853,7 +855,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Save Score'}</button>
               {!matchWinner && <button type="button" onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay Seed' : 'Replay Seed'}</button>}
               <button type="button" onClick={() => { window.history.pushState(null, '', `/bot?seed=${encodeURIComponent(seedSlug)}&setup=${encodeURIComponent(dailySeedInfo.backRankCode)}&side=${playerColor === 'white' ? 'black' : 'white'}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Other Side</button>
-              <button type="button" onClick={requestRestart}>Restart Match</button>
+              <button type="button" onClick={requestRestart}>Rematch</button>
             </>
           )}
         />
@@ -908,7 +910,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         <div className="confirm-overlay" role="dialog" aria-modal="true">
           <div className="confirm-card">
             <p className="eyebrow">Confirm</p>
-            <h2>{pendingAction === 'resign' ? 'Resign this game?' : pendingAction === 'draw' ? 'Offer a draw?' : 'Restart the match?'}</h2>
+            <h2>{pendingAction === 'resign' ? 'Resign this game?' : pendingAction === 'draw' ? 'Offer a draw?' : 'Rematch?'}</h2>
             <p>This action can change or reset the current game. Do you want to continue?</p>
             <div className="panel-actions centered-actions">
               <button type="button" onClick={confirmPendingAction}>Continue</button>
