@@ -1,9 +1,8 @@
 import { Home, Share2, Trophy, Users } from 'lucide-react';
-import { createInitialBoard } from '../game/createInitialBoard.js';
+import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
 import { CURATED_SEEDS, getSeedDisplayName, normalizeSeedSlug } from '../game/curatedSeeds.js';
 import { createSeedChallengeUrl } from '../game/challenge.js';
 import { createSeedFromInput } from '../game/seed.js';
-import type { Piece } from '../game/types.js';
 
 type Props = {
   seedSlug: string;
@@ -14,14 +13,16 @@ type Props = {
   onHome: () => void;
 };
 
-function pieceAlt(piece: Piece) { return `${piece.color} ${piece.type}`; }
+function spacedCode(backRankCode: string): string {
+  return backRankCode.split('').join(' ');
+}
 
 export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeaderboard, onOpenSeed, onHome }: Props) {
   const normalized = normalizeSeedSlug(seedSlug);
   const seed = CURATED_SEEDS.find((item) => item.slug === normalized);
   const validation = createSeedFromInput(normalized);
   const setup = validation.ok ? validation.backRankCode : 'BQKRN';
-  const board = createInitialBoard({ backRankCode: setup });
+  const blackSetup = [...setup].reverse().join('');
   const others = CURATED_SEEDS.filter((item) => item.slug !== normalized).slice(0, 6);
   const title = seed?.displayName ?? getSeedDisplayName(normalized);
   const shareUrl = createSeedChallengeUrl(normalized);
@@ -48,13 +49,23 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
               <button type="button" className="secondary-action" onClick={() => onLeaderboard(normalized)}><Trophy size={17} /> Leaderboard</button>
             </div>
           </div>
-          <div className="seed-preview-board" aria-label={`${title} arrangement preview`}>
-            {board.map((square, index) => (
-              <span key={index} className={(square.file + square.rank) % 2 === 0 ? 'light' : 'dark'}>
-                {square.piece && <img src={`/pieces/${square.piece.color}-${square.piece.type}.png`} alt={pieceAlt(square.piece)} draggable={false} />}
-              </span>
-            ))}
-          </div>
+          <aside className="today-setup-showcase seed-detail-showcase" aria-label={`${title} 5 by 6 setup preview`}>
+            <span className="setup-spark setup-spark-left" aria-hidden="true" />
+            <span className="setup-spark setup-spark-right" aria-hidden="true" />
+            <div className="setup-header-pill"><span aria-hidden="true" />SEED SETUP<span aria-hidden="true" /></div>
+            <HomepageInteractiveBoard key={normalized} backRankCode={setup} dailySeed={normalized} blackBackRankCode={blackSetup} />
+            <div className="setup-summary-panel">
+              <div className="setup-summary-copy">
+                <span>POPULAR SEED</span>
+                <p><strong>White (Bottom):</strong> {spacedCode(setup)}</p>
+                <p><strong>Black (Top):</strong> {spacedCode(blackSetup)}</p>
+              </div>
+              <div className="setup-seed-block">
+                <span>SEED</span>
+                <strong>{setup}</strong>
+              </div>
+            </div>
+          </aside>
         </div>
         <section className="seed-loop-section">
           <div>

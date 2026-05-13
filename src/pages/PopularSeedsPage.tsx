@@ -7,6 +7,7 @@ import { fetchPopularSeedStats, type SeedStatsRecord } from '../multiplayer/chal
 
 type SortMode = 'popular' | 'new' | 'highest' | 'shared' | 'daily';
 type Props = { onPlaySeed: (seed: string, backRankCode?: string) => void; onChallengeSeed: (seed: string, backRankCode?: string) => void | Promise<void>; onOpenSeed: (seed: string) => void; onLeaderboard: (seed: string) => void; onHome: () => void };
+
 export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLeaderboard, onHome }: Props) {
   const [stats, setStats] = useState<SeedStatsRecord[]>([]);
   const [sort, setSort] = useState<SortMode>('popular');
@@ -20,5 +21,53 @@ export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLe
     if (sort === 'new') return b.slug.localeCompare(a.slug);
     return (bv?.total_shares ?? 0) - (av?.total_shares ?? 0) || (bv?.total_completed ?? 0) - (av?.total_completed ?? 0) || (bv?.total_plays ?? 0) - (av?.total_plays ?? 0);
   }), [sort, statBySeed]);
-  return <main className="challenge-page popular-seeds-page"><section className="challenge-card wide"><p className="eyebrow">Popular Seeds</p><h1>Play Popular Seeds</h1><p>Curated shared setups first. Dynamic stats appear when the leaderboard service is available.</p><div className="leaderboard-tabs">{(['popular','new','highest','shared','daily'] as SortMode[]).map((mode) => <button key={mode} className={sort === mode ? 'selected' : ''} type="button" onClick={() => setSort(mode)}>{mode}</button>)}</div><div className="seed-card-grid">{seeds.map((seed) => { const valid = createSeedFromInput(seed.slug); const setup = valid.ok ? valid.backRankCode : 'BQKRN'; const row = statBySeed.get(seed.slug); return <article className="seed-card" key={seed.slug}><button type="button" className="seed-card-open" onClick={() => onOpenSeed(seed.slug)}><h2>{seed.displayName}</h2></button><strong>{seed.slug}</strong><p>{seed.description}</p><p>Setup: <b>{setup}</b></p><p>Plays: {row?.total_plays ?? 0} · Shares: {row?.total_shares ?? 0}</p><p>Best Score: {row?.best_score ? `${row.best_score} by ${row.best_score_player_name ?? 'Anonymous Player'}` : '—'}</p><div className="panel-actions"><button type="button" onClick={() => onPlaySeed(seed.slug, setup)}>Play AI</button><button type="button" onClick={() => { void onChallengeSeed(seed.slug, setup); }}><Users size={16} /> Challenge</button><button type="button" className="secondary-action" onClick={() => onLeaderboard(seed.slug)}><Trophy size={16} /> Leaderboard</button><button type="button" onClick={() => { void navigator.clipboard?.writeText(createSeedChallengeUrl(seed.slug)); }}><Copy size={16} /> Share</button></div></article>; })}</div><div className="panel-actions centered-actions"><button type="button" onClick={onHome}><Home size={17} /> Home</button></div></section></main>;
+
+  return (
+    <main className="challenge-page popular-seeds-page">
+      <section className="challenge-card wide">
+        <p className="eyebrow">Popular Seeds</p>
+        <h1>Play Popular Seeds</h1>
+        <p>Curated shared setups first. Dynamic stats appear when the leaderboard service is available.</p>
+        <div className="leaderboard-tabs">
+          {(['popular', 'new', 'highest', 'shared', 'daily'] as SortMode[]).map((mode) => <button key={mode} className={sort === mode ? 'selected' : ''} type="button" onClick={() => setSort(mode)}>{mode}</button>)}
+        </div>
+        <div className="seed-card-grid">
+          {seeds.map((seed) => {
+            const valid = createSeedFromInput(seed.slug);
+            const setup = valid.ok ? valid.backRankCode : 'BQKRN';
+            const row = statBySeed.get(seed.slug);
+            return (
+              <article
+                className="seed-card seed-card-clickable"
+                key={seed.slug}
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpenSeed(seed.slug)}
+                onKeyDown={(event) => {
+                  if ((event.key === 'Enter' || event.key === ' ') && event.currentTarget === event.target) {
+                    event.preventDefault();
+                    onOpenSeed(seed.slug);
+                  }
+                }}
+              >
+                <h2>{seed.displayName}</h2>
+                <strong>{seed.slug}</strong>
+                <p>{seed.description}</p>
+                <p>Setup: <b>{setup}</b></p>
+                <p>Plays: {row?.total_plays ?? 0} · Shares: {row?.total_shares ?? 0}</p>
+                <p>Best Score: {row?.best_score ? `${row.best_score} by ${row.best_score_player_name ?? 'Anonymous Player'}` : '—'}</p>
+                <div className="panel-actions">
+                  <button type="button" onClick={(event) => { event.stopPropagation(); onPlaySeed(seed.slug, setup); }}>Play AI</button>
+                  <button type="button" onClick={(event) => { event.stopPropagation(); void onChallengeSeed(seed.slug, setup); }}><Users size={16} /> Challenge</button>
+                  <button type="button" className="secondary-action" onClick={(event) => { event.stopPropagation(); onLeaderboard(seed.slug); }}><Trophy size={16} /> Leaderboard</button>
+                  <button type="button" onClick={(event) => { event.stopPropagation(); void navigator.clipboard?.writeText(createSeedChallengeUrl(seed.slug)); }}><Copy size={16} /> Share</button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        <div className="panel-actions centered-actions"><button type="button" onClick={onHome}><Home size={17} /> Home</button></div>
+      </section>
+    </main>
+  );
 }

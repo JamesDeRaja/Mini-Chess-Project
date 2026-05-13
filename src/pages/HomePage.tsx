@@ -509,9 +509,9 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
   return (
     <main className="home-page">
       <button type="button" className={`home-leaderboard-chip ${leaderboardChipExpanded ? 'is-expanded' : 'is-collapsed'}`} onClick={() => setLeaderboardDialogOpen(true)} aria-label="Open leaderboards">
-        <span className="streak-fire-badge" aria-label={`${playStreak.count} day play streak`}><Flame size={30} aria-hidden="true" /><b>{playStreak.count}</b></span>
+        <Trophy size={18} aria-hidden="true" />
         <div>
-          <strong>{playStreak.count > 0 ? `${playStreak.count}-day streak` : 'Start streak'}</strong>
+          <strong>Live scores</strong>
           <ol aria-live="polite">
             {visibleLeaderboardFeed.length > 0 ? visibleLeaderboardFeed.map((entry, index) => (
               <li key={`${entry.id}-${index}`} className={entry.kind === 'new-score' ? 'new-score-pulse' : ''}>
@@ -519,7 +519,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               </li>
             )) : <li><span>No daily scores yet</span><b>—</b></li>}
           </ol>
-          <small>Play any match each UTC day to keep the fire alive. Tap for scores.</small>
+          <small>Tap for top 10 and global scores</small>
         </div>
       </button>
       {leaderboardDialogOpen && (
@@ -556,7 +556,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
       <section className="home-hero-shell" aria-labelledby="home-title">
         <div className="hero-copy">
           <div className="brand-row">
-            <span className="brand-icon-tile" aria-hidden="true"><img src="/Icon.png" alt="" draggable={false} /></span>
+            <span className="brand-icon-tile streak-brand-tile" aria-label={`${playStreak.count} day play streak`}><Flame size={42} aria-hidden="true" /><b>{playStreak.count}</b></span>
             <form className="player-greeting" onSubmit={(event) => { event.preventDefault(); commitDisplayNameDraft(); }}>
               <span>Hello</span>
               <input

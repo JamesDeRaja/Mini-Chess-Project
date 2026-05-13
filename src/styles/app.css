@@ -7663,3 +7663,85 @@ button:focus-visible,
   transform: translateX(-50%);
 }
 .result-screenshot-status:not(:empty) { opacity: 1; }
+
+/* Review fixes: popular pages must scroll, seed cards open from anywhere, and the streak lives in the brand slot. */
+.challenge-page {
+  height: 100vh;
+  height: 100svh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.seed-card-clickable {
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.seed-card-clickable:hover,
+.seed-card-clickable:focus-visible {
+  border-color: rgba(127, 159, 134, 0.62);
+  box-shadow: 0 16px 28px rgba(80, 122, 108, 0.14);
+  transform: translateY(-2px);
+  outline: none;
+}
+.seed-card-clickable .panel-actions button { position: relative; z-index: 1; }
+.streak-brand-tile {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border-radius: 20px;
+  color: #ff9f1c;
+  background:
+    radial-gradient(circle at 50% 62%, rgba(255, 255, 255, 0.98) 0 18%, transparent 19%),
+    radial-gradient(circle at 50% 50%, rgba(255, 219, 92, 0.96), rgba(255, 130, 35, 0.42) 58%, rgba(255, 65, 65, 0.22));
+  box-shadow: 0 12px 0 rgba(166, 91, 23, 0.14), 0 20px 34px rgba(255, 130, 35, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+.streak-brand-tile svg {
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 5px 4px rgba(132, 66, 10, 0.22));
+  fill: rgba(255, 180, 50, 0.3);
+  stroke-width: 2.6;
+}
+.streak-brand-tile b {
+  position: absolute;
+  top: 27px;
+  left: 50%;
+  color: #2d2b28;
+  font-size: 0.98rem;
+  font-weight: 1000;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.88), 0 0 8px rgba(255, 255, 255, 0.92);
+  transform: translate(-50%, -50%);
+}
+.seed-detail-hero {
+  grid-template-columns: minmax(0, 1fr) minmax(500px, 540px);
+}
+.seed-detail-showcase {
+  width: min(100%, 540px);
+  justify-self: center;
+  text-align: center;
+}
+.seed-detail-showcase .interactive-board-shell,
+.seed-detail-showcase .preview-board-frame {
+  width: min(100%, 390px);
+}
+.seed-detail-showcase .meet-board-hint { margin-bottom: 0; }
+@media (max-width: 920px) {
+  .seed-detail-hero { grid-template-columns: 1fr; }
+  .seed-detail-showcase { width: min(100%, 540px); }
+}
+@media (max-width: 760px) {
+  .streak-brand-tile {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+  }
+  .streak-brand-tile svg { width: 39px; height: 39px; }
+  .streak-brand-tile b { top: 22px; font-size: 0.84rem; }
+}
+
+/* Seed detail uses a fixed home shortcut, but result cards keep their home icon inside the card. */
+.winner-card .result-home-button {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+}
