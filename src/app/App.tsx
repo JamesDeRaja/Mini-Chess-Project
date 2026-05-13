@@ -99,8 +99,11 @@ export function App() {
   const seoConfig = useMemo(() => {
     if (route.name === 'online') return getSeoConfig({ routeName: 'game', path: window.location.pathname, gameId: route.gameId });
     if (route.name === 'seed') return getSeoConfig({ routeName: 'seed', path: window.location.pathname, seed: route.seed });
+    if (route.name === 'seed-leaderboard') return getSeoConfig({ routeName: 'seed-leaderboard', path: window.location.pathname, seed: route.seed });
+    if (route.name === 'challenge') return getSeoConfig({ routeName: 'challenge', path: window.location.pathname, challengeId: route.challengeId });
+    if (route.name === 'popular-seeds') return getSeoConfig({ routeName: 'popular-seeds', path: window.location.pathname });
+    if (route.name === 'daily') return getSeoConfig({ routeName: 'daily', path: window.location.pathname, dateKey: route.dateKey });
     if (route.name === 'not-found') return getSeoConfig({ routeName: 'not-found', path: window.location.pathname });
-    if (route.name === 'challenge' || route.name === 'seed-leaderboard' || route.name === 'popular-seeds') return getSeoConfig({ routeName: 'seed', path: window.location.pathname });
     return getSeoConfig({ routeName: route.name, path: window.location.pathname });
   }, [route]);
 

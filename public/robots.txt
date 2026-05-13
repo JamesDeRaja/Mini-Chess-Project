@@ -2,4 +2,49 @@ User-agent: *
 Allow: /
 Disallow: /game/
 
+User-agent: Googlebot
+Allow: /
+Disallow: /game/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /game/
+
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /game/
+
+User-agent: Applebot
+Allow: /
+Disallow: /game/
+
+User-agent: GPTBot
+Allow: /
+Disallow: /game/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /game/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /game/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /game/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /game/
+
+User-agent: Claude-User
+Allow: /
+Disallow: /game/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /game/
+
 Sitemap: https://chess.alphaden.club/sitemap.xml
+Host: https://chess.alphaden.club
