@@ -11,26 +11,26 @@ async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 export async function createChallenge(payload: ChallengePayload): Promise<ChallengeRecord> {
-  const result = await requestJson<{ challenge: ChallengeRecord }>('/api/challenges/create', { method: 'POST', body: JSON.stringify(payload) });
+  const result = await requestJson<{ challenge: ChallengeRecord }>('/api/seeds', { method: 'POST', body: JSON.stringify({ action: 'createChallenge', ...payload }) });
   return result.challenge;
 }
 
 export async function fetchChallenge(challengeId: string): Promise<ChallengeRecord | null> {
-  const result = await requestJson<{ challenge: ChallengeRecord | null }>(`/api/challenges/get?id=${encodeURIComponent(challengeId)}`);
+  const result = await requestJson<{ challenge: ChallengeRecord | null }>(`/api/seeds?action=getChallenge&id=${encodeURIComponent(challengeId)}`);
   return result.challenge;
 }
 
 export async function submitSeedScore(payload: Omit<SeedScoreRecord, 'id' | 'created_at'>): Promise<void> {
-  await requestJson('/api/seeds/score', { method: 'POST', body: JSON.stringify(payload) });
+  await requestJson('/api/seeds', { method: 'POST', body: JSON.stringify({ action: 'score', ...payload }) });
 }
 
 export async function fetchPopularSeedStats(): Promise<SeedStatsRecord[]> {
-  const result = await requestJson<{ seeds: SeedStatsRecord[] }>('/api/seeds/popular');
+  const result = await requestJson<{ seeds: SeedStatsRecord[] }>('/api/seeds?action=popular');
   return result.seeds;
 }
 
 export async function fetchSeedLeaderboard(seedSlug: string): Promise<SeedScoreRecord[]> {
-  const result = await requestJson<{ scores: SeedScoreRecord[] }>(`/api/seeds/leaderboard?seed=${encodeURIComponent(seedSlug)}`);
+  const result = await requestJson<{ scores: SeedScoreRecord[] }>(`/api/seeds?action=leaderboard&seed=${encodeURIComponent(seedSlug)}`);
   return result.scores;
 }
 

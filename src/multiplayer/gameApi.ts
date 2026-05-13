@@ -49,42 +49,42 @@ async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 export function createOnlineGame(playerId: string): Promise<{ gameId: string; seed?: string; backRankCode?: string; dateKey?: string }> {
-  return requestJson('/api/games/create', {
+  return requestJson('/api/games', {
     method: 'POST',
-    body: JSON.stringify({ playerId }),
+    body: JSON.stringify({ action: 'create', playerId }),
   });
 }
 
 export function createDailyGame(playerId: string, dateKey?: string): Promise<{ gameId: string; seed: string; backRankCode: string; dateKey: string }> {
-  return requestJson('/api/games/daily', {
+  return requestJson('/api/games', {
     method: 'POST',
-    body: JSON.stringify({ playerId, dateKey }),
+    body: JSON.stringify({ action: 'daily', playerId, dateKey }),
   });
 }
 
 export function createSeededGame(playerId: string, seed: string, backRankCode?: string): Promise<{ gameId: string; seed: string; backRankCode: string }> {
-  return requestJson('/api/games/create-seeded', {
+  return requestJson('/api/games', {
     method: 'POST',
-    body: JSON.stringify({ playerId, seed, backRankCode }),
+    body: JSON.stringify({ action: 'createSeeded', playerId, seed, backRankCode }),
   });
 }
 
 export function findMatchmakingGame(playerId: string, seed: string, backRankCode: string): Promise<MatchmakingResponse> {
-  return requestJson('/api/matchmaking/find', {
+  return requestJson('/api/games', {
     method: 'POST',
-    body: JSON.stringify({ playerId, seed, backRankCode }),
+    body: JSON.stringify({ action: 'findMatch', playerId, seed, backRankCode }),
   });
 }
 
 export function cancelMatchmaking(playerId: string, queueId?: string): Promise<{ ok: boolean; message?: string }> {
-  return requestJson('/api/matchmaking/cancel', {
+  return requestJson('/api/games', {
     method: 'POST',
-    body: JSON.stringify({ playerId, queueId }),
+    body: JSON.stringify({ action: 'cancelMatch', playerId, queueId }),
   });
 }
 
 export function joinOnlineGame(gameId: string, playerId: string): Promise<{ game: OnlineGameRecord; role: Color | 'spectator' }> {
-  return requestJson(`/api/games/join?id=${encodeURIComponent(gameId)}`, {
+  return requestJson(`/api/games?action=join&id=${encodeURIComponent(gameId)}`, {
     method: 'POST',
     body: JSON.stringify({ playerId }),
   });
@@ -97,16 +97,17 @@ export type SubmitMoveOptions = {
 export type OnlineGameAction = 'resign' | 'request_draw' | 'accept_draw';
 
 export function submitOnlineGameAction(gameId: string, playerId: string, action: OnlineGameAction): Promise<{ game: OnlineGameRecord }> {
-  return requestJson('/api/games/action', {
+  return requestJson('/api/games', {
     method: 'POST',
-    body: JSON.stringify({ gameId, playerId, action }),
+    body: JSON.stringify({ action: 'gameAction', gameId, playerId, gameAction: action }),
   });
 }
 
 export function submitOnlineMove(gameId: string, playerId: string, move: Move, options: SubmitMoveOptions = {}): Promise<{ game: OnlineGameRecord }> {
-  return requestJson('/api/games/move', {
+  return requestJson('/api/games', {
     method: 'POST',
     body: JSON.stringify({
+      action: 'move',
       gameId,
       playerId,
       from: indexToCoord(move.from),

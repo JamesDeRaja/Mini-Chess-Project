@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getServerSupabase } from '../games/serverSupabase.js';
+import { getServerSupabase } from '../supabase.js';
 function cleanSeed(value: unknown) { return typeof value === 'string' ? value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 80) : ''; }
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   const seed = cleanSeed(request.query.seed);

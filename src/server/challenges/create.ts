@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getServerSupabase } from '../games/serverSupabase.js';
+import { getServerSupabase } from '../supabase.js';
 
 function cleanText(value: unknown, maxLength: number): string | null {
   if (typeof value !== 'string') return null;

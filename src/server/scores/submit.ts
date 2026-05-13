@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getServerSupabase } from '../games/serverSupabase.js';
-import { calculateGameScore, isPlausibleScore } from '../../src/game/scoring.js';
-import type { Color, GameStatus, MoveDelta, MoveRecord } from '../../src/game/types.js';
+import { getServerSupabase } from '../supabase.js';
+import { calculateGameScore, isPlausibleScore } from '../../game/scoring.js';
+import type { Color, GameStatus, MoveDelta, MoveRecord } from '../../game/types.js';
 
 function cleanText(value: unknown, maxLength: number): string | null {
   if (typeof value !== 'string') return null;

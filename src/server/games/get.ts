@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { assessGameLifecycle } from './lifecycle.js';
-import { getServerSupabase } from './serverSupabase.js';
+import { getServerSupabase } from '../supabase.js';
 
 function getPlayerRole(game: Record<string, unknown>, playerId: string | null): 'white' | 'black' | 'spectator' {
   if (playerId && game.white_player_id === playerId) return 'white';

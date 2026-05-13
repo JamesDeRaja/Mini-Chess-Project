@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getServerSupabase } from '../games/serverSupabase.js';
+import { getServerSupabase } from '../supabase.js';
 function cleanId(value: unknown): string | null { return typeof value === 'string' ? value.trim().replace(/[^a-zA-Z0-9-]/g, '').slice(0, 80) || null : null; }
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== 'GET') { response.status(405).send('Method not allowed'); return; }

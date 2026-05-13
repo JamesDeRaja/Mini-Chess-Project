@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createInitialBoard } from '../../src/game/createInitialBoard.js';
-import { isValidBackRankCode, validateSeedInput } from '../../src/game/seed.js';
-import { safeSupabaseInsert } from '../../src/multiplayer/safeSupabaseInsert.js';
-import { getServerSupabase } from '../games/serverSupabase.js';
+import { createInitialBoard } from '../../game/createInitialBoard.js';
+import { isValidBackRankCode, validateSeedInput } from '../../game/seed.js';
+import { safeSupabaseInsert } from '../../multiplayer/safeSupabaseInsert.js';
+import { getServerSupabase } from '../supabase.js';
 
 type QueueRow = {
   id: string;

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getServerSupabase } from '../games/serverSupabase.js';
+import { getServerSupabase } from '../supabase.js';
 export default async function handler(_request: VercelRequest, response: VercelResponse) {
   try {
     const { data, error } = await getServerSupabase().from('seed_stats').select('*').order('total_shares', { ascending: false }).order('total_completed', { ascending: false }).limit(50);
