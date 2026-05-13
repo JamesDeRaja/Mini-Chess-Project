@@ -6253,14 +6253,16 @@ button:focus-visible,
 }
 .score-hero-tile { min-height: 118px; padding: 12px; }
 .score-value-row {
+  --result-score-size: clamp(3rem, 8vw, 4.8rem);
+  --result-score-help-size: calc(var(--result-score-size) * 0.86);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(8px, 1.6vw, 14px);
+  gap: clamp(3px, 0.8vw, 7px);
   line-height: 0.9;
 }
 .score-value-row > strong {
-  font-size: clamp(3rem, 8vw, 4.8rem);
+  font-size: var(--result-score-size);
   line-height: 0.9;
 }
 .score-hero-tile .score-help-shell {
@@ -6270,13 +6272,14 @@ button:focus-visible,
   margin: 0;
 }
 .score-hero-tile .score-help-button {
-  width: clamp(3rem, 8vw, 4.8rem) !important;
-  height: clamp(3rem, 8vw, 4.8rem) !important;
-  min-width: clamp(3rem, 8vw, 4.8rem) !important;
+  width: var(--result-score-help-size) !important;
+  height: var(--result-score-help-size) !important;
+  min-width: var(--result-score-help-size) !important;
   padding: 0 !important;
   border-radius: 999px;
-  font-size: clamp(1.65rem, 4.2vw, 2.65rem) !important;
+  font-size: calc(var(--result-score-help-size) * 0.55) !important;
   line-height: 1;
+  transform: translateY(-0.02em);
 }
 .score-mini-grid { gap: 4px; padding: 12px; }
 .score-mini-grid p { line-height: 1.08; }
