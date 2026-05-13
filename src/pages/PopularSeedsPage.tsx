@@ -70,7 +70,7 @@ export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLe
               >
                 <h2>{seed.displayName}</h2>
                 <strong>{seed.slug}</strong>
-                <p>{seed.description}</p>
+                <p className="seed-card-description">{seed.description}</p>
                 <p>Setup: <b>{setup}</b></p>
                 <p>Plays: {row?.total_plays ?? 0} · Shares: {row?.total_shares ?? 0}</p>
                 <p>Best Score: {row?.best_score ? `${row.best_score} by ${row.best_score_player_name ?? 'Anonymous Player'}` : '—'}</p>

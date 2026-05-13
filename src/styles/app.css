@@ -7809,10 +7809,19 @@ button:focus-visible,
 .popular-seed-home-card {
   min-height: 150px;
 }
+.seed-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.seed-card-description {
+  min-height: 2.7em;
+}
 .seed-card-action-stack {
   display: grid;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: auto;
+  padding-top: 10px;
 }
 .seed-card-action-row {
   display: grid;
