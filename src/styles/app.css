@@ -6997,40 +6997,40 @@ button:focus-visible,
   }
 }
 
-/* Dynamic home layout: let the hero use the available viewport instead of leaving a loose empty floor. */
+/* Bento home layout: prioritize play CTAs and popular seeds, keep the preview board supportive. */
 @media (min-width: 1181px) {
   .home-page,
   :root[data-theme='light'] .home-page,
   :root[data-theme='dark'] .home-page {
-    padding: clamp(18px, 2.2vw, 34px);
+    padding: clamp(16px, 1.8vw, 30px);
   }
 
   .home-hero-shell {
-    grid-template-columns: minmax(560px, 0.96fr) minmax(430px, 0.82fr);
-    align-items: stretch;
-    gap: clamp(34px, 4.2vw, 74px);
-    width: min(100%, 1580px);
-    min-height: calc(100svh - clamp(36px, 4.4vw, 68px));
-    padding: clamp(10px, 1.5vh, 20px) 0 clamp(18px, 3vh, 42px);
+    grid-template-columns: minmax(640px, 1fr) minmax(340px, 0.5fr);
+    align-items: start;
+    gap: clamp(28px, 3.2vw, 56px);
+    width: min(100%, 1540px);
+    min-height: calc(100svh - clamp(32px, 3.6vw, 60px));
+    padding: clamp(8px, 1.1vh, 16px) 0 clamp(14px, 2vh, 28px);
   }
 
   .home-hero-shell .hero-copy {
     width: 100%;
-    max-width: 720px;
-    min-height: min(100%, 860px);
-    justify-content: space-between;
-    gap: clamp(10px, 1.55vh, 18px);
+    max-width: 760px;
+    min-height: 0;
+    justify-content: start;
+    gap: clamp(8px, 1vh, 13px);
   }
 
-  .brand-row { margin-bottom: clamp(0px, 0.5vh, 8px); }
+  .brand-row { margin-bottom: clamp(0px, 0.35vh, 5px); }
 
   .hero-title {
-    font-size: clamp(72px, min(6.35vw, 10.4vh), 126px);
+    font-size: clamp(48px, min(5.05vw, 8.4vh), 86px);
     line-height: 0.84;
   }
 
   .hero-tagline {
-    font-size: clamp(1rem, min(1.16vw, 1.9vh), 1.22rem);
+    font-size: clamp(0.92rem, min(0.98vw, 1.62vh), 1.08rem);
   }
 
   .today-pill,
@@ -7039,109 +7039,167 @@ button:focus-visible,
   .secondary-home-actions,
   .popular-seeds-home {
     width: 100%;
-    max-width: 720px;
+    max-width: 760px;
   }
 
+  .shuffle-mode-panel { gap: clamp(6px, 0.8vh, 10px); }
+
   .today-pill {
-    padding: clamp(9px, 1.2vh, 13px) clamp(12px, 1.1vw, 16px) clamp(9px, 1.2vh, 13px) clamp(10px, 1vw, 14px);
+    width: min(100%, 410px);
+    padding: clamp(7px, 0.9vh, 10px) clamp(9px, 0.9vw, 12px);
   }
+
+  .today-pill-icon { width: clamp(34px, 3.8vh, 42px); height: clamp(34px, 3.8vh, 42px); }
+  .today-pill-copy strong { font-size: clamp(1rem, min(1.35vw, 2.25vh), 1.4rem); }
+
+  .shuffle-mode-panel .shuffle-mode-toggle { width: min(100%, 330px); }
+  .shuffle-mode-toggle button { padding: clamp(6px, 0.8vh, 8px) 10px; }
 
   .home-action-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(10px, 1.1vw, 15px);
+    gap: clamp(8px, 0.85vw, 12px);
+    margin-top: 0;
   }
 
   .home-action-card {
-    min-height: clamp(142px, 17.2vh, 210px);
-    padding: clamp(13px, 1.4vw, 18px);
-    border-radius: clamp(22px, 2vw, 30px);
+    min-height: clamp(108px, 12vh, 138px);
+    padding: clamp(10px, 1vw, 13px);
+    border-radius: clamp(20px, 1.6vw, 24px);
   }
 
   .action-piece {
-    top: clamp(14px, 2vh, 22px);
-    width: min(78%, clamp(86px, 7vw, 124px));
-    height: clamp(76px, 9.5vh, 108px);
+    top: clamp(12px, 1.55vh, 16px);
+    width: min(66%, clamp(68px, 5.8vw, 88px));
+    height: clamp(54px, 6.9vh, 72px);
   }
 
-  .action-card-copy strong {
-    font-size: clamp(1.02rem, min(1.24vw, 2.25vh), 1.34rem);
-  }
+  .action-piece-rook { width: min(62%, clamp(64px, 5.4vw, 84px)); }
+  .action-piece-knight { width: min(66%, clamp(68px, 5.8vw, 88px)); }
 
+  .action-card-copy { gap: 2px; padding-right: 32px; }
+  .action-card-copy strong { font-size: clamp(0.88rem, min(0.98vw, 1.7vh), 1.05rem); }
+  .action-card-copy small { font-size: clamp(0.63rem, min(0.7vw, 1.2vh), 0.73rem); line-height: 1.08; }
+  .action-arrow { width: 30px; height: 30px; right: 10px; bottom: 10px; }
+
+  .secondary-home-actions { gap: 8px; }
   .secondary-home-actions button {
-    min-height: clamp(40px, 4.8vh, 48px);
+    min-height: clamp(34px, 3.8vh, 40px);
+    padding: 6px 10px;
+    border-radius: 14px;
+    font-size: 0.78rem;
   }
 
   .popular-seeds-home {
-    margin-top: clamp(0px, 0.5vh, 8px);
-    padding: clamp(13px, 1.7vh, 18px);
+    gap: clamp(7px, 0.8vh, 10px);
+    margin-top: clamp(2px, 0.35vh, 6px);
+    padding: clamp(8px, 1vh, 12px);
+    border-radius: 20px;
   }
+
+  .popular-seeds-home .eyebrow { margin-bottom: 1px; font-size: 0.6rem; }
+  .popular-seeds-home h2 { font-size: clamp(0.9rem, min(1vw, 1.6vh), 1.08rem); line-height: 1.08; }
 
   .popular-seed-home-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(8px, 1vh, 11px);
+    gap: clamp(6px, 0.72vh, 9px);
   }
 
   .popular-seed-home-card {
-    min-height: clamp(92px, 10.5vh, 118px);
-    padding: clamp(9px, 1.1vh, 12px);
+    gap: 2px;
+    min-height: clamp(78px, 8.6vh, 98px);
+    padding: clamp(7px, 0.8vh, 9px);
+    border-radius: 15px;
   }
 
+  .popular-seed-home-card strong { font-size: clamp(0.72rem, min(0.8vw, 1.28vh), 0.82rem); line-height: 1.05; }
+  .popular-seed-home-card span,
+  .popular-seed-home-card small { font-size: clamp(0.58rem, min(0.66vw, 1.02vh), 0.68rem); line-height: 1.05; }
+
   .popular-seed-home-card .panel-actions {
-    grid-template-columns: minmax(46px, 0.58fr) minmax(0, 1.42fr);
+    display: grid;
+    grid-template-columns: minmax(44px, 0.55fr) minmax(0, 1.45fr);
+    gap: 5px;
+    margin-top: 3px;
+  }
+
+  .popular-seed-home-card button {
+    min-height: clamp(24px, 2.7vh, 29px);
+    padding: 4px 6px;
+    border-radius: 10px;
+    font-size: clamp(0.58rem, min(0.64vw, 1.02vh), 0.66rem);
   }
 
   .popular-seeds-home > .secondary-action {
-    min-height: clamp(38px, 4.5vh, 46px);
+    min-height: clamp(30px, 3.25vh, 36px);
+    padding: 6px 10px;
+    border-radius: 13px;
+    font-size: 0.74rem;
   }
 
   .today-setup-showcase {
-    align-self: center;
-    width: min(100%, clamp(500px, 33vw, 620px));
-    gap: clamp(12px, 1.8vh, 22px);
-    padding: clamp(20px, 2.4vw, 34px);
+    align-self: start;
+    justify-self: center;
+    width: min(100%, clamp(340px, 25vw, 430px));
+    gap: clamp(8px, 1.05vh, 12px);
+    padding: clamp(12px, 1.45vw, 18px);
+    border-radius: 28px;
+    margin-top: clamp(24px, 4vh, 48px);
   }
 
-  .preview-board-frame {
-    width: min(100%, clamp(330px, min(24vw, 43vh), 430px));
+  .setup-header-pill { padding: 6px 11px; font-size: 0.6rem; }
+
+  .preview-board-frame,
+  .today-setup-showcase .interactive-board-shell {
+    width: min(100%, clamp(250px, min(19vw, 31vh), 320px));
+    max-width: min(100%, clamp(250px, min(19vw, 31vh), 320px));
   }
 
   .setup-summary-panel {
-    padding: clamp(14px, 1.6vw, 18px);
+    width: min(100%, 320px);
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 20px;
   }
+
+  .setup-summary-copy p { font-size: 0.78rem; line-height: 1.22; }
+  .setup-seed-block { min-width: 74px; padding-left: 12px; }
+  .setup-seed-block strong { font-size: clamp(1rem, 1.5vw, 1.34rem); }
 }
 
 @media (min-width: 1181px) and (min-height: 900px) {
-  .home-hero-shell .hero-copy {
-    min-height: calc(100svh - clamp(120px, 14vh, 176px));
-  }
-
-  .today-setup-showcase {
-    width: min(100%, clamp(540px, 35vw, 660px));
-  }
-
-  .preview-board-frame {
-    width: min(100%, clamp(380px, min(25.5vw, 46vh), 470px));
+  .home-hero-shell { align-items: center; }
+  .home-hero-shell .hero-copy { gap: clamp(9px, 1.12vh, 15px); }
+  .today-setup-showcase { width: min(100%, clamp(360px, 26vw, 450px)); }
+  .preview-board-frame,
+  .today-setup-showcase .interactive-board-shell {
+    width: min(100%, clamp(270px, min(19.5vw, 32vh), 330px));
+    max-width: min(100%, clamp(270px, min(19.5vw, 32vh), 330px));
   }
 }
 
 @media (min-width: 1181px) and (max-height: 840px) {
-  .home-hero-shell .hero-copy { justify-content: center; }
-  .hero-title { font-size: clamp(62px, min(5.3vw, 10vh), 98px); }
-  .brand-icon-tile { width: 34px; height: 34px; }
-  .home-action-card { min-height: 128px; }
-  .action-piece { opacity: 0.72; }
+  .home-hero-shell { align-items: start; }
+  .hero-title { font-size: clamp(44px, min(4.4vw, 8vh), 70px); }
+  .brand-icon-tile { width: 32px; height: 32px; }
+  .home-action-card { min-height: 102px; }
+  .action-piece { opacity: 0.68; }
   .popular-seed-home-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .popular-seed-home-card { min-height: 90px; }
+  .popular-seed-home-card { min-height: 86px; }
   .popular-seed-home-card .panel-actions { grid-template-columns: 1fr; }
-  .popular-seed-home-card .panel-actions button { min-height: 30px; }
-  .preview-board-frame { width: min(100%, clamp(290px, 21vw, 360px)); }
+  .popular-seed-home-card .panel-actions button { min-height: 24px; }
+  .today-setup-showcase { width: min(100%, 350px); margin-top: 12px; }
+  .preview-board-frame,
+  .today-setup-showcase .interactive-board-shell {
+    width: min(100%, 250px);
+    max-width: min(100%, 250px);
+  }
 }
 
 @media (min-width: 769px) and (max-width: 1180px) {
   .home-hero-shell {
-    gap: clamp(20px, 3.2vw, 34px);
-    padding-top: clamp(52px, 7vw, 74px);
-    padding-bottom: 28px;
+    gap: clamp(18px, 3vw, 30px);
+    padding-top: clamp(46px, 6vw, 68px);
+    padding-bottom: 24px;
   }
 
   .home-hero-shell .hero-copy {
@@ -7159,6 +7217,55 @@ button:focus-visible,
     max-width: none;
   }
 
-  .home-action-card { min-height: clamp(150px, 18vw, 190px); }
-  .today-setup-showcase { width: min(100%, 580px); }
+  .home-action-card { min-height: clamp(138px, 16vw, 172px); }
+  .today-setup-showcase { width: min(100%, 500px); }
+  .today-setup-showcase .interactive-board-shell { max-width: min(100%, 320px); }
+}
+
+/* Final bento balance: let the left interaction stack carry more width, while the board stays compact. */
+@media (min-width: 1181px) {
+  .home-hero-shell {
+    grid-template-columns: minmax(780px, 1fr) minmax(340px, 430px);
+    width: min(100%, 1500px);
+    gap: clamp(24px, 2.8vw, 48px);
+  }
+
+  .home-hero-shell .hero-copy,
+  .today-pill,
+  .shuffle-mode-panel,
+  .home-action-grid,
+  .secondary-home-actions,
+  .popular-seeds-home {
+    max-width: 860px;
+  }
+
+  .brand-row { max-width: none; white-space: nowrap; }
+  .shuffle-mode-panel .today-pill { max-width: 430px; }
+  .shuffle-mode-panel .shuffle-mode-toggle { max-width: 350px; }
+
+  .home-action-card { min-height: clamp(108px, 11.4vh, 132px); }
+
+  .popular-seeds-home {
+    padding: clamp(9px, 1vh, 12px) clamp(10px, 1vw, 14px);
+  }
+
+  .popular-seed-home-card {
+    grid-template-rows: auto auto auto 1fr;
+  }
+
+  .popular-seed-home-card .panel-actions {
+    align-self: end;
+  }
+
+  .today-setup-showcase {
+    justify-self: start;
+    width: min(100%, clamp(340px, 22vw, 410px));
+  }
+}
+
+@media (min-width: 1181px) {
+  .brand-row {
+    font-size: clamp(0.68rem, 0.78vw, 0.8rem);
+    letter-spacing: 0.16em;
+  }
 }
