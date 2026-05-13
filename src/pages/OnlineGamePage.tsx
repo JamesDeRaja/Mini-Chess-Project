@@ -29,6 +29,7 @@ import { getPlayerId } from '../multiplayer/playerSession.js';
 import { subscribeToGame, unsubscribeFromGame } from '../multiplayer/realtime.js';
 import type { MatchMode } from './BotGamePage.js';
 import { trackEvent } from '../app/analytics.js';
+import { buildSeedShareMessage, getRandomShareTaunt } from '../game/shareTaunts.js';
 
 type OnlineGamePageProps = {
   gameId: string;
@@ -184,7 +185,6 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
             : 'You lost';
   const isDailySeed = seedLabel.startsWith('daily-') || seedSource?.startsWith('daily');
   const isRandomSeed = seedLabel.startsWith('random-') || seedSource?.startsWith('random');
-  const shareSetupLine = isDailySeed ? 'I beat today’s Pocket Shuffle Chess setup.' : isRandomSeed ? 'I survived this random shuffle setup.' : 'Play this Pocket Shuffle Chess seed with me.';
   const onlineResultSummary = status === 'expired'
     ? 'Challenge links expire after 60 minutes. Create a new challenge to keep playing.'
     : status === 'timeout'
@@ -526,21 +526,18 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   async function handleShareInvite() {
     if (!inviteLink) return;
     trackEvent('share_button_click', { type: 'invite', seed: seedLabel });
+    const shareText = buildSeedShareMessage({
+      style: isDailySeed ? 'dailySeed' : isRandomSeed ? 'randomSeed' : 'popularSeed',
+      taunt: getRandomShareTaunt(isDailySeed ? 'daily' : 'friendChallenge'),
+      seedSlug: seedLabel,
+      backRankCode: backRankCode ?? 'Setup pending',
+      challengeUrl: inviteLink,
+    });
     const shareData = {
       title: 'Play Pocket Shuffle Chess With Friends',
-      text: `${shareSetupLine}
-
-Seed: ${seedLabel}
-Back rank: ${backRankCode ?? 'Setup pending'}
-
-Fast chess without memorized openings.
-Can you beat it?`,
+      text: shareText,
       url: inviteLink,
     };
-
-    const shareText = `${shareData.text}
-
-${inviteLink}`;
 
     try {
       await navigator.clipboard.writeText(shareText);
