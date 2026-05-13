@@ -402,13 +402,6 @@ export function HomePage({
     window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0 }));
   }
 
-  function openLearnChess() {
-    trackEvent('homepage_cta_click', { cta: 'learn_chess' });
-    window.history.pushState(null, '', '/learn');
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0 }));
-  }
-
   async function challengeHomeSeed(seed: string, backRankCode: string) {
     if (seed.startsWith('daily-')) await onDaily(seed.replace('daily-', ''));
     else await onSeeded(seed, backRankCode);
@@ -670,11 +663,6 @@ export function HomePage({
               <span className="action-badge seed-badge"><Shuffle size={14} aria-hidden="true" /> Seed</span>
               <span className="action-glyph" aria-hidden="true"><Shuffle size={52} /></span>
               <span className="action-card-copy"><strong>Custom Seed</strong><small>Your own setup</small></span>
-              <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
-            </button>
-            <button type="button" className="home-action-card home-action-learn" onClick={openLearnChess}>
-              <span className="rules-icon-wrap" aria-hidden="true"><BookOpen size={24} /></span>
-              <span className="action-card-copy"><strong>Learn Chess</strong><small>Piece moves with safe highlights</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
             <button type="button" className="home-action-card home-action-rules" onClick={() => { trackEvent('homepage_cta_click', { cta: 'how_it_works' }); setModal('rules'); }}>

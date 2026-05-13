@@ -8344,10 +8344,6 @@ body.home-modal-open .home-page {
   margin: 0 auto;
 }
 
-.home-action-learn {
-  background: linear-gradient(135deg, rgba(255, 246, 215, 0.96), rgba(237, 242, 233, 0.96));
-}
-
 @media (max-width: 900px) {
   .learn-hero-card { grid-template-columns: 1fr; }
   .learn-board-panel { order: -1; }
