@@ -23,6 +23,7 @@ export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onHo
 
   return (
     <main className="challenge-page popular-seeds-page">
+      <button type="button" className="seed-detail-home-button" aria-label="Go home" onClick={onHome}><Home size={22} /></button>
       <section className="challenge-card wide">
         <p className="eyebrow">Popular Seeds</p>
         <h1>Play Popular Seeds</h1>

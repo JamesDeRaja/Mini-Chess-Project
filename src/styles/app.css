@@ -7793,3 +7793,10 @@ button:focus-visible,
   outline: 3px solid rgba(126, 166, 133, 0.72);
   outline-offset: 3px;
 }
+
+/* Lower the home showcase board so it overlaps the popular seeds area instead of floating too high. */
+@media (min-width: 1181px) {
+  .home-page .home-hero-shell > .today-setup-showcase:not(.seed-detail-showcase) {
+    transform: translateY(clamp(52px, 8vh, 112px));
+  }
+}
