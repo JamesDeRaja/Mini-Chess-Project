@@ -6,6 +6,9 @@ import { BotGamePage } from '../pages/BotGamePage.js';
 import { ChallengeLandingPage } from '../pages/ChallengeLandingPage.js';
 import { PopularSeedsPage } from '../pages/PopularSeedsPage.js';
 import { SeedLeaderboardPage } from '../pages/SeedLeaderboardPage.js';
+import { SeedDetailPage } from '../pages/SeedDetailPage.js';
+import { NameGateModal } from '../components/NameGateModal.js';
+import { hasCustomDisplayName } from '../game/localPlayer.js';
 import type { MatchMode } from '../pages/BotGamePage.js';
 import { HomePage } from '../pages/HomePage.js';
 import { NotFoundPage } from '../pages/NotFoundPage.js';
@@ -64,9 +67,18 @@ function routeFromLocation(): Route {
   return { name: 'not-found' };
 }
 
+function resetPageScroll() {
+  window.scrollTo({ top: 0, left: 0 });
+  document.querySelectorAll<HTMLElement>('.challenge-page, .home-page, .game-page').forEach((element) => {
+    element.scrollTop = 0;
+    element.scrollLeft = 0;
+  });
+}
+
 function navigate(path: string) {
   window.history.pushState(null, '', path);
   window.dispatchEvent(new PopStateEvent('popstate'));
+  window.requestAnimationFrame(resetPageScroll);
 }
 
 function getStoredTheme(): Theme | null {
@@ -82,6 +94,7 @@ export function App() {
   const [route, setRoute] = useState<Route>(() => routeFromLocation());
   const [selectedTheme] = useState<Theme | null>(() => getStoredTheme());
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [nameGateOpen, setNameGateOpen] = useState(() => !hasCustomDisplayName());
   const theme = selectedTheme ?? getDefaultTheme();
   const seoConfig = useMemo(() => {
     if (route.name === 'online') return getSeoConfig({ routeName: 'game', path: window.location.pathname, gameId: route.gameId });
@@ -166,37 +179,40 @@ export function App() {
   }
 
   if (route.name === 'daily') {
-    return <BotGamePage key={`daily-${route.dateKey ?? 'today'}`} matchMode="single" dateKey={route.dateKey} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />;
+    return <><BotGamePage key={`daily-${route.dateKey ?? 'today'}`} matchMode="single" dateKey={route.dateKey} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
   }
   if (route.name === 'challenge') {
-    return <ChallengeLandingPage challengeId={route.challengeId} onPlayChallenge={(context: ActiveChallengeContext) => navigate(`/bot?seed=${encodeURIComponent(context.seedSlug)}&setup=${encodeURIComponent(context.backRankCode)}&challenge=${encodeURIComponent(JSON.stringify(context))}`)} onSeedLeaderboard={(seed) => navigate(`/seed/${encodeURIComponent(seed)}/leaderboard`)} onHome={() => navigate('/')} onDaily={() => navigate('/daily')} />;
+    return <><ChallengeLandingPage challengeId={route.challengeId} onPlayChallenge={(context: ActiveChallengeContext) => navigate(`/bot?seed=${encodeURIComponent(context.seedSlug)}&setup=${encodeURIComponent(context.backRankCode)}&challenge=${encodeURIComponent(JSON.stringify(context))}`)} onSeedLeaderboard={(seed) => navigate(`/seed/${encodeURIComponent(seed)}/leaderboard`)} onHome={() => navigate('/')} onDaily={() => navigate('/daily')} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
   }
   if (route.name === 'popular-seeds') {
-    return <PopularSeedsPage onPlaySeed={startSeededBot} onLeaderboard={(seed) => navigate(`/seed/${encodeURIComponent(seed)}/leaderboard`)} onHome={() => navigate('/')} />;
+    return <><PopularSeedsPage onPlaySeed={startSeededBot} onChallengeSeed={handleSeeded} onOpenSeed={(seed) => navigate(`/seed/${encodeURIComponent(seed)}`)} onHome={() => navigate('/')} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
   }
   if (route.name === 'seed-leaderboard') {
-    return <SeedLeaderboardPage seedSlug={route.seed} onPlaySeed={startSeededBot} onHome={() => navigate('/')} />;
+    return <><SeedLeaderboardPage seedSlug={route.seed} onPlaySeed={startSeededBot} onHome={() => navigate('/')} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
   }
   if (route.name === 'seed') {
-    return <BotGamePage key={`seed-${route.seed}`} matchMode="single" customSeed={route.seed} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />;
+    return <><SeedDetailPage seedSlug={route.seed} onPlaySeed={startSeededBot} onChallengeSeed={handleSeeded} onLeaderboard={(seed) => navigate(`/seed/${encodeURIComponent(seed)}/leaderboard`)} onOpenSeed={(seed) => navigate(`/seed/${encodeURIComponent(seed)}`)} onHome={() => navigate('/')} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
   }
   if (route.name === 'bot') {
     const challengeParam = new URLSearchParams(window.location.search).get('challenge');
     let activeChallengeContext: ActiveChallengeContext | undefined;
     try { activeChallengeContext = challengeParam ? JSON.parse(challengeParam) as ActiveChallengeContext : undefined; } catch { activeChallengeContext = undefined; }
-    return <BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}-${route.backRankCode ?? ''}-${route.side ?? ''}-${activeChallengeContext?.challengeId ?? ''}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} customBackRankCode={route.backRankCode} playerSide={route.side} activeChallengeContext={activeChallengeContext} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />;
+    return <><BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}-${route.backRankCode ?? ''}-${route.side ?? ''}-${activeChallengeContext?.challengeId ?? ''}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} customBackRankCode={route.backRankCode} playerSide={route.side} activeChallengeContext={activeChallengeContext} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
   }
   if (route.name === 'not-found') {
     return <NotFoundPage onHome={() => navigate('/')} onBot={() => navigate('/bot')} onDaily={() => navigate('/daily')} />;
   }
   if (route.name === 'online') {
     return (
+      <>
       <OnlineGamePage
         gameId={route.gameId}
         matchMode={route.matchMode}
         onHome={() => navigate('/')}
         onNewOnlineGame={() => navigate('/game/new?mode=single&create=invite')}
       />
+      {nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}
+      </>
     );
   }
 
@@ -213,6 +229,7 @@ export function App() {
         onCancelFindMatch={handleCancelFindMatch}
       />
       {inviteError && <p className="floating-error">{inviteError}</p>}
+      {nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}
     </>
   );
 }

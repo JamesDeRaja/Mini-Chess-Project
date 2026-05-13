@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, RefreshCw, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
+import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Flame, Link as LinkIcon, RefreshCw, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput, createSeedFromInput } from '../game/seed.js';
 import { createRandomGameSeed, getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
@@ -8,6 +8,7 @@ import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { trackEvent } from '../app/analytics.js';
 import { getLocalBestScoreForSeedMode, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
+import { getPlayStreak } from '../game/playStreak.js';
 import { getShareUrl } from '../app/seo.js';
 import { fetchLeaderboard, fetchScoreboard, type LeaderboardEntry, type LeaderboardScope } from '../multiplayer/scoreApi.js';
 import { CURATED_SEEDS } from '../game/curatedSeeds.js';
@@ -185,6 +186,7 @@ export function HomePage({
   const [leaderboardFeed, setLeaderboardFeed] = useState<LeaderboardFeedItem[]>([]);
   const [leaderboardFeedIndex, setLeaderboardFeedIndex] = useState(0);
   const [leaderboardChipExpanded, setLeaderboardChipExpanded] = useState(false);
+  const [playStreak, setPlayStreak] = useState(() => getPlayStreak());
   const previousLeaderboardFeedSignatureRef = useRef('');
   const [leaderboardDialogOpen, setLeaderboardDialogOpen] = useState(false);
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('daily');
@@ -211,11 +213,34 @@ export function HomePage({
   const visibleLeaderboardFeed = leaderboardFeed.length > 0
     ? [0, 1, 2].map((offset) => leaderboardFeed[(leaderboardFeedIndex + offset) % leaderboardFeed.length]).filter(Boolean) as LeaderboardFeedItem[]
     : [];
+  const decorativePieces = useMemo(() => {
+    const pieces = ['pawn', 'knight', 'bishop', 'rook', 'queen'] as const;
+    const seedText = activeSeedSource.seed;
+    let hash = 0;
+    for (let index = 0; index < seedText.length; index += 1) hash = (hash * 31 + seedText.charCodeAt(index)) >>> 0;
+    const frontPiece = pieces[hash % pieces.length];
+    const backPiece = pieces[(hash >>> 3) % pieces.length];
+    return {
+      front: `/pieces/white-${frontPiece}.png`,
+      back: `/pieces/black-${backPiece}.png`,
+    };
+  }, [activeSeedSource.seed]);
 
   useEffect(() => {
     const dateRefreshId = window.setInterval(() => setTodayKey(getUtcDateKey()), 60000);
     return () => window.clearInterval(dateRefreshId);
   }, []);
+
+  useEffect(() => {
+    const refreshStreak = () => setPlayStreak(getPlayStreak());
+    refreshStreak();
+    window.addEventListener('play-streak-updated', refreshStreak);
+    window.addEventListener('storage', refreshStreak);
+    return () => {
+      window.removeEventListener('play-streak-updated', refreshStreak);
+      window.removeEventListener('storage', refreshStreak);
+    };
+  }, [todayKey]);
 
   useEffect(() => {
     function refreshHomeProgress() {
@@ -404,6 +429,17 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
     else await onSeeded(activeSeedSource.seed, activeSeedSource.backRankCode);
   }
 
+  function openSeedDetail(seed: string) {
+    window.history.pushState(null, '', `/seed/${encodeURIComponent(seed)}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0 }));
+  }
+
+  async function challengeHomeSeed(seed: string, backRankCode: string) {
+    if (seed.startsWith('daily-')) await onDaily(seed.replace('daily-', ''));
+    else await onSeeded(seed, backRankCode);
+  }
+
   async function requestMatchFor(seed: string, backRankCode: string, mode: ShuffleMode = modeFromSeed(seed)) {
     trackEvent('homepage_cta_click', { cta: 'find_match', seed, mode });
     setMatchTarget({ seed, backRankCode, mode });
@@ -543,7 +579,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
       <section className="home-hero-shell" aria-labelledby="home-title">
         <div className="hero-copy">
           <div className="brand-row">
-            <span className="brand-icon-tile" aria-hidden="true"><img src="/Icon.png" alt="" draggable={false} /></span>
+            <span className="brand-icon-tile streak-brand-tile" aria-label={`${playStreak.count} day play streak`}><Flame size={42} aria-hidden="true" /><b>{playStreak.count}</b></span>
             <form className="player-greeting" onSubmit={(event) => { event.preventDefault(); commitDisplayNameDraft(); }}>
               <span>Hello</span>
               <input
@@ -685,13 +721,25 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               const created = createSeedFromInput(seed.slug);
               const setup = created.ok ? created.backRankCode : activeBackRankCode;
               return (
-                <article className="popular-seed-home-card" key={seed.slug}>
+                <article
+                  className="popular-seed-home-card seed-card-clickable"
+                  key={seed.slug}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openSeedDetail(seed.slug)}
+                  onKeyDown={(event) => {
+                    if ((event.key === 'Enter' || event.key === ' ') && event.currentTarget === event.target) {
+                      event.preventDefault();
+                      openSeedDetail(seed.slug);
+                    }
+                  }}
+                >
                   <strong>{seed.displayName}</strong>
                   <span>{seed.slug}</span>
                   <small>Setup {setup}</small>
-                  <div className="panel-actions">
-                    <button type="button" onClick={() => onStartSeededBot(seed.slug, setup)}>Play</button>
-                    <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seed.slug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Leaderboard</button>
+                  <div className="panel-actions seed-list-actions">
+                    <button type="button" onClick={(event) => { event.stopPropagation(); onStartSeededBot(seed.slug, setup); }}>Play AI</button>
+                    <button type="button" className="secondary-action" onClick={(event) => { event.stopPropagation(); void challengeHomeSeed(seed.slug, setup); }}><Users size={15} /> Challenge Friend</button>
                   </div>
                 </article>
               );
@@ -701,8 +749,8 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
         </section>
 
         <div className="decorative-home-pieces" aria-hidden="true">
-          <img className="decorative-black-pawn" src="/pieces/black-pawn.png" alt="" draggable={false} />
-          <img className="decorative-white-bishop" src="/pieces/white-bishop.png" alt="" draggable={false} />
+          <img className="decorative-black-pawn" src={decorativePieces.back} alt="" draggable={false} />
+          <img className="decorative-white-bishop" src={decorativePieces.front} alt="" draggable={false} />
         </div>
       </section>
 
