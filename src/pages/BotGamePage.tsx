@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Copy, Flag, Handshake, RotateCcw, Share2, Shuffle, Trophy } from 'lucide-react';
+import { CalendarDays, Copy, Flag, Handshake, Home, RotateCcw, Share2, Shuffle, Trophy } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
@@ -784,6 +784,11 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           title={matchWinner ? 'Match complete' : roundResult.drawReason === 'stalemate' ? 'Stalemate' : roundResult.status === 'draw' ? 'Draw agreed' : roundResult.didPlayerWin ? 'You won' : 'You lost'}
           summary={roundResult.message}
           progressionMessage={roundResult.progressionMessage}
+          homeAction={(
+            <button type="button" className="result-home-button" aria-label="Go home" onClick={onHome}>
+              <Home size={24} aria-hidden="true" />
+            </button>
+          )}
           details={(
             <>
               <div className="score-result-bento" aria-label="Score breakdown">
@@ -833,8 +838,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           actions={(
             <>
               <button type="button" onClick={openShareModal}><Share2 size={17} /> Challenge a Friend</button>
-              <button type="button" className="secondary-action" onClick={() => { void copyChallengeLink(); }}><Copy size={17} /> Copy Link</button>
-              <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seedSlug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}><Trophy size={17} /> View Seed Leaderboard</button>
+              <button type="button" className="secondary-action" onClick={() => { void copyChallengeLink(); }}><Copy size={22} /> Copy Link</button>
+              <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seedSlug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}><Trophy size={24} /> View Seed Leaderboard</button>
               <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Save Score'}</button>
               {!matchWinner && <button type="button" onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay Seed' : 'Replay Seed'}</button>}
               <button type="button" onClick={() => { window.history.pushState(null, '', `/bot?seed=${encodeURIComponent(seedSlug)}&setup=${encodeURIComponent(dailySeedInfo.backRankCode)}&side=${playerColor === 'white' ? 'black' : 'white'}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Other Side</button>

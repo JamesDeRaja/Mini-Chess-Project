@@ -6321,3 +6321,116 @@ button:focus-visible,
     padding: 22px;
   }
 }
+
+/* Result panel clarity fixes: home shortcut, clearer action icons, and compact score drawer. */
+.result-home-button {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 5;
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  padding: 0;
+  border: 1px solid rgba(158, 208, 192, 0.62);
+  border-radius: 999px;
+  color: #243027;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 9px 0 rgba(45, 43, 40, 0.08), 0 10px 28px rgba(80, 122, 108, 0.12);
+}
+.winner-card .panel-actions svg {
+  width: 22px;
+  height: 22px;
+  color: #233029;
+  stroke-width: 2.8;
+  filter: none;
+}
+.winner-card .panel-actions button {
+  color: #233029;
+}
+.score-hero-tile .score-help-drawer {
+  z-index: 4 !important;
+  bottom: auto !important;
+  width: min(360px, calc(100vw - 570px));
+  min-width: 300px;
+  min-height: 0 !important;
+  max-height: min(82svh, 620px) !important;
+  padding: 22px 22px 20px 32px;
+  overflow: auto;
+}
+.score-hero-tile .score-help-drawer .eyebrow {
+  margin: 0 0 8px;
+  color: #63756c;
+  font-size: 0.72rem;
+  line-height: 1.1;
+  text-align: left;
+}
+.score-hero-tile .score-help-drawer h3 {
+  margin: 0 42px 14px 0;
+  color: #25272d;
+  font-size: clamp(1.15rem, 1.5vw, 1.42rem);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-align: left;
+}
+.score-hero-tile .score-help-drawer .score-help-lines {
+  gap: 0;
+  margin: 10px 0 14px;
+}
+.score-hero-tile .score-help-drawer .score-help-lines p {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+  line-height: 1.18;
+}
+.score-hero-tile .score-help-drawer .score-help-lines span {
+  color: #63756c;
+  font-size: 0.86rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.score-hero-tile .score-help-drawer .score-help-lines strong {
+  color: #25272d;
+  font-size: clamp(1.25rem, 2.2vw, 1.85rem) !important;
+  font-weight: 1000;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+.score-hero-tile .score-help-drawer h4 {
+  margin: 14px 0 6px;
+  color: #25272d;
+  font-size: 0.96rem;
+  line-height: 1.18;
+  text-align: left;
+}
+.score-hero-tile .score-help-drawer p,
+.score-hero-tile .score-help-drawer li {
+  color: #63756c;
+  font-size: 0.84rem;
+  line-height: 1.32;
+  text-align: left;
+}
+.score-hero-tile .score-help-drawer ul {
+  padding-left: 17px;
+}
+.score-hero-tile .score-help-drawer .score-help-close {
+  top: 12px;
+  right: 12px;
+  color: #25272d;
+  background: #f6d678;
+}
+@media (max-width: 760px) {
+  .result-home-button {
+    top: 12px;
+    left: 12px;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+  }
+  .score-hero-tile .score-help-drawer {
+    padding: 20px;
+  }
+}
