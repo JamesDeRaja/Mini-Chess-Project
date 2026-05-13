@@ -872,12 +872,15 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               <button type="button" onClick={goToNextReviewPly} disabled={moveHistory.length === 0}>›</button>
               <button type="button" onClick={goToEndReview} disabled={moveHistory.length === 0}>⏭</button>
             </div>
-            <div className="panel-actions stacked-actions">
+            <div className={`panel-actions stacked-actions ${roundResult ? 'history-complete-actions' : ''}`}>
               {roundResult ? (
-                <button type="button" className="secondary-action" onClick={toggleHistoryAutoplay} disabled={!canAutoplayHistory}>
-                  {isHistoryAutoplaying ? <Pause size={18} /> : <Play size={18} />}
-                  {isHistoryAutoplaying ? 'Pause History' : 'Play History'}
-                </button>
+                <>
+                  <button type="button" className="secondary-action" onClick={toggleHistoryAutoplay} disabled={!canAutoplayHistory}>
+                    {isHistoryAutoplaying ? <Pause size={18} /> : <Play size={18} />}
+                    {isHistoryAutoplaying ? 'Pause History' : 'Play History'}
+                  </button>
+                  <button type="button" className="secondary-action history-home-action" onClick={onHome} aria-label="Go home"><Home size={18} /><span>Home</span></button>
+                </>
               ) : (
                 <>
                   <button type="button" className="secondary-action" onClick={() => setPendingAction('draw')} disabled={!canUseBotGameActions}><Handshake size={18} /> Request Draw</button>

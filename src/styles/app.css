@@ -8490,3 +8490,36 @@ body.home-modal-open .home-page {
   .learn-piece-tabs button { flex: 1 1 130px; }
   .learn-lesson-title { align-items: flex-start; }
 }
+
+/* Completed history actions: add Home between replay and rematch without crowding mobile. */
+.history-complete-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+}
+.history-complete-actions .gold-action {
+  grid-column: auto;
+}
+.history-complete-actions .history-home-action {
+  min-width: 76px;
+  padding-inline: 14px;
+}
+@media (max-width: 760px) {
+  .panel-actions.history-complete-actions,
+  .stacked-actions.history-complete-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr);
+    gap: 9px;
+  }
+  .history-complete-actions button {
+    width: 100%;
+    min-width: 0;
+  }
+  .history-complete-actions .history-home-action {
+    min-width: 0;
+    padding-inline: 0;
+  }
+  .history-complete-actions .history-home-action span {
+    display: none;
+  }
+}
