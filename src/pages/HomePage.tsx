@@ -186,7 +186,7 @@ export function HomePage({
   const [leaderboardFeed, setLeaderboardFeed] = useState<LeaderboardFeedItem[]>([]);
   const [leaderboardFeedIndex, setLeaderboardFeedIndex] = useState(0);
   const [leaderboardChipExpanded, setLeaderboardChipExpanded] = useState(false);
-  const [playStreak, setPlayStreak] = useState(() => getPlayStreak(todayKey));
+  const [playStreak, setPlayStreak] = useState(() => getPlayStreak());
   const previousLeaderboardFeedSignatureRef = useRef('');
   const [leaderboardDialogOpen, setLeaderboardDialogOpen] = useState(false);
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('daily');
@@ -220,7 +220,7 @@ export function HomePage({
   }, []);
 
   useEffect(() => {
-    const refreshStreak = () => setPlayStreak(getPlayStreak(todayKey));
+    const refreshStreak = () => setPlayStreak(getPlayStreak());
     refreshStreak();
     window.addEventListener('play-streak-updated', refreshStreak);
     window.addEventListener('storage', refreshStreak);

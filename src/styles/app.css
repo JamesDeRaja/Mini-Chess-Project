@@ -7643,3 +7643,23 @@ button:focus-visible,
   .seed-detail-home-button { position: sticky; top: 12px; }
   .seed-preview-board { order: -1; }
 }
+
+/* Keep result screenshots faithful to the result card without moving controls after copy. */
+.result-screenshot-status {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  width: max-content;
+  max-width: min(280px, 80vw);
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #647067;
+  background: rgba(255, 251, 239, 0.9);
+  font-size: 0.78rem;
+  font-weight: 850;
+  line-height: 1.2;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+.result-screenshot-status:not(:empty) { opacity: 1; }
