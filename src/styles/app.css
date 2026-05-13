@@ -7857,3 +7857,24 @@ button:focus-visible,
   .seed-card,
   .popular-seed-home-card { min-height: 0; }
 }
+
+/* Main menu scrolling: mobile and tablet screens can exceed the viewport height, so
+   make the home menu itself the scroll container instead of clipping overflow. */
+@media (max-width: 1180px) {
+  .home-page,
+  :root[data-theme='light'] .home-page,
+  :root[data-theme='dark'] .home-page {
+    height: 100vh;
+    height: 100svh;
+    min-height: 100vh;
+    min-height: 100svh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+body.home-modal-open .home-page {
+  overflow: hidden;
+}
