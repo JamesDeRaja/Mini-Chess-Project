@@ -6524,3 +6524,55 @@ button:focus-visible,
     font-size: clamp(1.35rem, 8vw, 2.4rem) !important;
   }
 }
+
+/* Score help placement v3: larger help button pinned to the score card corner. */
+.score-hero-tile {
+  position: relative;
+}
+.score-label-row .score-help-shell {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+}
+.score-label-row .score-help-button {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  font-size: 1.35rem !important;
+  transform: none;
+  box-shadow: 0 5px 0 rgba(180, 145, 44, 0.24), inset 0 -2px rgba(45, 43, 40, 0.08);
+}
+.score-label-row .score-help-drawer {
+  position: fixed !important;
+  top: clamp(18px, 4svh, 42px) !important;
+  right: clamp(12px, 3vw, 34px) !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: 100 !important;
+  width: min(420px, calc(100vw - 24px)) !important;
+  min-width: 0 !important;
+  max-height: calc(100svh - 36px) !important;
+  overflow: auto;
+  border-radius: 28px;
+  padding: 24px;
+  box-shadow: 0 24px 70px rgba(45, 43, 40, 0.28);
+}
+@media (max-width: 760px) {
+  .score-label-row .score-help-shell {
+    top: 10px;
+    right: 10px;
+  }
+  .score-label-row .score-help-button {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    font-size: 1.18rem !important;
+  }
+  .score-label-row .score-help-drawer {
+    inset: 12px !important;
+    width: auto !important;
+    max-height: calc(100svh - 24px) !important;
+    padding: 20px !important;
+  }
+}
