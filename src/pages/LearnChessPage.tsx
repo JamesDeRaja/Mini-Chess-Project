@@ -139,7 +139,7 @@ export function LearnChessPage({ initialPiece = 'king', onHome, onPlayAi, onPiec
     <main className="learn-page">
       <button type="button" className="seed-detail-home-button" aria-label="Go home" onClick={onHome}><Home size={22} /></button>
       <section className="learn-hero-card">
-        <div className="learn-copy">
+        <div className="learn-copy learn-body-copy">
           <p className="eyebrow">Learn Chess</p>
           <h1>Learn one piece at a time. Then go bully the AI politely.</h1>
           <p>Tap a piece below to see every move and capture it can try on the 5x6 Pocket Shuffle board. Yellow dots are moves. Red rings are captures. Do not be scared to experiment.</p>

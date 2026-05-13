@@ -8405,7 +8405,6 @@ body.home-modal-open .home-page {
 }
 @media (max-width: 900px) {
   .learn-hero-card { grid-template-columns: 1fr; }
-  .learn-board-panel { order: -1; }
   .learn-rule-grid { grid-template-columns: 1fr; }
 }
 
