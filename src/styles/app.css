@@ -6278,7 +6278,7 @@ button:focus-visible,
 .share-card-comparison, .share-card-cta { margin: 0; color: #2d2b28; font-weight: 950; }
 .share-preview-label { display: grid; gap: 8px; text-align: left; font-weight: 900; color: #647067; }
 .share-preview-label textarea { width: 100%; min-height: 170px; resize: vertical; border: 1px solid rgba(222,217,203,.9); border-radius: 18px; padding: 12px; background: rgba(255,255,255,.72); font: inherit; color: #2d2b28; }
-.seed-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 22px 0; text-align: left; }
+.seed-card-grid { display: grid; overflow-y:auto; height:100vh; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 22px 0; text-align: left; }
 .seed-card h2 { margin: 0; }
 .seed-card p { margin: 6px 0; line-height: 1.35; }
 .seed-leaderboard-table .leaderboard-row { grid-template-columns: 44px minmax(110px, 1fr) 70px 64px 90px 64px 90px; }
