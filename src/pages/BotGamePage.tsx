@@ -784,13 +784,12 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           title={matchWinner ? 'Match complete' : roundResult.drawReason === 'stalemate' ? 'Stalemate' : roundResult.status === 'draw' ? 'Draw agreed' : roundResult.didPlayerWin ? 'You won' : 'You lost'}
           summary={roundResult.message}
           progressionMessage={roundResult.progressionMessage}
-          titleAccessory={<ScoreExplanation breakdown={scoreBreakdown} resultLabel={roundResult.drawReason === 'stalemate' ? 'stalemate' : roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'} />}
           details={(
             <>
               <div className="score-result-bento" aria-label="Score breakdown">
                 <div className="score-hero-tile">
                   <span>Score</span>
-                  <strong>{scoreBreakdown.totalScore}</strong>
+                  <div className="score-value-row"><strong>{scoreBreakdown.totalScore}</strong><ScoreExplanation breakdown={scoreBreakdown} resultLabel={roundResult.drawReason === 'stalemate' ? 'stalemate' : roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'} /></div>
                   {localBestScore && <small>Local best {localBestScore.score}</small>}
                 </div>
                 <div className="score-mini-grid">
@@ -822,7 +821,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                   <h3>Today’s Best Scores</h3>
                   <div className="leaderboard-table">
                     <div className="leaderboard-row leaderboard-head"><span>Rank</span><span>Name</span><span>Score</span><span>Moves</span><span>Side</span><span>Result</span></div>
-                    {leaderboard.slice(0, 5).map((entry, index) => (
+                    {leaderboard.slice(0, 3).map((entry, index) => (
                       <div className="leaderboard-row" key={entry.id}><span>{index + 1}</span><span>{entry.display_name}</span><span>{entry.score}</span><span>{entry.moves}</span><span>{entry.side}</span><span>{entry.result}</span></div>
                     ))}
                   </div>

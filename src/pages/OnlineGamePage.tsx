@@ -805,13 +805,12 @@ ${inviteLink}`;
           eyebrow="Game complete"
           title={onlineResult === 'win' ? 'You won' : onlineResult === 'loss' ? 'You lost' : onlineResult === 'stalemate' ? 'Stalemate' : onlineResult === 'spectator' ? 'Game complete' : 'Draw'}
           summary={onlineResultSummary}
-          titleAccessory={<ScoreExplanation breakdown={scoreBreakdown} resultLabel={onlineResult === 'stalemate' ? 'stalemate' : onlineResult} />}
           details={(
             <>
               <div className="score-result-bento" aria-label="Score breakdown">
                 <div className="score-hero-tile">
                   <span>Score</span>
-                  <strong>{scoreBreakdown.totalScore}</strong>
+                  <div className="score-value-row"><strong>{scoreBreakdown.totalScore}</strong><ScoreExplanation breakdown={scoreBreakdown} resultLabel={onlineResult === 'stalemate' ? 'stalemate' : onlineResult} /></div>
                   {localBestScore && <small>Local best {localBestScore.score}</small>}
                 </div>
                 <div className="score-mini-grid">
@@ -834,7 +833,7 @@ ${inviteLink}`;
                   <h3>Today’s Best Scores</h3>
                   <div className="leaderboard-table">
                     <div className="leaderboard-row leaderboard-head"><span>Rank</span><span>Name</span><span>Score</span><span>Moves</span><span>Side</span><span>Result</span></div>
-                    {leaderboard.slice(0, 5).map((entry, index) => (
+                    {leaderboard.slice(0, 3).map((entry, index) => (
                       <div className="leaderboard-row" key={entry.id}><span>{index + 1}</span><span>{entry.display_name}</span><span>{entry.score}</span><span>{entry.moves}</span><span>{entry.side}</span><span>{entry.result}</span></div>
                     ))}
                   </div>
