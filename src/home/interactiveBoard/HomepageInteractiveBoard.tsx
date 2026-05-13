@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { CircleHelp } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { BOARD_FILES, BOARD_RANKS } from '../../game/constants.js';
 import { createInitialBoard } from '../../game/createInitialBoard.js';
@@ -19,6 +20,13 @@ function spacedCode(backRankCode: string): string {
 
 function getPieceName(piece: Piece): string {
   return pieceDialogues[piece.type].name;
+}
+
+function openLearnChess(piece?: Piece) {
+  const piecePath = piece ? `/${piece.type}` : '';
+  window.history.pushState(null, '', `/learn${piecePath}`);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+  window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0 }));
 }
 
 type MeetPiecePlacement = 'above' | 'below' | 'left' | 'right';
@@ -231,6 +239,9 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
   return (
     <>
       <div className="preview-board-frame meet-board-frame" ref={frameRef}>
+        <button type="button" className="learn-board-button" onClick={() => openLearnChess(selectedPiece ?? undefined)} aria-label={selectedPiece ? `Learn how the ${getPieceName(selectedPiece)} moves` : 'Learn chess piece movement'} title={selectedPiece ? `Learn how the ${getPieceName(selectedPiece)} moves` : 'Learn chess piece movement'}>
+          <CircleHelp size={20} aria-hidden="true" />
+        </button>
         <div
           className="preview-board-grid meet-board-grid"
           role="grid"
@@ -293,6 +304,7 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
               <span className="meet-preview-chip-move" aria-label="Yellow orb means move"><i className="meet-legend-orb" aria-hidden="true" />= move</span>
               <span className="meet-preview-chip-capture" aria-label="Red orb means capture"><i className="meet-legend-capture" aria-hidden="true" />= capture</span>
             </div>
+            <button type="button" className="meet-piece-learn-link" onClick={() => openLearnChess(selectedPiece)}>Open full {pieceDialogues[selectedPiece.type].name} lesson</button>
           </aside>
         )}
       </div>
