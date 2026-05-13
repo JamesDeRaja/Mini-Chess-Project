@@ -7857,3 +7857,82 @@ button:focus-visible,
   .seed-card,
   .popular-seed-home-card { min-height: 0; }
 }
+
+/* Main menu scrolling: mobile and tablet screens can exceed the viewport height, so
+   make the home menu itself the scroll container instead of clipping overflow. */
+@media (max-width: 1180px) {
+  .home-page,
+  :root[data-theme='light'] .home-page,
+  :root[data-theme='dark'] .home-page {
+    height: 100vh;
+    height: 100svh;
+    min-height: 100vh;
+    min-height: 100svh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+body.home-modal-open .home-page {
+  overflow: hidden;
+}
+
+.success-action,
+.stacked-actions .success-action {
+  color: #1f4f38;
+  background: #bfe3cd;
+  border-color: #abd5bd;
+}
+.success-action:active:not(:disabled) {
+  box-shadow: 0 2px 0 #a9c0a9, 0 7px 14px rgba(74, 102, 78, 0.1);
+}
+
+.daily-mastered-modal {
+  gap: 14px;
+}
+.daily-mastered-seeds {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.daily-mastered-seed-card {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-height: 82px;
+  padding: 12px;
+  border: 1px solid rgba(222, 217, 203, 0.82);
+  border-radius: 18px;
+  color: #2d2b25;
+  background: rgba(255, 251, 239, 0.86);
+  text-align: left;
+  box-shadow: 0 8px 0 rgba(45, 43, 40, 0.05), 0 14px 24px rgba(97, 87, 50, 0.08);
+}
+.daily-mastered-seed-card strong,
+.daily-mastered-seed-card span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.daily-mastered-seed-card span {
+  color: #67756d;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+@media (max-width: 1180px) {
+  .home-hero-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .home-hero-shell .hero-copy { order: 1; }
+  .home-hero-shell .today-setup-showcase { order: 2; }
+  .home-hero-shell .popular-seeds-home { order: 3; }
+}
+
+@media (max-width: 760px) {
+  .daily-mastered-seeds {
+    grid-template-columns: 1fr;
+  }
+}

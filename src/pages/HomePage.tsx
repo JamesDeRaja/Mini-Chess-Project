@@ -25,7 +25,7 @@ type HomePageProps = {
   onCancelFindMatch: (queueId?: string) => Promise<void>;
 };
 
-type ModalName = 'date' | 'custom' | 'rules' | 'matchmaking' | null;
+type ModalName = 'date' | 'custom' | 'rules' | 'matchmaking' | 'dailyMastered' | null;
 type LeaderboardFeedItem = { id: string; displayName: string; score: number; kind: 'rank' | 'new-score'; rank?: number };
 type LeaderboardView = { scope: LeaderboardScope; label: string; title: string; description: string };
 
@@ -209,6 +209,8 @@ export function HomePage({
   const customSeedError = customSeedWasSubmitted && customSeedValidation.ok === false ? customSeedValidation.error : null;
   const customBackRankCode = customSeedValidation.ok ? customSeedValidation.backRankCode : null;
   const dailyAIStatusLine = getDailyAIStatusLine(dailyAIProgress);
+  const shouldConfirmDailyReplay = dailyAIProgress.stars >= 3 || dailyAIProgress.magicStarUnlocked;
+  const dailyMasteredSeedSuggestions = CURATED_SEEDS.filter((seed) => ['gotham-chaos', 'boss-battle', 'queen-rush'].includes(seed.slug)).slice(0, 3);
   const activeLeaderboardView = leaderboardViews.find((view) => view.scope === leaderboardScope) ?? leaderboardViews[0];
   const leaderboardFeedSignature = useMemo(() => leaderboardFeed.map((entry) => `${entry.id}:${entry.score}:${entry.rank ?? ''}`).join('|'), [leaderboardFeed]);
   const visibleLeaderboardFeed = leaderboardFeed.length > 0
@@ -413,9 +415,20 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
     await onSeeded(customSeedValidation.normalizedSeed);
   }
 
+  function continueDailyAiReplay() {
+    setModal(null);
+    onStartBot(todayKey);
+  }
+
   function playActiveModeAgainstAi() {
     trackEvent('homepage_cta_click', { cta: 'play_ai', mode: shuffleMode });
-    if (shuffleMode === 'daily') onStartBot(todayKey);
+    if (shuffleMode === 'daily') {
+      if (shouldConfirmDailyReplay) {
+        setModal('dailyMastered');
+        return;
+      }
+      onStartBot(todayKey);
+    }
     else onStartSeededBot(activeSeedSource.seed, activeSeedSource.backRankCode);
   }
 
@@ -769,6 +782,33 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
         </div>
       </section>
 
+
+      {modal === 'dailyMastered' && (
+        <div className="modal-backdrop" role="presentation" onClick={closeModal}>
+          <div className="confirm-card utility-modal daily-mastered-modal" role="dialog" aria-modal="true" aria-labelledby="daily-mastered-title" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Close daily mastered prompt"><X size={18} /></button>
+            <p className="eyebrow">Daily mastered</p>
+            <h2 id="daily-mastered-title">You already earned all 3 stars today.</h2>
+            <p>You can still replay today’s AI ladder, or try another popular setup for a fresh score chase.</p>
+            <div className="daily-mastered-seeds" aria-label="Popular seed suggestions">
+              {dailyMasteredSeedSuggestions.map((seed) => {
+                const created = createSeedFromInput(seed.slug);
+                const setup = created.ok ? created.backRankCode : activeBackRankCode;
+                return (
+                  <button type="button" key={seed.slug} className="daily-mastered-seed-card" onClick={() => onStartSeededBot(seed.slug, setup)}>
+                    <strong>{seed.displayName}</strong>
+                    <span>{seed.slug}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="panel-actions centered-actions">
+              <button type="button" className="success-action" onClick={continueDailyAiReplay}>Continue daily anyway</button>
+              <button type="button" className="secondary-action" onClick={() => setModal(null)}>Back to menu</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {modal === 'date' && (
         <div className="modal-backdrop" role="presentation" onClick={closeModal}>
