@@ -4,7 +4,6 @@ import { BOARD_FILES, BOARD_RANKS, BOARD_SIZE } from '../game/constants.js';
 import { getPieceImageSrc } from '../game/pieceAssets.js';
 import type { Board, Piece, PieceType } from '../game/types.js';
 import { getHomepagePieceMoves } from '../home/getHomepagePieceMoves.js';
-import { pieceDialogues } from '../home/pieceDialogues.js';
 
 type LearnChessPageProps = {
   initialPiece?: PieceType;
@@ -115,11 +114,6 @@ function createLessonBoard(pieceType: PieceType): { board: Board; selectedIndex:
   }
   return { board, selectedIndex };
 }
-
-function piecePath(piece: PieceType): string {
-  return `/learn/${piece}`;
-}
-
 export function LearnChessPage({ initialPiece = 'king', onHome, onPlayAi, onPiece }: LearnChessPageProps) {
   const [selectedPiece, setSelectedPiece] = useState<PieceType>(initialPiece);
   const [pepIndex, setPepIndex] = useState(() => pieceOrder.indexOf(initialPiece) % pepTalks.length);
@@ -145,7 +139,7 @@ export function LearnChessPage({ initialPiece = 'king', onHome, onPlayAi, onPiec
     <main className="learn-page">
       <button type="button" className="seed-detail-home-button" aria-label="Go home" onClick={onHome}><Home size={22} /></button>
       <section className="learn-hero-card">
-        <div className="learn-copy">
+        <div className="learn-copy learn-body-copy">
           <p className="eyebrow">Learn Chess</p>
           <h1>Learn one piece at a time. Then go bully the AI politely.</h1>
           <p>Tap a piece below to see every move and capture it can try on the 5x6 Pocket Shuffle board. Yellow dots are moves. Red rings are captures. Do not be scared to experiment.</p>
@@ -221,10 +215,6 @@ export function LearnChessPage({ initialPiece = 'king', onHome, onPlayAi, onPiec
           <button type="button" className="secondary-action" onClick={onPlayAi}><Bot size={17} /> Play with AI</button>
         </div>
       </section>
-
-      <nav className="learn-piece-links" aria-label="All learn pages">
-        {pieceOrder.map((piece) => <a key={piece} href={piecePath(piece)} onClick={(event) => { event.preventDefault(); choosePiece(piece); }}>{pieceDialogues[piece].name}</a>)}
-      </nav>
     </main>
   );
 }

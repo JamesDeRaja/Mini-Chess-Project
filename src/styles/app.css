@@ -7444,6 +7444,36 @@ button:focus-visible,
 .home-action-ai.home-action-card:hover:not(:disabled) .action-piece-pawn {
   animation: ai-hero-bob 760ms cubic-bezier(.18, 1.45, .32, 1);
 }
+
+.home-action-match .action-piece-rook,
+.home-action-invite .action-piece-knight {
+  top: 42%;
+  left: 60%;
+  width: 156px;
+  height: 158px;
+  max-width: none;
+  opacity: 1;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 18px 20px rgba(40, 34, 24, 0.28));
+}
+
+.home-action-invite .action-piece-knight {
+  left: 56%;
+  width: 148px;
+  height: 156px;
+}
+
+.home-action-match.home-action-card:hover:not(:disabled) .action-piece-rook,
+.home-action-invite.home-action-card:hover:not(:disabled) .action-piece-knight {
+  animation: action-piece-center-bob 760ms cubic-bezier(.18, 1.45, .32, 1);
+}
+
+@keyframes action-piece-center-bob {
+  0% { transform: translate(-50%, -50%) rotate(var(--piece-rotate, 0deg)) scale(var(--piece-scale, 1)); }
+  42% { transform: translate(-50%, calc(-50% - 10px)) rotate(calc(var(--piece-rotate, 0deg) - 4deg)) scale(calc(var(--piece-scale, 1) * 1.04), calc(var(--piece-scale, 1) * 0.96)); }
+  72% { transform: translate(-50%, calc(-50% + 2px)) rotate(calc(var(--piece-rotate, 0deg) + 2deg)) scale(calc(var(--piece-scale, 1) * 0.98), calc(var(--piece-scale, 1) * 1.03)); }
+  100% { transform: translate(-50%, -50%) rotate(var(--piece-rotate, 0deg)) scale(var(--piece-scale, 1)); }
+}
 @keyframes ai-hero-bob {
   0%   { transform: translateY(-54%) rotate(0deg) scale(1); }
   42%  { transform: translateY(calc(-54% - 10px)) rotate(-4deg) scale(1.04, 0.96); }
@@ -7471,6 +7501,15 @@ button:focus-visible,
   font-size: 1.06rem;
 }
 
+/* Keep the smaller home action pieces scaled with the larger AI pawn. */
+@media (max-width: 1180px) {
+  .home-action-match .action-piece-rook,
+  .home-action-invite .action-piece-knight {
+    width: 132px;
+    height: 136px;
+  }
+}
+
 /* Compact desktop (~900–1180 px) */
 @media (max-width: 1180px) {
   .home-action-ai .action-piece-pawn {
@@ -7485,6 +7524,14 @@ button:focus-visible,
   }
 }
 
+@media (max-width: 900px) {
+  .home-action-match .action-piece-rook,
+  .home-action-invite .action-piece-knight {
+    width: 112px;
+    height: 116px;
+  }
+}
+
 /* Compact 900 px */
 @media (max-width: 900px) {
   .home-action-ai .action-piece-pawn {
@@ -7496,6 +7543,16 @@ button:focus-visible,
   }
   .home-action-ai .action-card-copy strong {
     font-size: clamp(1.05rem, 1.4vw, 1.35rem);
+  }
+}
+
+@media (max-width: 760px) {
+  .home-action-match .action-piece-rook,
+  .home-action-invite .action-piece-knight {
+    top: 44%;
+    left: 58%;
+    width: 96px;
+    height: 100px;
   }
 }
 
@@ -8228,8 +8285,7 @@ body.home-modal-open .home-page {
   gap: 10px;
 }
 
-.learn-piece-tabs button,
-.learn-piece-links a {
+.learn-piece-tabs button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -8246,8 +8302,7 @@ body.home-modal-open .home-page {
 }
 
 .learn-piece-tabs button.is-active,
-.learn-piece-tabs button:hover,
-.learn-piece-links a:hover {
+.learn-piece-tabs button:hover {
   color: #31332f;
   background: rgba(242, 208, 99, 0.3);
   border-color: rgba(242, 208, 99, 0.68);
@@ -8348,19 +8403,8 @@ body.home-modal-open .home-page {
   font-weight: 900;
   line-height: 1.42;
 }
-
-.learn-piece-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  width: min(1120px, 100%);
-  margin: 0 auto;
-}
-
 @media (max-width: 900px) {
   .learn-hero-card { grid-template-columns: 1fr; }
-  .learn-board-panel { order: -1; }
   .learn-rule-grid { grid-template-columns: 1fr; }
 }
 
