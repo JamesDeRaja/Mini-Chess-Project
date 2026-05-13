@@ -814,8 +814,8 @@ ${inviteLink}`;
             <>
               <div className="score-result-bento" aria-label="Score breakdown">
                 <div className="score-hero-tile">
-                  <span>Score</span>
-                  <div className="score-value-row"><strong>{scoreBreakdown.totalScore}</strong><ScoreExplanation breakdown={scoreBreakdown} resultLabel={onlineResult === 'stalemate' ? 'stalemate' : onlineResult} /></div>
+                  <div className="score-label-row"><span className="score-label-text">Score</span><ScoreExplanation breakdown={scoreBreakdown} resultLabel={onlineResult === 'stalemate' ? 'stalemate' : onlineResult} /></div>
+                  <div className="score-value-row"><strong>{scoreBreakdown.totalScore}</strong></div>
                   {localBestScore && <small>Local best {localBestScore.score}</small>}
                 </div>
                 <div className="score-mini-grid">

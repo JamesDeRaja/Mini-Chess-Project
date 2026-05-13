@@ -6434,3 +6434,93 @@ button:focus-visible,
     padding: 20px;
   }
 }
+
+/* Score help placement v2: attach the ? to the Score heading, not the number. */
+.score-label-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #647067;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.score-label-row .score-label-text {
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+}
+.score-label-row .score-help-shell {
+  display: inline-grid !important;
+  place-items: center;
+  line-height: 1;
+  margin: 0;
+}
+.score-label-row .score-help-button {
+  width: 1.65em !important;
+  height: 1.65em !important;
+  min-width: 1.65em !important;
+  padding: 0 !important;
+  border-radius: 999px;
+  font-size: 1em !important;
+  line-height: 1;
+  transform: none;
+  box-shadow: 0 3px 0 rgba(180, 145, 44, 0.22), inset 0 -1px rgba(45, 43, 40, 0.08);
+}
+.score-value-row {
+  --result-score-size: clamp(3rem, 8vw, 4.8rem);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+.score-value-row .score-help-shell {
+  display: none !important;
+}
+.score-value-row > strong {
+  font-size: var(--result-score-size);
+  line-height: 0.9;
+}
+.score-label-row .score-help-drawer {
+  text-transform: none;
+}
+@media (max-width: 980px) {
+  .winner-card:has(.score-help-drawer) {
+    transform: none !important;
+  }
+  .score-hero-tile .score-help-drawer,
+  .score-label-row .score-help-drawer {
+    position: fixed !important;
+    inset: 12px !important;
+    z-index: 90 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(100svh - 24px) !important;
+    padding: 22px !important;
+    overflow: auto;
+    border: 1px solid rgba(222, 217, 203, 0.9);
+    border-radius: 26px;
+    box-shadow: 0 24px 70px rgba(45, 43, 40, 0.28);
+  }
+  .score-hero-tile .score-help-drawer h3,
+  .score-label-row .score-help-drawer h3 {
+    margin-right: 48px;
+    font-size: clamp(1.5rem, 7vw, 2.4rem);
+  }
+  .score-hero-tile .score-help-drawer .score-help-lines p,
+  .score-label-row .score-help-drawer .score-help-lines p {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+  .score-hero-tile .score-help-drawer .score-help-lines strong,
+  .score-label-row .score-help-drawer .score-help-lines strong {
+    font-size: clamp(1.35rem, 8vw, 2.4rem) !important;
+  }
+}
