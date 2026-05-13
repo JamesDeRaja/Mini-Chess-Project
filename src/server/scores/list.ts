@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getServerSupabase } from '../games/serverSupabase.js';
+import { getServerSupabase } from '../supabase.js';
 
 type ScoreRow = {
   id: string;

@@ -1,17 +1,17 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { randomUUID } from 'node:crypto';
-import { applyMove } from '../../src/game/applyMove.js';
-import { BOARD_FILES, BOARD_RANKS } from '../../src/game/constants.js';
-import { index } from '../../src/game/coordinates.js';
-import { getOpponent, getStatusForTurn, isStalemate } from '../../src/game/gameStatus.js';
-import { getCaptureScore } from '../../src/game/scoring.js';
-import { getLegalMoves } from '../../src/game/legalMoves.js';
-import { rebuildBoardFromHistory } from '../../src/game/moveDelta.js';
-import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../../src/game/seed.js';
-import type { Board, Color, GameStatus, MoveDelta, PromotionPieceType, SquareCoord } from '../../src/game/types.js';
-import { safeSupabaseUpdate } from '../../src/multiplayer/safeSupabaseUpdate.js';
+import { applyMove } from '../../game/applyMove.js';
+import { BOARD_FILES, BOARD_RANKS } from '../../game/constants.js';
+import { index } from '../../game/coordinates.js';
+import { getOpponent, getStatusForTurn, isStalemate } from '../../game/gameStatus.js';
+import { getCaptureScore } from '../../game/scoring.js';
+import { getLegalMoves } from '../../game/legalMoves.js';
+import { rebuildBoardFromHistory } from '../../game/moveDelta.js';
+import { deriveBackRankCodeFromBoard, estimateMaterialScores } from '../../game/seed.js';
+import type { Board, Color, GameStatus, MoveDelta, PromotionPieceType, SquareCoord } from '../../game/types.js';
+import { safeSupabaseUpdate } from '../../multiplayer/safeSupabaseUpdate.js';
 import { assessGameLifecycle, getActivityResetFields } from './lifecycle.js';
-import { getServerSupabase } from './serverSupabase.js';
+import { getServerSupabase } from '../supabase.js';
 
 function getWinner(status: GameStatus): Color | null {
   if (status === 'white_won') return 'white';
@@ -141,7 +141,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   if (!backRankCode) updatePayload.board = nextBoard;
 
-  const { data: updatedGame, error: updateError } = await safeSupabaseUpdate(
+  const { data: updatedGame, error: updateError } = await safeSupabaseUpdate<Record<string, unknown>>(
     supabase,
     gameId,
     updatePayload,

@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { randomInt } from 'node:crypto';
-import { safeSupabaseUpdate } from '../../src/multiplayer/safeSupabaseUpdate.js';
+import { safeSupabaseUpdate } from '../../multiplayer/safeSupabaseUpdate.js';
 import { assessGameLifecycle, getActivityResetFields } from './lifecycle.js';
-import { getServerSupabase } from './serverSupabase.js';
+import { getServerSupabase } from '../supabase.js';
 
 function getPlayerRole(game: Record<string, unknown>, playerId: string): 'white' | 'black' | 'spectator' {
   if (game.white_player_id === playerId) return 'white';

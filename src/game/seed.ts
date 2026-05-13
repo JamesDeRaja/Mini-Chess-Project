@@ -1,4 +1,5 @@
 import { BACK_RANK_PIECES, BOARD_FILES, RANDOM_BACK_RANK_PIECES } from './constants.js';
+import { normalizeSeedSlug } from './curatedSeeds.js';
 import type { Board, Color, PieceType } from './types.js';
 
 export const BACK_RANK_CODE_PATTERN = /^[KQRBNP]{5}$/i;
@@ -55,7 +56,7 @@ export function normalizeSeedInput(seed: string): string {
 
 export function normalizeSeed(seed: string): string {
   const trimmedSeed = normalizeSeedInput(seed);
-  return isBackRankCode(trimmedSeed) ? trimmedSeed.toUpperCase() : trimmedSeed.toLowerCase();
+  return isBackRankCode(trimmedSeed) ? trimmedSeed.toUpperCase() : normalizeSeedSlug(trimmedSeed);
 }
 
 export function isBackRankCode(code: string): boolean {
@@ -88,7 +89,7 @@ export function validateSeedInput(seed: string): SeedValidationResult {
     return { ok: false, error: 'Use 1 to 32 letters, numbers, and hyphens.' };
   }
 
-  const normalizedSeed = trimmedSeed.toLowerCase();
+  const normalizedSeed = normalizeSeedSlug(trimmedSeed);
   return { ok: true, normalizedSeed, backRankCode: backRankCodeFromSeed(normalizedSeed), seedType: 'text' };
 }
 
@@ -145,7 +146,7 @@ export function randomBackRankCodeFromSeed(seed: string): string {
 
 export function resolveBackRankCode(seed: string): string {
   const validatedSeed = validateSeedInput(seed);
-  if (!validatedSeed.ok) throw new Error(validatedSeed.error);
+  if (validatedSeed.ok === false) throw new Error(validatedSeed.error);
   return validatedSeed.backRankCode;
 }
 
