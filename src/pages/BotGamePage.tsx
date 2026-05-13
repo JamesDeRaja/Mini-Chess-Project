@@ -8,6 +8,7 @@ import { GameResultPanel } from '../components/GameResultPanel.js';
 import { MoveHistory } from '../components/MoveHistory.js';
 import { ScoreExplanation } from '../components/ScoreExplanation.js';
 import { ShareChallengeModal } from '../components/ShareChallengeModal.js';
+import { ResultScreenshotButton } from '../components/ResultScreenshotButton.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
 import { type BotLevel, getBotMoveByLevel, getMoveIdentity } from '../game/bot.js';
@@ -31,6 +32,7 @@ import { compareChallengeResult, createChallengePayload, createSeedChallengeUrl,
 import { buildShareMessage, getContextualTauntContext, getRandomComparisonText, getRandomShareTaunt, type TauntContext } from '../game/shareTaunts.js';
 import { getAnonymousPlayerId, getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
+import { recordPlayStreak } from '../game/playStreak.js';
 import { calculateGameScore, getCaptureScore } from '../game/scoring.js';
 import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
 import { createChallenge, submitSeedScore } from '../multiplayer/challengeApi.js';
@@ -309,6 +311,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       moves: scoreBreakdown.fullMoves,
     });
     setLocalBestScore(getLocalBestScore(dailySeedInfo.seed, scoreMode, playerColor) ?? entry);
+    recordPlayStreak();
   }, [dailySeedInfo.backRankCode, dailySeedInfo.seed, playerColor, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode]);
 
   useEffect(() => {
@@ -606,6 +609,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }) : 'generic';
   const currentShareTaunt = useMemo(() => shareTaunt || (roundResult ? getRandomShareTaunt(tauntContext) : ''), [roundResult, shareTaunt, tauntContext]);
   const effectiveChallengeUrl = challengeUrl || createSeedChallengeUrl(seedSlug);
+  const canUseBotGameActions = status === 'active' && !roundResult;
+  const restartActionLabel = canUseBotGameActions ? 'Restart Match' : 'Rematch';
 
   async function ensureChallengeRecord(finalShareText?: string, finalTaunt?: string): Promise<string> {
     if (!roundResult) return effectiveChallengeUrl;
@@ -676,6 +681,13 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       setScoreSubmitMessage('Could not submit online, but your local score is saved.');
     }
   }
+
+  useEffect(() => {
+    if (!roundResult || submittedScore) return;
+    void handleSubmitScore();
+  // handleSubmitScore reads the latest completed score state and is intentionally triggered once per result.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundResult, submittedScore]);
 
 
   return (
@@ -769,9 +781,9 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               <button type="button" onClick={() => setPreviewPly(null)} disabled={moveHistory.length === 0}>⏭</button>
             </div>
             <div className="panel-actions stacked-actions">
-              <button type="button" className="secondary-action" onClick={() => setPendingAction('draw')}><Handshake size={18} /> Request Draw</button>
-              <button type="button" className="danger-action" onClick={() => setPendingAction('resign')}><Flag size={18} /> Resign</button>
-              <button type="button" className="gold-action" onClick={requestRestart}>Restart Match</button>
+              <button type="button" className="secondary-action" onClick={() => setPendingAction('draw')} disabled={!canUseBotGameActions}><Handshake size={18} /> Request Draw</button>
+              <button type="button" className="danger-action" onClick={() => setPendingAction('resign')} disabled={!canUseBotGameActions}><Flag size={18} /> Resign</button>
+              <button type="button" className="gold-action" onClick={requestRestart}>{restartActionLabel}</button>
             </div>
           </div>
         </aside>
@@ -837,13 +849,13 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           )}
           actions={(
             <>
-              <button type="button" onClick={openShareModal}><Share2 size={17} /> Challenge a Friend</button>
+              <button type="button" onClick={openShareModal}><Share2 size={17} /> Challenge a Friend</button><ResultScreenshotButton title={roundResult.didPlayerWin ? 'You won' : roundResult.status === 'draw' ? 'Draw' : 'You lost'} summary={roundResult.message} score={scoreBreakdown.totalScore} moves={scoreBreakdown.fullMoves} seed={seedSlug} setup={dailySeedInfo.backRankCode} />
               <button type="button" className="secondary-action" onClick={() => { void copyChallengeLink(); }}><Copy size={22} /> Copy Link</button>
               <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seedSlug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}><Trophy size={24} /> View Seed Leaderboard</button>
               <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Save Score'}</button>
               {!matchWinner && <button type="button" onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay Seed' : 'Replay Seed'}</button>}
               <button type="button" onClick={() => { window.history.pushState(null, '', `/bot?seed=${encodeURIComponent(seedSlug)}&setup=${encodeURIComponent(dailySeedInfo.backRankCode)}&side=${playerColor === 'white' ? 'black' : 'white'}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Other Side</button>
-              <button type="button" onClick={requestRestart}>Restart Match</button>
+              <button type="button" onClick={requestRestart}>Rematch</button>
             </>
           )}
         />
@@ -898,7 +910,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         <div className="confirm-overlay" role="dialog" aria-modal="true">
           <div className="confirm-card">
             <p className="eyebrow">Confirm</p>
-            <h2>{pendingAction === 'resign' ? 'Resign this game?' : pendingAction === 'draw' ? 'Offer a draw?' : 'Restart the match?'}</h2>
+            <h2>{pendingAction === 'resign' ? 'Resign this game?' : pendingAction === 'draw' ? 'Offer a draw?' : 'Rematch?'}</h2>
             <p>This action can change or reset the current game. Do you want to continue?</p>
             <div className="panel-actions centered-actions">
               <button type="button" onClick={confirmPendingAction}>Continue</button>
