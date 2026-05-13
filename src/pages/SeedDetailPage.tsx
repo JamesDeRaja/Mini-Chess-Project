@@ -3,6 +3,7 @@ import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInter
 import { CURATED_SEEDS, getSeedDisplayName, normalizeSeedSlug } from '../game/curatedSeeds.js';
 import { createSeedChallengeUrl } from '../game/challenge.js';
 import { createSeedFromInput } from '../game/seed.js';
+import { buildSeedShareMessage, getRandomShareTaunt } from '../game/shareTaunts.js';
 
 type Props = {
   seedSlug: string;
@@ -26,6 +27,7 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
   const others = CURATED_SEEDS.filter((item) => item.slug !== normalized).slice(0, 8);
   const title = seed?.displayName ?? getSeedDisplayName(normalized);
   const shareUrl = createSeedChallengeUrl(normalized);
+  const shareText = buildSeedShareMessage({ style: 'popularSeed', taunt: getRandomShareTaunt('friendChallenge'), seedSlug: normalized, backRankCode: setup, challengeUrl: shareUrl });
 
   return (
     <main className="challenge-page seed-detail-page">
@@ -45,7 +47,7 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
             <div className="panel-actions seed-detail-actions">
               <button type="button" onClick={() => onPlaySeed(normalized, setup)}>Play AI</button>
               <button type="button" onClick={() => { void onChallengeSeed(normalized, setup); }}><Users size={17} /> Challenge Friend</button>
-              <button type="button" className="secondary-action" onClick={() => { void navigator.clipboard?.writeText(shareUrl); }}><Share2 size={17} /> Share</button>
+              <button type="button" className="secondary-action" onClick={() => { void navigator.clipboard?.writeText(shareText); }}><Share2 size={17} /> Share</button>
               <button type="button" className="secondary-action" onClick={() => onLeaderboard(normalized)}><Trophy size={17} /> Leaderboard</button>
             </div>
           </div>
@@ -96,7 +98,7 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
                   <div className="seed-card-action-stack">
                     <div className="seed-card-action-row">
                       <button type="button" onClick={(event) => { event.stopPropagation(); onPlaySeed(item.slug, nextSetup); }}>Play AI</button>
-                      <button type="button" className="seed-icon-action" aria-label={`Share ${item.displayName}`} onClick={(event) => { event.stopPropagation(); void navigator.clipboard?.writeText(createSeedChallengeUrl(item.slug)); }}><Share2 size={15} /></button>
+                      <button type="button" className="seed-icon-action" aria-label={`Share ${item.displayName}`} onClick={(event) => { event.stopPropagation(); void navigator.clipboard?.writeText(buildSeedShareMessage({ style: 'popularSeed', taunt: getRandomShareTaunt('friendChallenge'), seedSlug: item.slug, backRankCode: nextSetup, challengeUrl: createSeedChallengeUrl(item.slug) })); }}><Share2 size={15} /></button>
                       <button type="button" className="seed-icon-action" aria-label={`${item.displayName} leaderboard`} onClick={(event) => { event.stopPropagation(); onLeaderboard(item.slug); }}><Trophy size={15} /></button>
                     </div>
                     <button type="button" className="secondary-action seed-challenge-action" onClick={(event) => { event.stopPropagation(); void onChallengeSeed(item.slug, nextSetup); }}><Users size={15} /> Challenge Friend</button>
