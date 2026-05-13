@@ -684,6 +684,9 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .rules-modal h3 { margin: 0 0 6px; color: var(--text); }
 .rules-section { display: grid; gap: 8px; }
 .rules-modal ul { margin: 0; padding-left: 20px; color: var(--muted); line-height: 1.7; }
+.rules-learn-pieces { margin: 2px 0 0; color: var(--muted); font-weight: 800; line-height: 1.45; }
+.rules-learn-pieces button { display: inline; min-width: 0; padding: 0; border: 0; color: var(--accent); background: transparent; box-shadow: none; font: inherit; font-weight: 950; text-decoration: underline; text-underline-offset: 3px; }
+.rules-learn-pieces button:hover, .rules-learn-pieces button:focus-visible { color: var(--accent-strong); transform: none; }
 .inline-message { max-width: none; margin: 0; color: #b85b4d; }
 .matchmaking-modal .panel-actions { justify-content: flex-start; }
 
