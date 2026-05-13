@@ -246,7 +246,7 @@ export function HomePage({
   useEffect(() => {
     function refreshHomeProgress() {
       setDailyAIProgress(getDailyAIProgress(todayKey));
-      setLocalBestScore(getLocalBestScoreForSeedMode(getDailySeed(todayKey), 'daily'));
+      setLocalBestScore(getLocalBestScoreForSeedMode(activeSeedSource.seed, shuffleMode));
     }
 
     refreshHomeProgress();
@@ -256,7 +256,7 @@ export function HomePage({
       window.removeEventListener('focus', refreshHomeProgress);
       window.removeEventListener('storage', refreshHomeProgress);
     };
-  }, [todayKey]);
+  }, [activeSeedSource.seed, shuffleMode, todayKey]);
 
   useEffect(() => {
     fetchLeaderboard(dailySeed, 'daily').then((scores) => {
@@ -624,7 +624,6 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               </button>
               <span className="copy-status" aria-live="polite">{copyStatus === 'copied' ? 'Copied.' : ''}</span>
             </div>
-            {localBestScore && <span className="today-high-score-chip">High Score: {localBestScore.score}</span>}
             <div className="shuffle-mode-toggle" role="group" aria-label="Choose global shuffle mode">
               <button
                 type="button"
@@ -698,6 +697,22 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
           </div>
 
         </div>
+
+        <section className="local-high-score-card" aria-labelledby="local-high-score-title" aria-live="polite">
+          <span className="local-high-score-eyebrow"><Trophy size={18} aria-hidden="true" /> Local best</span>
+          <h2 id="local-high-score-title">High Score</h2>
+          {localBestScore ? (
+            <>
+              <strong>{localBestScore.score}</strong>
+              <p>{shuffleMode === 'daily' ? 'Today’s setup' : 'Current setup'} · {localBestScore.moves} moves</p>
+            </>
+          ) : (
+            <>
+              <strong>—</strong>
+              <p>No local score for this {shuffleMode === 'daily' ? 'daily' : 'setup'} yet.</p>
+            </>
+          )}
+        </section>
 
         <aside className="today-setup-showcase" aria-label="Today's 5 by 6 setup preview">
           <span className="setup-spark setup-spark-left" aria-hidden="true" />
