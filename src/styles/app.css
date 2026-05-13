@@ -8523,3 +8523,43 @@ body.home-modal-open .home-page {
     display: none;
   }
 }
+
+/* Streak brand mark: remove the tile backing and let the flame itself own the space. */
+.streak-brand-tile {
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #ff9f1c;
+  background: transparent;
+  box-shadow: none;
+}
+.streak-brand-tile svg {
+  width: 64px;
+  height: 64px;
+  fill: rgba(255, 180, 50, 0.34);
+  filter: drop-shadow(0 12px 14px rgba(255, 130, 35, 0.24));
+}
+.streak-brand-tile b {
+  top: 36px;
+  min-width: 24px;
+  height: 24px;
+  font-size: 1.16rem;
+}
+@media (max-width: 760px) {
+  .streak-brand-tile {
+    width: 52px;
+    height: 52px;
+  }
+  .streak-brand-tile svg {
+    width: 52px;
+    height: 52px;
+  }
+  .streak-brand-tile b {
+    top: 30px;
+    min-width: 21px;
+    height: 21px;
+    font-size: 1rem;
+  }
+}
