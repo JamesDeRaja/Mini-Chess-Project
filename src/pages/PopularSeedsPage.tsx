@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Home, Share2, Trophy, Users } from 'lucide-react';
 import { CURATED_SEEDS } from '../game/curatedSeeds.js';
 import { createSeedFromInput } from '../game/seed.js';
+import { buildSeedShareMessage, getRandomShareTaunt } from '../game/shareTaunts.js';
 import { fetchPopularSeedStats, type SeedStatsRecord } from '../multiplayer/challengeApi.js';
 
 type SortMode = 'popular' | 'new' | 'highest' | 'shared' | 'daily';
@@ -13,7 +14,15 @@ function createPopularSeedUrl(seedSlug: string) {
 }
 
 function copySeedChallengeLink(seedSlug: string) {
-  void navigator.clipboard?.writeText(createPopularSeedUrl(seedSlug));
+  const validation = createSeedFromInput(seedSlug);
+  const shareText = buildSeedShareMessage({
+    style: 'popularSeed',
+    taunt: getRandomShareTaunt('friendChallenge'),
+    seedSlug,
+    backRankCode: validation.ok ? validation.backRankCode : 'BQKRN',
+    challengeUrl: createPopularSeedUrl(seedSlug),
+  });
+  void navigator.clipboard?.writeText(shareText);
 }
 
 export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLeaderboard, onHome }: Props) {
@@ -61,7 +70,7 @@ export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLe
               >
                 <h2>{seed.displayName}</h2>
                 <strong>{seed.slug}</strong>
-                <p>{seed.description}</p>
+                <p className="seed-card-description">{seed.description}</p>
                 <p>Setup: <b>{setup}</b></p>
                 <p>Plays: {row?.total_plays ?? 0} · Shares: {row?.total_shares ?? 0}</p>
                 <p>Best Score: {row?.best_score ? `${row.best_score} by ${row.best_score_player_name ?? 'Anonymous Player'}` : '—'}</p>

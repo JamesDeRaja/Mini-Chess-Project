@@ -1,16 +1,24 @@
 {
   "name": "Pocket Shuffle Chess",
   "short_name": "Pocket Chess",
-  "description": "Fast chess without memorized openings: a 5x6 shuffle chess variant with daily tactical seeds, AI battles, and friend challenges.",
+  "description": "Fast chess without memorized openings: a free 5x6 shuffle chess variant with daily tactical seeds, AI battles, seed leaderboards, and friend challenges.",
   "id": "/",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "browser"
+  ],
   "orientation": "portrait-primary",
   "background_color": "#fff8e9",
   "theme_color": "#8dbfaf",
-  "categories": ["games", "strategy", "entertainment"],
+  "categories": [
+    "games",
+    "strategy",
+    "entertainment"
+  ],
   "lang": "en-US",
   "dir": "ltr",
   "icons": [
@@ -27,14 +35,70 @@
       "short_name": "Daily",
       "description": "Play today’s tactical seed.",
       "url": "/daily",
-      "icons": [{ "src": "/Icon.png", "sizes": "512x512" }]
+      "icons": [
+        {
+          "src": "/Icon.png",
+          "sizes": "512x512"
+        }
+      ]
     },
     {
       "name": "Play AI",
       "short_name": "AI",
       "description": "Start a fast AI match.",
       "url": "/bot",
-      "icons": [{ "src": "/Icon.png", "sizes": "512x512" }]
+      "icons": [
+        {
+          "src": "/Icon.png",
+          "sizes": "512x512"
+        }
+      ]
+    },
+    {
+      "name": "Popular Seeds",
+      "short_name": "Seeds",
+      "description": "Browse curated 5x6 shuffle chess challenges.",
+      "url": "/seeds",
+      "icons": [
+        {
+          "src": "/Icon.png",
+          "sizes": "512x512"
+        }
+      ]
+    }
+  ],
+  "keywords": [
+    "Pocket Shuffle Chess",
+    "mini chess",
+    "shuffle chess",
+    "daily chess",
+    "5x6 chess",
+    "AI chess",
+    "mobile chess game",
+    "chess variant",
+    "tactical chess"
+  ],
+  "screenshots": [
+    {
+      "src": "/og-home.svg",
+      "sizes": "1200x630",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "Pocket Shuffle Chess home screen"
+    },
+    {
+      "src": "/og-daily.svg",
+      "sizes": "1200x630",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "Daily shuffle chess challenge"
+    },
+    {
+      "src": "/og-result.svg",
+      "sizes": "1200x630",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "Pocket Shuffle Chess result sharing"
     }
   ]
 }
