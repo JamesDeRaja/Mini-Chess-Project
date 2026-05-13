@@ -47,11 +47,79 @@ export function getContextualTauntContext(input: { result: 'win' | 'loss' | 'sta
   return 'generic';
 }
 
+const SHARE_MESSAGE_TEMPLATES: Record<ShareMessageStyle, string[]> = {
+  compact: [
+    '[taunt]\n\n[playerName] left [score] points on [seedSlug]. Beat the tiny-board receipt:\n[challengeUrl]',
+    '[taunt]\n\nSeed [seedSlug] is open for business. Target: [score]. Bring moves, not lore.\n[challengeUrl]',
+    '[taunt]\n\n[playerName] made [seedSlug] somebody else’s problem. That somebody is probably you.\n[challengeUrl]',
+  ],
+  daily: [
+    '[taunt]\n\nDaily seed: [seedSlug]\nSetup: [backRankCode]\n[playerName] posted [score] before the reset goblin arrives.\nCan you steal the day?\n\n[challengeUrl]',
+    '[taunt]\n\nToday’s shared chaos is [seedSlug]. [playerName] scored [score], and the board is taking applications for a better hero.\n\n[challengeUrl]',
+    '[taunt]\n\nSame daily setup for everyone, same tiny excuse budget.\nScore to annoy: [score]\nSeed: [seedSlug]\n\n[challengeUrl]',
+  ],
+  leaderboard: [
+    '[taunt]\n\n[playerName] just made the [seedSlug] leaderboard weird with [score] points. Please investigate this crime.\n\n[challengeUrl]',
+    '[taunt]\n\nLeaderboard flare-up on [seedSlug]: [score] points, [moves] moves, and several pawns filing complaints.\n\n[challengeUrl]',
+    '[taunt]\n\nSeed [seedSlug] has a score wearing sunglasses: [score]. Knock them off.\n\n[challengeUrl]',
+  ],
+  full: [
+    '[taunt]\n\n[playerName] escaped Pocket Shuffle Chess with [score] points in [moves] moves.\nSeed: [seedSlug]\nSetup: [backRankCode]\n\n[comparisonBlock]Replay the crime scene:\n[challengeUrl]',
+    '[taunt]\n\nTiny board report:\n• Player: [playerName]\n• Score: [score]\n• Moves: [moves]\n• Seed: [seedSlug]\n• Setup: [backRankCode]\n\n[comparisonBlock]Your turn to improve the evidence:\n[challengeUrl]',
+    '[taunt]\n\nI brought a score, a seed, and absolutely no opening theory.\n[playerName]: [score] in [moves]\nSeed [seedSlug] · Setup [backRankCode]\n\n[comparisonBlock]Accept the challenge:\n[challengeUrl]',
+  ],
+  trashTalk: [
+    '[taunt]\n\nSame seed. Same setup. Different emotional damage.\n[playerName] scored [score] in [moves] moves on [seedSlug] ([backRankCode]).\n\n[comparisonBlock]Come fix the scoreboard:\n[challengeUrl]',
+    '[taunt]\n\nI left [score] points on [seedSlug]. The back rank was [backRankCode], the excuses were underdeveloped.\nMoves: [moves]\n\n[comparisonBlock]Your move, alleged tactician:\n[challengeUrl]',
+    '[taunt]\n\nChallenge packet: [seedSlug] · setup [backRankCode] · [score] points · [moves] moves.\nWarning: may contain forks, pins, and social consequences.\n\n[comparisonBlock]Play it here:\n[challengeUrl]',
+    '[taunt]\n\n[playerName] has submitted a tiny-board brag for peer review: [score] points on [seedSlug].\n\n[comparisonBlock]Review with your pieces, not your mouth:\n[challengeUrl]',
+  ],
+};
+
+function fillShareTemplate(template: string, input: { taunt: string; playerName: string; score: number; moves: number; seedSlug: string; backRankCode: string; challengeUrl: string; comparisonText?: string; }): string {
+  const comparisonBlock = input.comparisonText ? `${input.comparisonText}\n\n` : '';
+  return template
+    .replaceAll('[taunt]', input.taunt)
+    .replaceAll('[playerName]', input.playerName)
+    .replaceAll('[score]', String(input.score))
+    .replaceAll('[moves]', String(input.moves))
+    .replaceAll('[seedSlug]', input.seedSlug)
+    .replaceAll('[backRankCode]', input.backRankCode)
+    .replaceAll('[challengeUrl]', input.challengeUrl)
+    .replaceAll('[comparisonBlock]', comparisonBlock);
+}
+
 export function buildShareMessage(input: { style?: ShareMessageStyle; taunt: string; playerName: string; score: number; moves: number; seedSlug: string; backRankCode: string; challengeUrl: string; comparisonText?: string; }): string {
   const style = input.style ?? 'trashTalk';
-  if (style === 'compact') return `${input.taunt}\n\n${input.playerName} scored ${input.score} on ${input.seedSlug}.\nBeat this:\n${input.challengeUrl}`;
-  if (style === 'daily') return `${input.taunt}\n\nToday's Pocket Shuffle Chess seed:\n${input.seedSlug}\n\n${input.playerName} scored ${input.score}.\nCan you beat it before the daily resets?\n\n${input.challengeUrl}`;
-  if (style === 'leaderboard') return `${input.taunt}\n\n${input.playerName} posted ${input.score} on ${input.seedSlug}.\nThe leaderboard is now everybody's problem.\n\n${input.challengeUrl}`;
-  if (style === 'full') return `${input.taunt}\n\n${input.playerName} finished Pocket Shuffle Chess.\n\nScore: ${input.score}\nMoves: ${input.moves}\nSeed: ${input.seedSlug}\nSetup: ${input.backRankCode}\n\n${input.comparisonText ? `${input.comparisonText}\n\n` : ''}Play the same setup:\n${input.challengeUrl}`;
-  return `${input.taunt}\n\nSame seed. Same setup.\n${input.playerName}: ${input.score} points in ${input.moves} moves.\nSeed: ${input.seedSlug}\nSetup: ${input.backRankCode}\n\n${input.comparisonText ? `${input.comparisonText}\n\n` : ''}Your turn:\n${input.challengeUrl}`;
+  return fillShareTemplate(pick(SHARE_MESSAGE_TEMPLATES[style]), input);
+}
+
+export type SeedShareStyle = 'dailySeed' | 'randomSeed' | 'popularSeed';
+
+const SEED_SHARE_TEMPLATES: Record<SeedShareStyle, string[]> = {
+  dailySeed: [
+    '[taunt]\n\nToday’s Pocket Shuffle Chess chaos is [seedSlug] with setup [backRankCode].[scoreLine]\nEveryone gets the same board; only the excuses vary.\n\n[challengeUrl]',
+    '[taunt]\n\nDaily tiny-board bulletin: seed [seedSlug], back rank [backRankCode].[scoreLine]\nCome collect your tactics, your bragging rights, or a very educational blunder.\n\n[challengeUrl]',
+    '[taunt]\n\nThe daily seed is live: [seedSlug] ([backRankCode]).[scoreLine]\nNo opening book. No hiding. Just 5x6 consequences.\n\n[challengeUrl]',
+  ],
+  randomSeed: [
+    '[taunt]\n\nRandom seed discovered: [seedSlug]\nBack rank: [backRankCode]\nI am not saying the position is cursed, but the pawns asked for a union rep.\n\n[challengeUrl]',
+    '[taunt]\n\nI rolled [seedSlug] and got setup [backRankCode].\nThis is either a tactical gem or a tiny board prank. Please find out loudly.\n\n[challengeUrl]',
+    '[taunt]\n\nFresh shuffle alert: [seedSlug] · [backRankCode]\nSame pieces, suspicious vibes, immediate bragging rights.\n\n[challengeUrl]',
+  ],
+  popularSeed: [
+    '[taunt]\n\nSeed [seedSlug] is on the menu with setup [backRankCode].\nPlay it, share it, then pretend your first blunder was “research.”\n\n[challengeUrl]',
+    '[taunt]\n\nPopular seed briefing: [seedSlug] · [backRankCode]\nThe board is compact, the tactics are not, and the scoreboard has opinions.\n\n[challengeUrl]',
+    '[taunt]\n\nTry [seedSlug] on Pocket Shuffle Chess. Setup [backRankCode].\nWarning: tiny boards can still hurt large egos.\n\n[challengeUrl]',
+  ],
+};
+
+export function buildSeedShareMessage(input: { style: SeedShareStyle; taunt: string; seedSlug: string; backRankCode: string; challengeUrl: string; score?: number | null; }): string {
+  const scoreLine = typeof input.score === 'number' ? `\nScore to beat: ${input.score}.` : '';
+  return pick(SEED_SHARE_TEMPLATES[input.style])
+    .replaceAll('[taunt]', input.taunt)
+    .replaceAll('[seedSlug]', input.seedSlug)
+    .replaceAll('[backRankCode]', input.backRankCode)
+    .replaceAll('[challengeUrl]', input.challengeUrl)
+    .replaceAll('[scoreLine]', scoreLine);
 }
