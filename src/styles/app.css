@@ -7745,3 +7745,39 @@ button:focus-visible,
   top: 16px;
   left: 16px;
 }
+
+/* Keep decorative floor pieces behind the popular seed cards and make the streak number pop. */
+.popular-seeds-home {
+  position: relative;
+  z-index: 4;
+  isolation: isolate;
+}
+.popular-seed-home-card,
+.popular-seeds-home > .secondary-action {
+  position: relative;
+  z-index: 1;
+}
+.decorative-home-pieces {
+  z-index: 0;
+  opacity: 0.74;
+}
+.streak-brand-tile b {
+  top: 29px;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  color: #1f2328;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.98), rgba(255, 246, 196, 0.9));
+  font-size: 1.16rem;
+  box-shadow: 0 2px 8px rgba(147, 71, 7, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+@media (max-width: 760px) {
+  .streak-brand-tile b {
+    top: 23px;
+    min-width: 21px;
+    height: 21px;
+    font-size: 1rem;
+  }
+}

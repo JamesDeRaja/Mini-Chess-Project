@@ -213,6 +213,18 @@ export function HomePage({
   const visibleLeaderboardFeed = leaderboardFeed.length > 0
     ? [0, 1, 2].map((offset) => leaderboardFeed[(leaderboardFeedIndex + offset) % leaderboardFeed.length]).filter(Boolean) as LeaderboardFeedItem[]
     : [];
+  const decorativePieces = useMemo(() => {
+    const pieces = ['pawn', 'knight', 'bishop', 'rook', 'queen'] as const;
+    const seedText = activeSeedSource.seed;
+    let hash = 0;
+    for (let index = 0; index < seedText.length; index += 1) hash = (hash * 31 + seedText.charCodeAt(index)) >>> 0;
+    const frontPiece = pieces[hash % pieces.length];
+    const backPiece = pieces[(hash >>> 3) % pieces.length];
+    return {
+      front: `/pieces/white-${frontPiece}.png`,
+      back: `/pieces/black-${backPiece}.png`,
+    };
+  }, [activeSeedSource.seed]);
 
   useEffect(() => {
     const dateRefreshId = window.setInterval(() => setTodayKey(getUtcDateKey()), 60000);
@@ -714,8 +726,8 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
         </section>
 
         <div className="decorative-home-pieces" aria-hidden="true">
-          <img className="decorative-black-pawn" src="/pieces/black-pawn.png" alt="" draggable={false} />
-          <img className="decorative-white-bishop" src="/pieces/white-bishop.png" alt="" draggable={false} />
+          <img className="decorative-black-pawn" src={decorativePieces.back} alt="" draggable={false} />
+          <img className="decorative-white-bishop" src={decorativePieces.front} alt="" draggable={false} />
         </div>
       </section>
 
