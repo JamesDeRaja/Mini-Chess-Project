@@ -402,6 +402,14 @@ export function HomePage({
     window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0 }));
   }
 
+  function openLearnPieces() {
+    trackEvent('homepage_cta_click', { cta: 'learn_pieces_from_rules' });
+    setModal(null);
+    window.history.pushState(null, '', '/learn');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0 }));
+  }
+
   async function challengeHomeSeed(seed: string, backRankCode: string) {
     if (seed.startsWith('daily-')) await onDaily(seed.replace('daily-', ''));
     else await onSeeded(seed, backRankCode);
@@ -902,6 +910,7 @@ export function HomePage({
                 <li>Pawns auto-promote to queen in V1.</li>
                 <li>Checkmate wins.</li>
               </ul>
+              <p className="rules-learn-pieces">Want to learn more about how each piece moves? <button type="button" onClick={openLearnPieces}>Click here for the piece lessons.</button></p>
             </section>
             <section className="rules-section">
               <h3>AI Challenge</h3>

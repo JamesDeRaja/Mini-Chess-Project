@@ -36,9 +36,10 @@ const ROUTE_KEYWORDS: Record<string, string[]> = {
   'seed-leaderboard': ['seed leaderboard', 'chess high scores', 'score chase chess', 'competitive chess seed'],
   'popular-seeds': ['popular chess seeds', 'trending chess challenges', 'curated chess puzzles', 'viral chess seeds'],
   challenge: ['friend chess challenge', 'beat my score chess', 'share chess challenge', 'online chess duel'],
+  learn: ['learn chess', 'chess piece movement', 'how chess pieces move', 'beginner chess rules'],
 };
 
-type SeoRouteName = 'home' | 'daily' | 'bot' | 'seed' | 'seed-leaderboard' | 'popular-seeds' | 'challenge' | 'game' | 'how-it-works' | 'not-found';
+type SeoRouteName = 'home' | 'daily' | 'bot' | 'seed' | 'seed-leaderboard' | 'popular-seeds' | 'challenge' | 'game' | 'how-it-works' | 'learn' | 'not-found';
 
 type SeoInput = {
   routeName: SeoRouteName;
@@ -47,6 +48,7 @@ type SeoInput = {
   dateKey?: string;
   gameId?: string;
   challengeId?: string;
+  piece?: string;
 };
 
 type SeoConfig = {
@@ -315,6 +317,18 @@ export function getSeoConfig(input: SeoInput): SeoConfig {
       description: 'Play Pocket Shuffle Chess against AI in fast 2-5 minute games with daily tactical seeds, randomized mirrored setups, score tracking, and no opening theory.',
       canonicalPath: '/bot',
       image: '/og-home.svg',
+    });
+  }
+
+  if (input.routeName === 'learn') {
+    const pieceName = input.piece ? `${input.piece[0]?.toUpperCase() ?? ''}${input.piece.slice(1)}` : 'Chess Pieces';
+    return withStructuredData({
+      routeName: 'learn',
+      title: `${pieceName} Movement Guide - Learn Chess Pieces | Pocket Shuffle Chess`,
+      description: 'Learn how every chess piece moves and captures on the Pocket Shuffle Chess 5x6 board with visual move highlights, friendly explanations, and a quick path to practice against AI.',
+      canonicalPath: input.piece ? `/learn/${encodeURIComponent(input.piece)}` : '/learn',
+      image: '/og-home.svg',
+      keywords: [pieceName, 'learn chess pieces', 'chess movement guide', 'practice chess against AI'],
     });
   }
 

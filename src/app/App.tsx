@@ -7,6 +7,7 @@ import { ChallengeLandingPage } from '../pages/ChallengeLandingPage.js';
 import { PopularSeedsPage } from '../pages/PopularSeedsPage.js';
 import { SeedLeaderboardPage } from '../pages/SeedLeaderboardPage.js';
 import { SeedDetailPage } from '../pages/SeedDetailPage.js';
+import { LearnChessPage } from '../pages/LearnChessPage.js';
 import { NameGateModal } from '../components/NameGateModal.js';
 import { hasCustomDisplayName } from '../game/localPlayer.js';
 import type { MatchMode } from '../pages/BotGamePage.js';
@@ -15,6 +16,7 @@ import { NotFoundPage } from '../pages/NotFoundPage.js';
 import { OnlineGamePage } from '../pages/OnlineGamePage.js';
 import { trackEvent } from './analytics.js';
 import { isValidBackRankCode } from '../game/seed.js';
+import type { PieceType } from '../game/types.js';
 import type { ActiveChallengeContext } from '../game/challenge.js';
 import { createRandomGameSeed, resolveSeedSourceForMode } from '../game/shuffleMode.js';
 import { applySeo, getSeoConfig } from './seo.js';
@@ -29,9 +31,15 @@ type Route =
   | { name: 'challenge'; challengeId: string }
   | { name: 'popular-seeds' }
   | { name: 'how-it-works' }
+  | { name: 'learn'; piece?: PieceType }
   | { name: 'bot'; dateKey?: string; seed?: string; backRankCode?: string; side?: 'white' | 'black' }
   | { name: 'online'; gameId: string; matchMode: MatchMode }
   | { name: 'not-found' };
+
+
+function isPieceType(value: string | undefined): value is PieceType {
+  return value === 'king' || value === 'queen' || value === 'rook' || value === 'bishop' || value === 'knight' || value === 'pawn';
+}
 
 function isMatchMode(value: string | null): value is MatchMode {
   return value === 'single' || value === 'best-of-3' || value === 'best-of-5';
@@ -43,6 +51,7 @@ function routeFromLocation(): Route {
   const seedLeaderboardMatch = window.location.pathname.match(/^\/seed\/([^/]+)\/leaderboard$/);
   const seedMatch = window.location.pathname.match(/^\/seed\/([^/]+)$/);
   const dailyMatch = window.location.pathname.match(/^\/daily\/([0-9]{4}-[0-9]{2}-[0-9]{2})$/);
+  const learnMatch = window.location.pathname.match(/^\/learn(?:\/([^/]+))?$/);
   const search = new URLSearchParams(window.location.search);
   const mode = search.get('mode');
   if (gameMatch) return { name: 'online', gameId: gameMatch[1], matchMode: isMatchMode(mode) ? mode : 'single' };
@@ -51,6 +60,10 @@ function routeFromLocation(): Route {
   if (seedMatch) return { name: 'seed', seed: decodeURIComponent(seedMatch[1]) };
   if (dailyMatch) return { name: 'daily', dateKey: dailyMatch[1] };
   if (window.location.pathname === '/daily') return { name: 'daily' };
+  if (learnMatch) {
+    const piece = learnMatch[1]?.toLowerCase();
+    return { name: 'learn', piece: isPieceType(piece) ? piece : undefined };
+  }
   if (window.location.pathname === '/seeds' || window.location.pathname === '/seeds/popular') return { name: 'popular-seeds' };
   if (window.location.pathname === '/how-it-works') return { name: 'how-it-works' };
   if (window.location.pathname === '/bot') {
@@ -103,6 +116,7 @@ export function App() {
     if (route.name === 'challenge') return getSeoConfig({ routeName: 'challenge', path: window.location.pathname, challengeId: route.challengeId });
     if (route.name === 'popular-seeds') return getSeoConfig({ routeName: 'popular-seeds', path: window.location.pathname });
     if (route.name === 'daily') return getSeoConfig({ routeName: 'daily', path: window.location.pathname, dateKey: route.dateKey });
+    if (route.name === 'learn') return getSeoConfig({ routeName: 'learn', path: window.location.pathname, piece: route.piece });
     if (route.name === 'not-found') return getSeoConfig({ routeName: 'not-found', path: window.location.pathname });
     return getSeoConfig({ routeName: route.name, path: window.location.pathname });
   }, [route]);
@@ -195,6 +209,9 @@ export function App() {
   }
   if (route.name === 'seed') {
     return <><SeedDetailPage seedSlug={route.seed} onPlaySeed={startSeededBot} onChallengeSeed={handleSeeded} onLeaderboard={(seed) => navigate(`/seed/${encodeURIComponent(seed)}/leaderboard`)} onOpenSeed={(seed) => navigate(`/seed/${encodeURIComponent(seed)}`)} onHome={() => navigate('/')} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
+  }
+  if (route.name === 'learn') {
+    return <><LearnChessPage key={`learn-${route.piece ?? 'all'}`} initialPiece={route.piece} onHome={() => navigate('/')} onPlayAi={() => navigate('/bot')} onPiece={(piece) => navigate(`/learn/${piece}`)} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
   }
   if (route.name === 'bot') {
     const challengeParam = new URLSearchParams(window.location.search).get('challenge');
