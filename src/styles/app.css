@@ -7936,3 +7936,165 @@ body.home-modal-open .home-page {
     grid-template-columns: 1fr;
   }
 }
+
+/* Mobile result screen: keep the end-state card usable when the score details exceed the viewport. */
+@media (max-width: 820px) {
+  .winner-overlay {
+    align-items: stretch;
+    justify-items: center;
+    padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+
+  .winner-card {
+    display: flex;
+    flex-direction: column;
+    width: min(100%, 560px);
+    max-width: min(100%, 560px);
+    max-height: calc(100dvh - max(20px, env(safe-area-inset-top)) - max(20px, env(safe-area-inset-bottom)));
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 76px 16px 0;
+    border-radius: clamp(26px, 8vw, 38px);
+  }
+
+  .winner-card .result-piece-img {
+    width: 54px;
+    height: 54px;
+    margin-bottom: 2px;
+  }
+
+  .winner-card .result-king-img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .winner-card .eyebrow {
+    margin-bottom: 4px;
+    font-size: 0.64rem;
+  }
+
+  .winner-card h2 {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+
+  .winner-card > p:not(.eyebrow):not(.panel-note) {
+    font-size: clamp(1rem, 4.4vw, 1.28rem);
+    line-height: 1.24;
+  }
+
+  .winner-card .panel-note {
+    font-size: clamp(0.92rem, 3.8vw, 1.08rem);
+  }
+
+  .score-result-bento {
+    width: 100%;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin: 10px auto;
+  }
+
+  .score-hero-tile {
+    min-height: 108px;
+    padding: 12px;
+    border-radius: 22px;
+  }
+
+  .score-value-row {
+    --result-score-size: clamp(3.3rem, 18vw, 5.15rem);
+  }
+
+  .score-mini-grid {
+    padding: 14px;
+    border-radius: 22px;
+  }
+
+  .score-mini-grid p {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 12px;
+    font-size: clamp(0.96rem, 4.2vw, 1.16rem);
+  }
+
+  .score-mini-grid strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: right;
+  }
+
+  .inline-name-form,
+  .result-taunt,
+  .leaderboard-mini {
+    width: 100%;
+  }
+
+  .leaderboard-mini {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .winner-card > .panel-actions.centered-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 8;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: calc(100% + 32px);
+    margin: 14px -16px 0;
+    padding: 12px 12px max(12px, env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(222, 217, 203, 0.88);
+    background: linear-gradient(180deg, rgba(251, 248, 238, 0.92), #fbf8ee 34%);
+    box-shadow: 0 -14px 28px rgba(101, 111, 92, 0.12);
+    backdrop-filter: blur(10px);
+  }
+
+  .winner-card > .panel-actions.centered-actions button,
+  .winner-card > .panel-actions.centered-actions .result-screenshot-menu {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .winner-card > .panel-actions.centered-actions button {
+    min-height: 44px;
+    padding: 9px 10px;
+    border-radius: 15px;
+    font-size: clamp(0.78rem, 3.4vw, 0.92rem);
+  }
+
+  .winner-card > .panel-actions.centered-actions .result-screenshot-menu button {
+    height: 100%;
+  }
+
+  .winner-card .result-home-button,
+  .winner-card .result-close-button {
+    position: fixed;
+    top: max(18px, env(safe-area-inset-top));
+    z-index: 9;
+  }
+
+  .winner-card .result-home-button {
+    left: 18px;
+  }
+
+  .winner-card .result-close-button {
+    right: 18px;
+  }
+}
+
+@media (max-width: 420px) {
+  .winner-overlay {
+    padding-inline: 8px;
+  }
+
+  .winner-card {
+    padding-inline: 12px;
+  }
+
+  .winner-card > .panel-actions.centered-actions {
+    width: calc(100% + 24px);
+    margin-inline: -12px;
+    grid-template-columns: 1fr;
+  }
+}
