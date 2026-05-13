@@ -93,9 +93,13 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
                   <h3>{item.displayName}</h3>
                   <strong>{item.slug}</strong>
                   <p>{item.description}</p>
-                  <div className="panel-actions seed-list-actions">
-                    <button type="button" onClick={(event) => { event.stopPropagation(); onPlaySeed(item.slug, nextSetup); }}>Play AI</button>
-                    <button type="button" className="secondary-action" onClick={(event) => { event.stopPropagation(); void onChallengeSeed(item.slug, nextSetup); }}><Users size={15} /> Challenge Friend</button>
+                  <div className="seed-card-action-stack">
+                    <div className="seed-card-action-row">
+                      <button type="button" onClick={(event) => { event.stopPropagation(); onPlaySeed(item.slug, nextSetup); }}>Play AI</button>
+                      <button type="button" className="seed-icon-action" aria-label={`Share ${item.displayName}`} onClick={(event) => { event.stopPropagation(); void navigator.clipboard?.writeText(createSeedChallengeUrl(item.slug)); }}><Share2 size={15} /></button>
+                      <button type="button" className="seed-icon-action" aria-label={`${item.displayName} leaderboard`} onClick={(event) => { event.stopPropagation(); onLeaderboard(item.slug); }}><Trophy size={15} /></button>
+                    </div>
+                    <button type="button" className="secondary-action seed-challenge-action" onClick={(event) => { event.stopPropagation(); void onChallengeSeed(item.slug, nextSetup); }}><Users size={15} /> Challenge Friend</button>
                   </div>
                 </article>
               );

@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Home, Users } from 'lucide-react';
+import { Home, Share2, Trophy, Users } from 'lucide-react';
 import { CURATED_SEEDS } from '../game/curatedSeeds.js';
 import { createSeedFromInput } from '../game/seed.js';
 import { fetchPopularSeedStats, type SeedStatsRecord } from '../multiplayer/challengeApi.js';
 
 type SortMode = 'popular' | 'new' | 'highest' | 'shared' | 'daily';
-type Props = { onPlaySeed: (seed: string, backRankCode?: string) => void; onChallengeSeed: (seed: string, backRankCode?: string) => void | Promise<void>; onOpenSeed: (seed: string) => void; onHome: () => void };
+type Props = { onPlaySeed: (seed: string, backRankCode?: string) => void; onChallengeSeed: (seed: string, backRankCode?: string) => void | Promise<void>; onOpenSeed: (seed: string) => void; onLeaderboard: (seed: string) => void; onHome: () => void };
 
-export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onHome }: Props) {
+function copySeedChallengeLink(seedSlug: string) {
+  void navigator.clipboard?.writeText(createSeedChallengeUrl(seedSlug));
+}
+
+export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLeaderboard, onHome }: Props) {
   const [stats, setStats] = useState<SeedStatsRecord[]>([]);
   const [sort, setSort] = useState<SortMode>('popular');
   useEffect(() => { fetchPopularSeedStats().then(setStats).catch(() => setStats([])); }, []);
@@ -56,9 +60,13 @@ export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onHo
                 <p>Setup: <b>{setup}</b></p>
                 <p>Plays: {row?.total_plays ?? 0} · Shares: {row?.total_shares ?? 0}</p>
                 <p>Best Score: {row?.best_score ? `${row.best_score} by ${row.best_score_player_name ?? 'Anonymous Player'}` : '—'}</p>
-                <div className="panel-actions seed-list-actions">
-                  <button type="button" onClick={(event) => { event.stopPropagation(); onPlaySeed(seed.slug, setup); }}>Play AI</button>
-                  <button type="button" onClick={(event) => { event.stopPropagation(); void onChallengeSeed(seed.slug, setup); }}><Users size={16} /> Challenge Friend</button>
+                <div className="seed-card-action-stack">
+                  <div className="seed-card-action-row">
+                    <button type="button" onClick={(event) => { event.stopPropagation(); onPlaySeed(seed.slug, setup); }}>Play AI</button>
+                    <button type="button" className="seed-icon-action" aria-label={`Share ${seed.displayName}`} onClick={(event) => { event.stopPropagation(); copySeedChallengeLink(seed.slug); }}><Share2 size={16} /></button>
+                    <button type="button" className="seed-icon-action" aria-label={`${seed.displayName} leaderboard`} onClick={(event) => { event.stopPropagation(); onLeaderboard(seed.slug); }}><Trophy size={16} /></button>
+                  </div>
+                  <button type="button" className="secondary-action seed-challenge-action" onClick={(event) => { event.stopPropagation(); void onChallengeSeed(seed.slug, setup); }}><Users size={16} /> Challenge Friend</button>
                 </div>
               </article>
             );

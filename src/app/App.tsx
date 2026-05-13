@@ -185,7 +185,7 @@ export function App() {
     return <><ChallengeLandingPage challengeId={route.challengeId} onPlayChallenge={(context: ActiveChallengeContext) => navigate(`/bot?seed=${encodeURIComponent(context.seedSlug)}&setup=${encodeURIComponent(context.backRankCode)}&challenge=${encodeURIComponent(JSON.stringify(context))}`)} onSeedLeaderboard={(seed) => navigate(`/seed/${encodeURIComponent(seed)}/leaderboard`)} onHome={() => navigate('/')} onDaily={() => navigate('/daily')} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
   }
   if (route.name === 'popular-seeds') {
-    return <><PopularSeedsPage onPlaySeed={startSeededBot} onChallengeSeed={handleSeeded} onOpenSeed={(seed) => navigate(`/seed/${encodeURIComponent(seed)}`)} onHome={() => navigate('/')} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
+    return <><PopularSeedsPage onPlaySeed={startSeededBot} onChallengeSeed={handleSeeded} onOpenSeed={(seed) => navigate(`/seed/${encodeURIComponent(seed)}`)} onLeaderboard={(seed) => navigate(`/seed/${encodeURIComponent(seed)}/leaderboard`)} onHome={() => navigate('/')} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
   }
   if (route.name === 'seed-leaderboard') {
     return <><SeedLeaderboardPage seedSlug={route.seed} onPlaySeed={startSeededBot} onHome={() => navigate('/')} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
