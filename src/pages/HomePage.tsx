@@ -646,30 +646,6 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             <button type="button" onClick={() => { trackEvent('homepage_cta_click', { cta: 'how_it_works' }); setModal('rules'); }}><BookOpen size={17} aria-hidden="true" /> How It Works</button>
           </div>
 
-          <section className="popular-seeds-home" aria-labelledby="popular-seeds-home-title">
-            <div>
-              <p className="eyebrow">Popular Seeds</p>
-              <h2 id="popular-seeds-home-title">Play a shared setup and try to beat the best score.</h2>
-            </div>
-            <div className="popular-seed-home-grid">
-              {[{ slug: getDailySeed(todayKey), displayName: "Today's Daily" }, ...CURATED_SEEDS.filter((seed) => ['gotham-chaos', 'boss-battle', 'queen-rush', 'knight-panic', 'final-boss'].includes(seed.slug))].map((seed) => {
-                const created = createSeedFromInput(seed.slug);
-                const setup = created.ok ? created.backRankCode : activeBackRankCode;
-                return (
-                  <article className="popular-seed-home-card" key={seed.slug}>
-                    <strong>{seed.displayName}</strong>
-                    <span>{seed.slug}</span>
-                    <small>Setup {setup}</small>
-                    <div className="panel-actions">
-                      <button type="button" onClick={() => onStartSeededBot(seed.slug, setup)}>Play</button>
-                      <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seed.slug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Leaderboard</button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-            <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', '/seeds'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Popular Seeds</button>
-          </section>
         </div>
 
         <aside className="today-setup-showcase" aria-label="Today’s 5 by 6 setup preview">
@@ -694,6 +670,31 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             </div>
           </div>
         </aside>
+
+        <section className="popular-seeds-home" aria-labelledby="popular-seeds-home-title">
+          <div>
+            <p className="eyebrow">Popular Seeds</p>
+            <h2 id="popular-seeds-home-title">Play a shared setup and try to beat the best score.</h2>
+          </div>
+          <div className="popular-seed-home-grid">
+            {[{ slug: getDailySeed(todayKey), displayName: "Today's Daily" }, ...CURATED_SEEDS.filter((seed) => ['gotham-chaos', 'boss-battle', 'queen-rush', 'knight-panic', 'final-boss'].includes(seed.slug))].map((seed) => {
+              const created = createSeedFromInput(seed.slug);
+              const setup = created.ok ? created.backRankCode : activeBackRankCode;
+              return (
+                <article className="popular-seed-home-card" key={seed.slug}>
+                  <strong>{seed.displayName}</strong>
+                  <span>{seed.slug}</span>
+                  <small>Setup {setup}</small>
+                  <div className="panel-actions">
+                    <button type="button" onClick={() => onStartSeededBot(seed.slug, setup)}>Play</button>
+                    <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seed.slug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Leaderboard</button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', '/seeds'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Popular Seeds</button>
+        </section>
 
         <div className="decorative-home-pieces" aria-hidden="true">
           <img className="decorative-black-pawn" src="/pieces/black-pawn.png" alt="" draggable={false} />

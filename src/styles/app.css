@@ -7269,3 +7269,76 @@ button:focus-visible,
     letter-spacing: 0.16em;
   }
 }
+
+/* Use the bottom desktop band too: popular seeds become a full-width bento row. */
+@media (min-width: 1181px) {
+  .home-hero-shell {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 410px);
+    grid-template-rows: auto auto;
+    align-content: start;
+    align-items: start;
+    column-gap: clamp(20px, 2.4vw, 42px);
+    row-gap: clamp(10px, 1.6vh, 18px);
+    width: min(100%, 1720px);
+  }
+
+  .home-hero-shell .hero-copy {
+    grid-column: 1;
+    grid-row: 1;
+    max-width: 1050px;
+  }
+
+  .home-action-grid,
+  .secondary-home-actions {
+    max-width: 1050px;
+  }
+
+  .home-action-card {
+    min-height: clamp(118px, 12vh, 142px);
+  }
+
+  .today-setup-showcase {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: stretch;
+    width: 100%;
+    margin-top: clamp(12px, 2vh, 28px);
+  }
+
+  .popular-seeds-home {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, auto);
+    align-items: stretch;
+    width: 100%;
+    max-width: none;
+    gap: clamp(8px, 0.9vw, 12px);
+    margin-top: 0;
+  }
+
+  .popular-seeds-home > div:first-child {
+    display: grid;
+    align-content: end;
+    min-width: 0;
+  }
+
+  .popular-seed-home-grid {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    align-content: stretch;
+  }
+
+  .popular-seeds-home > .secondary-action {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: stretch;
+    min-height: 36px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1180px) {
+  .popular-seeds-home { order: 2; }
+  .today-setup-showcase { order: 3; }
+}
