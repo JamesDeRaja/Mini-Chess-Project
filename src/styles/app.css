@@ -7448,7 +7448,7 @@ button:focus-visible,
 .home-action-match .action-piece-rook,
 .home-action-invite .action-piece-knight {
   top: 42%;
-  left: 56%;
+  left: 60%;
   width: 156px;
   height: 158px;
   max-width: none;
@@ -7458,7 +7458,7 @@ button:focus-visible,
 }
 
 .home-action-invite .action-piece-knight {
-  left: 51%;
+  left: 56%;
   width: 148px;
   height: 156px;
 }
@@ -7550,7 +7550,7 @@ button:focus-visible,
   .home-action-match .action-piece-rook,
   .home-action-invite .action-piece-knight {
     top: 44%;
-    left: 54%;
+    left: 58%;
     width: 96px;
     height: 100px;
   }
