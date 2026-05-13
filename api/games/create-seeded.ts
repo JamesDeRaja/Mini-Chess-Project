@@ -18,7 +18,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     response.status(400).send('Missing playerId or seed');
     return;
   }
-  if (!seedValidation.ok) {
+  if (seedValidation.ok === false) {
     response.status(400).send(seedValidation.error);
     return;
   }

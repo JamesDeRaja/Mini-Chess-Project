@@ -203,7 +203,7 @@ export function HomePage({
   const activeHeaderDescription = shuffleMode === 'daily' ? 'Same board for everyone today.' : 'Active until refresh.';
   const blackBackRankCode = [...activeBackRankCode].reverse().join('');
   const customSeedValidation = validateSeedInput(customSeed);
-  const customSeedError = customSeedWasSubmitted && !customSeedValidation.ok ? customSeedValidation.error : null;
+  const customSeedError = customSeedWasSubmitted && customSeedValidation.ok === false ? customSeedValidation.error : null;
   const customBackRankCode = customSeedValidation.ok ? customSeedValidation.backRankCode : null;
   const dailyAIStatusLine = getDailyAIStatusLine(dailyAIProgress);
   const activeLeaderboardView = leaderboardViews.find((view) => view.scope === leaderboardScope) ?? leaderboardViews[0];
@@ -371,19 +371,19 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
 
   function playCustomSeedAgainstAi() {
     setCustomSeedWasSubmitted(true);
-    if (!customSeedValidation.ok) return;
+    if (customSeedValidation.ok === false) return;
     onStartSeededBot(customSeedValidation.normalizedSeed);
   }
 
   async function requestCustomMatch() {
     setCustomSeedWasSubmitted(true);
-    if (!customSeedValidation.ok) return;
+    if (customSeedValidation.ok === false) return;
     await requestMatchFor(customSeedValidation.normalizedSeed, customSeedValidation.backRankCode);
   }
 
   async function inviteCustomSeed() {
     setCustomSeedWasSubmitted(true);
-    if (!customSeedValidation.ok) return;
+    if (customSeedValidation.ok === false) return;
     await onSeeded(customSeedValidation.normalizedSeed);
   }
 

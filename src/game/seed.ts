@@ -146,7 +146,7 @@ export function randomBackRankCodeFromSeed(seed: string): string {
 
 export function resolveBackRankCode(seed: string): string {
   const validatedSeed = validateSeedInput(seed);
-  if (!validatedSeed.ok) throw new Error(validatedSeed.error);
+  if (validatedSeed.ok === false) throw new Error(validatedSeed.error);
   return validatedSeed.backRankCode;
 }
 

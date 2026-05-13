@@ -141,8 +141,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
     response.status(400).send('Missing playerId, seed, or backRankCode');
     return;
   }
-  if (!seedValidation.ok || !seed || !backRankCode) {
-    response.status(400).send(seedValidation.ok ? 'Missing playerId, seed, or backRankCode' : seedValidation.error);
+  if (seedValidation.ok === false || !seed || !backRankCode) {
+    response.status(400).send(seedValidation.ok === false ? seedValidation.error : 'Missing playerId, seed, or backRankCode');
     return;
   }
   if (requestedBackRankCode && !isValidBackRankCode(requestedBackRankCode)) {

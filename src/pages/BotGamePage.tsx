@@ -211,7 +211,7 @@ function InvalidSeedPanel({ customSeed, error, onHome, onCustomSeed, onDaily, on
 
 export function BotGamePage(props: BotGamePageProps) {
   const seedValidation = props.customSeed ? validateSeedInput(props.customSeed) : null;
-  if (seedValidation && !seedValidation.ok) return <InvalidSeedPanel {...props} error={seedValidation.error} />;
+  if (seedValidation && seedValidation.ok === false) return <InvalidSeedPanel {...props} error={seedValidation.error} />;
   return <BotGameContent {...props} seedValidation={seedValidation} />;
 }
 

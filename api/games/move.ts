@@ -141,7 +141,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   if (!backRankCode) updatePayload.board = nextBoard;
 
-  const { data: updatedGame, error: updateError } = await safeSupabaseUpdate(
+  const { data: updatedGame, error: updateError } = await safeSupabaseUpdate<Record<string, unknown>>(
     supabase,
     gameId,
     updatePayload,
