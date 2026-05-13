@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Flame, Link as LinkIcon, RefreshCw, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
+import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Flame, Link as LinkIcon, RefreshCw, Share2, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput, createSeedFromInput } from '../game/seed.js';
 import { createRandomGameSeed, getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
@@ -12,6 +12,7 @@ import { getPlayStreak } from '../game/playStreak.js';
 import { getShareUrl } from '../app/seo.js';
 import { fetchLeaderboard, fetchScoreboard, type LeaderboardEntry, type LeaderboardScope } from '../multiplayer/scoreApi.js';
 import { CURATED_SEEDS } from '../game/curatedSeeds.js';
+import { createSeedChallengeUrl } from '../game/challenge.js';
 
 type HomePageProps = {
   initialModal?: Exclude<ModalName, null>;
@@ -440,6 +441,16 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
     else await onSeeded(seed, backRankCode);
   }
 
+  function openHomeSeedLeaderboard(seed: string) {
+    window.history.pushState(null, '', `/seed/${encodeURIComponent(seed)}/leaderboard`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0 }));
+  }
+
+  function shareHomeSeed(seed: string) {
+    void navigator.clipboard?.writeText(createSeedChallengeUrl(seed));
+  }
+
   async function requestMatchFor(seed: string, backRankCode: string, mode: ShuffleMode = modeFromSeed(seed)) {
     trackEvent('homepage_cta_click', { cta: 'find_match', seed, mode });
     setMatchTarget({ seed, backRankCode, mode });
@@ -737,9 +748,13 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
                   <strong>{seed.displayName}</strong>
                   <span>{seed.slug}</span>
                   <small>Setup {setup}</small>
-                  <div className="panel-actions seed-list-actions">
-                    <button type="button" onClick={(event) => { event.stopPropagation(); onStartSeededBot(seed.slug, setup); }}>Play AI</button>
-                    <button type="button" className="secondary-action" onClick={(event) => { event.stopPropagation(); void challengeHomeSeed(seed.slug, setup); }}><Users size={15} /> Challenge Friend</button>
+                  <div className="seed-card-action-stack">
+                    <div className="seed-card-action-row">
+                      <button type="button" onClick={(event) => { event.stopPropagation(); onStartSeededBot(seed.slug, setup); }}>Play AI</button>
+                      <button type="button" className="seed-icon-action" aria-label={`Share ${seed.displayName}`} onClick={(event) => { event.stopPropagation(); shareHomeSeed(seed.slug); }}><Share2 size={15} /></button>
+                      <button type="button" className="seed-icon-action" aria-label={`${seed.displayName} leaderboard`} onClick={(event) => { event.stopPropagation(); openHomeSeedLeaderboard(seed.slug); }}><Trophy size={15} /></button>
+                    </div>
+                    <button type="button" className="secondary-action seed-challenge-action" onClick={(event) => { event.stopPropagation(); void challengeHomeSeed(seed.slug, setup); }}><Users size={15} /> Challenge Friend</button>
                   </div>
                 </article>
               );
