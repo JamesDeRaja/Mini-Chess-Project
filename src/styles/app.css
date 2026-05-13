@@ -2158,9 +2158,9 @@ button:active:not(:disabled) {
 .home-action-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(12px, 1.4vw, 16px);
+  gap: clamp(10px, 1.3vw, 14px);
   width: 100%;
-  max-width: 640px;
+  max-width: 660px;
   margin-top: 4px;
 }
 
@@ -2216,9 +2216,62 @@ button:active:not(:disabled) {
   100% { transform: translateX(-50%) translateY(0) rotate(var(--piece-rotate, 0deg)) scale(var(--piece-scale, 1)); }
 }
 
-.home-action-ai { background: #dcefe5; border-color: rgba(169, 192, 169, 0.72); }
+.home-action-ai { background: #dcefe5; border-color: rgba(169, 192, 169, 0.72); grid-column: span 2; }
 .home-action-match { background: #f4dd9b; border-color: rgba(229, 202, 137, 0.72); }
 .home-action-invite { background: #f1c8c1; border-color: rgba(224, 174, 166, 0.72); }
+.home-action-date { background: #d4e8f6; border-color: rgba(148, 192, 222, 0.72); }
+.home-action-seed { background: #ead8f8; border-color: rgba(185, 150, 218, 0.72); }
+.home-action-rules {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 72px !important;
+  padding: 15px 18px;
+  gap: 14px;
+  background: #fdf0d0;
+  border-color: rgba(228, 205, 138, 0.72);
+}
+.home-action-rules .action-arrow {
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+}
+.home-action-rules .action-card-copy {
+  flex: 1;
+  min-width: 0;
+  padding-right: 54px;
+}
+
+.date-badge { color: #1e5c8a; }
+.seed-badge { color: #5a248a; }
+
+.action-glyph {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  width: 58px;
+  height: 58px;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0.22;
+  color: currentColor;
+  z-index: 1;
+}
+
+.rules-icon-wrap {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  color: #7a5c1a;
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: inset 0 -2px 0 rgba(45, 43, 37, 0.07);
+}
 
 .action-piece {
   position: absolute;
@@ -2783,9 +2836,8 @@ body.home-modal-open { overflow: hidden; }
     max-width: none;
     margin-top: 8px;
   }
-  .home-action-more { display: flex; background: #fbf3dd; border-color: rgba(237, 223, 193, 0.9); }
   .home-action-card {
-    min-height: 136px;
+    min-height: 132px;
     padding: 12px;
     border-radius: 24px;
   }
@@ -2804,12 +2856,19 @@ body.home-modal-open { overflow: hidden; }
     opacity: 0.78;
     transform: none;
   }
+  .action-glyph {
+    top: 16px;
+    right: 8px;
+    left: auto;
+    transform: none;
+  }
   .action-card-copy { gap: 3px; padding-right: 44px; }
   .action-card-copy strong { font-size: clamp(0.98rem, 4.4vw, 1.14rem); }
   .action-card-copy small { font-size: 0.72rem; line-height: 1.18; }
   .action-card-copy .daily-ai-status { display: none; }
   .action-arrow { right: 10px; bottom: 10px; width: 30px; height: 30px; }
-  .card-sparkle-four { top: 22px; right: 16px; transform: rotate(12deg); }
+  .home-action-rules .action-arrow { top: 50%; bottom: auto; transform: translateY(-50%); }
+  .home-action-rules .action-card-copy { padding-right: 50px; }
   .action-more-glyph {
     position: absolute;
     top: 42px;
@@ -6625,7 +6684,7 @@ button:focus-visible,
   padding: 7px 10px;
 }
 .home-action-grid {
-  max-width: 590px;
+  max-width: 620px;
   gap: 10px;
   margin-top: 0;
 }
@@ -6638,6 +6697,11 @@ button:focus-visible,
   top: 18px;
   height: 74px;
   width: min(74%, 96px);
+}
+.action-glyph {
+  top: 14px;
+  width: 52px;
+  height: 52px;
 }
 .action-piece-rook { width: min(70%, 92px); }
 .action-piece-knight { width: min(74%, 98px); }
@@ -6782,17 +6846,29 @@ button:focus-visible,
     width: 100%;
   }
   .home-action-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 7px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
   .home-action-card {
-    min-height: 118px;
+    min-height: 120px;
     padding: 10px;
     border-radius: 20px;
   }
   .action-piece {
+    top: 14px;
+    right: 8px;
+    left: auto;
     height: 58px;
     width: min(72%, 72px);
+    transform: none;
+  }
+  .action-glyph {
+    top: 12px;
+    right: 8px;
+    left: auto;
+    width: 44px;
+    height: 44px;
+    transform: none;
   }
   .action-badge {
     top: 8px;
@@ -6801,7 +6877,7 @@ button:focus-visible,
     font-size: 0.62rem;
   }
   .action-card-copy {
-    padding-right: 28px;
+    padding-right: 60px;
   }
   .action-card-copy strong {
     font-size: 0.9rem;
@@ -6820,12 +6896,11 @@ button:focus-visible,
   }
 }
 @media (max-width: 460px) {
-  .home-action-grid,
   .popular-seed-home-grid {
     grid-template-columns: 1fr;
   }
   .home-action-card {
-    min-height: 92px;
+    min-height: 106px;
   }
   .popular-seed-home-card .panel-actions {
     grid-template-columns: 1fr 1fr;
@@ -6890,7 +6965,7 @@ button:focus-visible,
     height: 30px;
   }
   .home-action-grid {
-    max-width: 560px;
+    max-width: 580px;
     gap: 8px;
   }
   .home-action-card {
@@ -6902,6 +6977,11 @@ button:focus-visible,
     top: 14px;
     height: 56px;
     width: min(66%, 76px);
+  }
+  .action-glyph {
+    top: 12px;
+    width: 48px;
+    height: 48px;
   }
   .action-piece-rook { width: min(62%, 72px); }
   .action-piece-knight { width: min(66%, 76px); }
@@ -6922,10 +7002,13 @@ button:focus-visible,
     font-size: 0.68rem;
     line-height: 1.08;
   }
-  .secondary-home-actions button {
-    min-height: 36px;
-    padding: 7px 10px;
-    font-size: 0.78rem;
+  .home-action-rules .action-card-copy {
+    padding-right: 46px;
+  }
+  .rules-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
   }
   .today-setup-showcase {
     width: min(100%, 410px);
@@ -7341,4 +7424,106 @@ button:focus-visible,
 @media (min-width: 769px) and (max-width: 1180px) {
   .popular-seeds-home { order: 2; }
   .today-setup-showcase { order: 3; }
+}
+
+/* ── Hero AI bento tile: large right-aligned piece, prominent text ── */
+.home-action-ai .action-piece-pawn {
+  left: auto;
+  right: 0;
+  top: 50%;
+  width: 158px;
+  height: 178px;
+  max-width: none;
+  transform: translateY(-54%);
+  opacity: 1;
+  filter: drop-shadow(0 20px 24px rgba(40, 34, 24, 0.32));
+}
+.home-action-ai.home-action-card:hover:not(:disabled) .action-piece-pawn {
+  animation: ai-hero-bob 760ms cubic-bezier(.18, 1.45, .32, 1);
+}
+@keyframes ai-hero-bob {
+  0%   { transform: translateY(-54%) rotate(0deg) scale(1); }
+  42%  { transform: translateY(calc(-54% - 10px)) rotate(-4deg) scale(1.04, 0.96); }
+  72%  { transform: translateY(calc(-54% + 2px)) rotate(2deg) scale(0.98, 1.03); }
+  100% { transform: translateY(-54%) rotate(0deg) scale(1); }
+}
+.home-action-ai .action-card-copy {
+  padding-right: 172px;
+  gap: 5px;
+}
+.home-action-ai .action-card-copy strong {
+  font-size: clamp(1.4rem, 2vw, 1.85rem);
+  line-height: 1;
+}
+.home-action-ai .action-card-copy small {
+  font-size: 0.88rem;
+}
+.home-action-ai .action-card-copy .daily-ai-status {
+  display: block;
+  font-size: 0.78rem;
+}
+/* Stars float over the piece top-right — keep them visible */
+.home-action-ai .daily-ai-stars {
+  right: 12px;
+  font-size: 1.06rem;
+}
+
+/* Compact desktop (~900–1180 px) */
+@media (max-width: 1180px) {
+  .home-action-ai .action-piece-pawn {
+    width: 136px;
+    height: 154px;
+  }
+  .home-action-ai .action-card-copy {
+    padding-right: 150px;
+  }
+  .home-action-ai .action-card-copy strong {
+    font-size: clamp(1.2rem, 1.8vw, 1.6rem);
+  }
+}
+
+/* Compact 900 px */
+@media (max-width: 900px) {
+  .home-action-ai .action-piece-pawn {
+    width: 116px;
+    height: 130px;
+  }
+  .home-action-ai .action-card-copy {
+    padding-right: 128px;
+  }
+  .home-action-ai .action-card-copy strong {
+    font-size: clamp(1.05rem, 1.4vw, 1.35rem);
+  }
+}
+
+/* Mobile: AI card is full-width 2-col span — keep large piece */
+@media (max-width: 760px) {
+  .home-action-ai .action-piece-pawn {
+    width: 105px;
+    height: 118px;
+    right: 6px;
+  }
+  .home-action-ai .action-card-copy {
+    padding-right: 118px;
+  }
+  .home-action-ai .action-card-copy strong {
+    font-size: clamp(1.15rem, 5.5vw, 1.45rem);
+  }
+  .home-action-ai .action-card-copy small {
+    font-size: 0.8rem;
+  }
+  .home-action-ai .daily-ai-stars {
+    font-size: 0.92rem;
+  }
+}
+
+@media (max-width: 460px) {
+  .home-action-ai .action-piece-pawn {
+    width: 92px;
+    height: 104px;
+    right: 4px;
+  }
+  .home-action-ai .action-card-copy {
+    padding-right: 102px;
+  }
 }
