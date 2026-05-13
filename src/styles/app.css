@@ -7425,3 +7425,105 @@ button:focus-visible,
   .popular-seeds-home { order: 2; }
   .today-setup-showcase { order: 3; }
 }
+
+/* ── Hero AI bento tile: large right-aligned piece, prominent text ── */
+.home-action-ai .action-piece-pawn {
+  left: auto;
+  right: 0;
+  top: 50%;
+  width: 158px;
+  height: 178px;
+  max-width: none;
+  transform: translateY(-54%);
+  opacity: 1;
+  filter: drop-shadow(0 20px 24px rgba(40, 34, 24, 0.32));
+}
+.home-action-ai.home-action-card:hover:not(:disabled) .action-piece-pawn {
+  animation: ai-hero-bob 760ms cubic-bezier(.18, 1.45, .32, 1);
+}
+@keyframes ai-hero-bob {
+  0%   { transform: translateY(-54%) rotate(0deg) scale(1); }
+  42%  { transform: translateY(calc(-54% - 10px)) rotate(-4deg) scale(1.04, 0.96); }
+  72%  { transform: translateY(calc(-54% + 2px)) rotate(2deg) scale(0.98, 1.03); }
+  100% { transform: translateY(-54%) rotate(0deg) scale(1); }
+}
+.home-action-ai .action-card-copy {
+  padding-right: 172px;
+  gap: 5px;
+}
+.home-action-ai .action-card-copy strong {
+  font-size: clamp(1.4rem, 2vw, 1.85rem);
+  line-height: 1;
+}
+.home-action-ai .action-card-copy small {
+  font-size: 0.88rem;
+}
+.home-action-ai .action-card-copy .daily-ai-status {
+  display: block;
+  font-size: 0.78rem;
+}
+/* Stars float over the piece top-right — keep them visible */
+.home-action-ai .daily-ai-stars {
+  right: 12px;
+  font-size: 1.06rem;
+}
+
+/* Compact desktop (~900–1180 px) */
+@media (max-width: 1180px) {
+  .home-action-ai .action-piece-pawn {
+    width: 136px;
+    height: 154px;
+  }
+  .home-action-ai .action-card-copy {
+    padding-right: 150px;
+  }
+  .home-action-ai .action-card-copy strong {
+    font-size: clamp(1.2rem, 1.8vw, 1.6rem);
+  }
+}
+
+/* Compact 900 px */
+@media (max-width: 900px) {
+  .home-action-ai .action-piece-pawn {
+    width: 116px;
+    height: 130px;
+  }
+  .home-action-ai .action-card-copy {
+    padding-right: 128px;
+  }
+  .home-action-ai .action-card-copy strong {
+    font-size: clamp(1.05rem, 1.4vw, 1.35rem);
+  }
+}
+
+/* Mobile: AI card is full-width 2-col span — keep large piece */
+@media (max-width: 760px) {
+  .home-action-ai .action-piece-pawn {
+    width: 105px;
+    height: 118px;
+    right: 6px;
+  }
+  .home-action-ai .action-card-copy {
+    padding-right: 118px;
+  }
+  .home-action-ai .action-card-copy strong {
+    font-size: clamp(1.15rem, 5.5vw, 1.45rem);
+  }
+  .home-action-ai .action-card-copy small {
+    font-size: 0.8rem;
+  }
+  .home-action-ai .daily-ai-stars {
+    font-size: 0.92rem;
+  }
+}
+
+@media (max-width: 460px) {
+  .home-action-ai .action-piece-pawn {
+    width: 92px;
+    height: 104px;
+    right: 4px;
+  }
+  .home-action-ai .action-card-copy {
+    padding-right: 102px;
+  }
+}
