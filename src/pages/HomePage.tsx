@@ -429,6 +429,17 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
     else await onSeeded(activeSeedSource.seed, activeSeedSource.backRankCode);
   }
 
+  function openSeedDetail(seed: string) {
+    window.history.pushState(null, '', `/seed/${encodeURIComponent(seed)}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0 }));
+  }
+
+  async function challengeHomeSeed(seed: string, backRankCode: string) {
+    if (seed.startsWith('daily-')) await onDaily(seed.replace('daily-', ''));
+    else await onSeeded(seed, backRankCode);
+  }
+
   async function requestMatchFor(seed: string, backRankCode: string, mode: ShuffleMode = modeFromSeed(seed)) {
     trackEvent('homepage_cta_click', { cta: 'find_match', seed, mode });
     setMatchTarget({ seed, backRankCode, mode });
@@ -710,13 +721,25 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               const created = createSeedFromInput(seed.slug);
               const setup = created.ok ? created.backRankCode : activeBackRankCode;
               return (
-                <article className="popular-seed-home-card" key={seed.slug}>
+                <article
+                  className="popular-seed-home-card seed-card-clickable"
+                  key={seed.slug}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openSeedDetail(seed.slug)}
+                  onKeyDown={(event) => {
+                    if ((event.key === 'Enter' || event.key === ' ') && event.currentTarget === event.target) {
+                      event.preventDefault();
+                      openSeedDetail(seed.slug);
+                    }
+                  }}
+                >
                   <strong>{seed.displayName}</strong>
                   <span>{seed.slug}</span>
                   <small>Setup {setup}</small>
-                  <div className="panel-actions">
-                    <button type="button" onClick={() => onStartSeededBot(seed.slug, setup)}>Play</button>
-                    <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seed.slug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Leaderboard</button>
+                  <div className="panel-actions seed-list-actions">
+                    <button type="button" onClick={(event) => { event.stopPropagation(); onStartSeededBot(seed.slug, setup); }}>Play AI</button>
+                    <button type="button" className="secondary-action" onClick={(event) => { event.stopPropagation(); void challengeHomeSeed(seed.slug, setup); }}><Users size={15} /> Challenge Friend</button>
                   </div>
                 </article>
               );

@@ -23,7 +23,7 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
   const validation = createSeedFromInput(normalized);
   const setup = validation.ok ? validation.backRankCode : 'BQKRN';
   const blackSetup = [...setup].reverse().join('');
-  const others = CURATED_SEEDS.filter((item) => item.slug !== normalized).slice(0, 6);
+  const others = CURATED_SEEDS.filter((item) => item.slug !== normalized).slice(0, 8);
   const title = seed?.displayName ?? getSeedDisplayName(normalized);
   const shareUrl = createSeedChallengeUrl(normalized);
 
@@ -77,13 +77,25 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
               const nextValidation = createSeedFromInput(item.slug);
               const nextSetup = nextValidation.ok ? nextValidation.backRankCode : 'BQKRN';
               return (
-                <article className="seed-card" key={item.slug}>
+                <article
+                  className="seed-card seed-card-clickable"
+                  key={item.slug}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onOpenSeed(item.slug)}
+                  onKeyDown={(event) => {
+                    if ((event.key === 'Enter' || event.key === ' ') && event.currentTarget === event.target) {
+                      event.preventDefault();
+                      onOpenSeed(item.slug);
+                    }
+                  }}
+                >
                   <h3>{item.displayName}</h3>
                   <strong>{item.slug}</strong>
                   <p>{item.description}</p>
-                  <div className="panel-actions">
-                    <button type="button" onClick={() => onOpenSeed(item.slug)}>Open</button>
-                    <button type="button" className="secondary-action" onClick={() => { void onChallengeSeed(item.slug, nextSetup); }}><Users size={15} /> Challenge</button>
+                  <div className="panel-actions seed-list-actions">
+                    <button type="button" onClick={(event) => { event.stopPropagation(); onPlaySeed(item.slug, nextSetup); }}>Play AI</button>
+                    <button type="button" className="secondary-action" onClick={(event) => { event.stopPropagation(); void onChallengeSeed(item.slug, nextSetup); }}><Users size={15} /> Challenge Friend</button>
                   </div>
                 </article>
               );

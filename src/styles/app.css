@@ -7781,3 +7781,15 @@ button:focus-visible,
     font-size: 1rem;
   }
 }
+
+/* Seed listing cards now expose details via the card itself; actions stay to Play AI + Challenge Friend only. */
+.seed-list-actions {
+  align-items: center;
+}
+.seed-list-actions button {
+  flex: 1 1 130px;
+}
+.popular-seed-home-card.seed-card-clickable:focus-visible {
+  outline: 3px solid rgba(126, 166, 133, 0.72);
+  outline-offset: 3px;
+}
