@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, RefreshCw, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
+import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, RefreshCw, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput, createSeedFromInput } from '../game/seed.js';
 import { createRandomGameSeed, getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
@@ -23,7 +23,7 @@ type HomePageProps = {
   onCancelFindMatch: (queueId?: string) => Promise<void>;
 };
 
-type ModalName = 'date' | 'custom' | 'rules' | 'more' | 'matchmaking' | null;
+type ModalName = 'date' | 'custom' | 'rules' | 'matchmaking' | null;
 type LeaderboardFeedItem = { id: string; displayName: string; score: number; kind: 'rank' | 'new-score'; rank?: number };
 type LeaderboardView = { scope: LeaderboardScope; label: string; title: string; description: string };
 
@@ -631,27 +631,31 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               <span className="action-card-copy"><strong>Invite Friend</strong><small>{shuffleMode === 'daily' ? 'Share today’s setup' : 'Share one random setup'}</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
-            <button type="button" className="home-action-card home-action-more" onClick={() => setModal('more')}>
-              <span className="action-badge more-badge"><MoreHorizontal size={14} aria-hidden="true" /> More</span>
-              <span className="card-sparkle card-sparkle-four" aria-hidden="true" />
-              <span className="action-more-glyph" aria-hidden="true"><CalendarDays size={30} /><Shuffle size={30} /><BookOpen size={30} /></span>
-              <span className="action-card-copy"><strong>More Options</strong><small>Date, seed, and rules</small></span>
+            <button type="button" className="home-action-card home-action-date" onClick={() => { trackEvent('homepage_cta_click', { cta: 'choose_date' }); setModal('date'); }}>
+              <span className="action-badge date-badge"><CalendarDays size={14} aria-hidden="true" /> Date</span>
+              <span className="action-glyph" aria-hidden="true"><CalendarDays size={52} /></span>
+              <span className="action-card-copy"><strong>Choose Date</strong><small>Replay any daily</small></span>
+              <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
+            </button>
+            <button type="button" className="home-action-card home-action-seed" onClick={() => { trackEvent('homepage_cta_click', { cta: 'custom_seed' }); setModal('custom'); }}>
+              <span className="action-badge seed-badge"><Shuffle size={14} aria-hidden="true" /> Seed</span>
+              <span className="action-glyph" aria-hidden="true"><Shuffle size={52} /></span>
+              <span className="action-card-copy"><strong>Custom Seed</strong><small>Your own setup</small></span>
+              <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
+            </button>
+            <button type="button" className="home-action-card home-action-rules" onClick={() => { trackEvent('homepage_cta_click', { cta: 'how_it_works' }); setModal('rules'); }}>
+              <span className="rules-icon-wrap" aria-hidden="true"><BookOpen size={24} /></span>
+              <span className="action-card-copy"><strong>How It Works</strong><small>Rules, scoring, and AI challenge</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
           </div>
 
-          <div className="secondary-home-actions" aria-label="More options">
-            <button type="button" onClick={() => { trackEvent('homepage_cta_click', { cta: 'choose_date' }); setModal('date'); }}><CalendarDays size={17} aria-hidden="true" /> Choose Date</button>
-            <button type="button" onClick={() => { trackEvent('homepage_cta_click', { cta: 'custom_seed' }); setModal('custom'); }}><Shuffle size={17} aria-hidden="true" /> Custom Seed</button>
-            <button type="button" onClick={() => { trackEvent('homepage_cta_click', { cta: 'how_it_works' }); setModal('rules'); }}><BookOpen size={17} aria-hidden="true" /> How It Works</button>
-          </div>
-
         </div>
 
-        <aside className="today-setup-showcase" aria-label="Today’s 5 by 6 setup preview">
+        <aside className="today-setup-showcase" aria-label="Today's 5 by 6 setup preview">
           <span className="setup-spark setup-spark-left" aria-hidden="true" />
           <span className="setup-spark setup-spark-right" aria-hidden="true" />
-          <div className="setup-header-pill"><span aria-hidden="true" />TODAY’S SETUP<span aria-hidden="true" /></div>
+          <div className="setup-header-pill"><span aria-hidden="true" />TODAY'S SETUP<span aria-hidden="true" /></div>
           <HomepageInteractiveBoard
             key={activeSeedSource.seed}
             backRankCode={activeBackRankCode}
@@ -702,30 +706,6 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
         </div>
       </section>
 
-
-      {modal === 'more' && (
-        <div className="modal-backdrop" role="presentation" onClick={closeModal}>
-          <div className="confirm-card utility-modal more-options-modal" role="dialog" aria-modal="true" aria-labelledby="more-options-modal-title" onClick={(event) => event.stopPropagation()}>
-            <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Close more options"><X size={18} /></button>
-            <p className="eyebrow">More Options</p>
-            <h2 id="more-options-modal-title">Pick a setup tool</h2>
-            <div className="more-options-list">
-              <button type="button" className="more-option-item" onClick={() => { trackEvent('homepage_cta_click', { cta: 'choose_date' }); setModal('date'); }}>
-                <CalendarDays size={20} aria-hidden="true" />
-                <span><strong>Choose Date</strong><small>Replay any unlocked daily setup.</small></span>
-              </button>
-              <button type="button" className="more-option-item" onClick={() => { trackEvent('homepage_cta_click', { cta: 'custom_seed' }); setModal('custom'); }}>
-                <Shuffle size={20} aria-hidden="true" />
-                <span><strong>Custom Seed</strong><small>Create or share your own shuffle.</small></span>
-              </button>
-              <button type="button" className="more-option-item" onClick={() => { trackEvent('homepage_cta_click', { cta: 'how_it_works' }); setModal('rules'); }}>
-                <BookOpen size={20} aria-hidden="true" />
-                <span><strong>Rule Book / How It Works</strong><small>Learn captures, drops, and scoring.</small></span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {modal === 'date' && (
         <div className="modal-backdrop" role="presentation" onClick={closeModal}>
@@ -848,7 +828,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             <section className="rules-section">
               <h3>Rules</h3>
               <p>Pocket Shuffle Chess is played on a 5x6 board. Each side has a king, queen, rook, bishop, knight, and five pawns.</p>
-              <p>White’s back rank is shuffled. Black’s back rank is mirrored.</p>
+              <p>White's back rank is shuffled. Black's back rank is mirrored.</p>
               <p>Normal chess movement applies, except:</p>
               <ul>
                 <li>No castling.</li>
