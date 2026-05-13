@@ -7857,3 +7857,194 @@ button:focus-visible,
   .seed-card,
   .popular-seed-home-card { min-height: 0; }
 }
+
+/* Current local high score and scroll-safe home spacing. */
+.local-high-score-card {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  min-width: 0;
+  width: min(100%, 290px);
+  min-height: 190px;
+  padding: clamp(18px, 2.2vw, 28px);
+  border: 1px solid rgba(222, 168, 62, 0.36);
+  border-radius: 34px;
+  color: #2a2723;
+  background:
+    radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.42) 0 18%, transparent 19%),
+    linear-gradient(145deg, rgba(255, 222, 139, 0.96), rgba(255, 170, 60, 0.92));
+  box-shadow: 0 24px 48px rgba(137, 91, 30, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.62);
+  text-align: center;
+}
+
+.local-high-score-card::after {
+  position: absolute;
+  inset: 12px;
+  border: 2px solid rgba(255, 245, 213, 0.42);
+  border-radius: 26px;
+  content: '';
+  pointer-events: none;
+}
+
+.local-high-score-eyebrow {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(72, 58, 28, 0.72);
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.local-high-score-card h2 {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: #151515;
+  font-size: clamp(2rem, 3vw, 3.3rem);
+  font-weight: 950;
+  line-height: 0.95;
+}
+
+.local-high-score-card strong {
+  position: relative;
+  z-index: 1;
+  color: #151515;
+  font-size: clamp(2.4rem, 4.4vw, 4.8rem);
+  font-weight: 950;
+  line-height: 0.9;
+}
+
+.local-high-score-card p {
+  position: relative;
+  z-index: 1;
+  max-width: 22ch;
+  margin: 0;
+  color: rgba(45, 43, 37, 0.72);
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+@media (min-width: 1181px) {
+  .home-page,
+  :root[data-theme='light'] .home-page,
+  :root[data-theme='dark'] .home-page {
+    padding-bottom: max(clamp(34px, 4vh, 64px), env(safe-area-inset-bottom));
+  }
+
+  .home-hero-shell {
+    grid-template-columns: minmax(0, 1fr) minmax(210px, 290px) minmax(340px, 410px);
+    padding-bottom: clamp(42px, 5vh, 82px);
+  }
+
+  .home-hero-shell .hero-copy {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .local-high-score-card {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    justify-self: center;
+    margin-top: clamp(28px, 14vh, 132px);
+  }
+
+  .today-setup-showcase {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .popular-seeds-home {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1180px) {
+  .home-page,
+  :root[data-theme='light'] .home-page,
+  :root[data-theme='dark'] .home-page {
+    min-height: 100svh;
+    height: auto;
+    padding-bottom: max(44px, env(safe-area-inset-bottom));
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .local-high-score-card {
+    order: 1;
+    width: min(100%, 620px);
+    min-height: 138px;
+    margin: 0 auto;
+  }
+
+  .today-setup-showcase { order: 4; }
+}
+
+@media (max-width: 768px) {
+  .home-page,
+  :root[data-theme='light'] .home-page,
+  :root[data-theme='dark'] .home-page {
+    min-height: 100svh;
+    height: auto;
+    padding-bottom: max(36px, env(safe-area-inset-bottom));
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .home-hero-shell {
+    padding-bottom: 34px;
+  }
+
+  .local-high-score-card {
+    order: 1;
+    width: 100%;
+    min-height: 116px;
+    padding: 16px;
+    border-radius: 26px;
+  }
+
+  .local-high-score-card::after {
+    inset: 8px;
+    border-radius: 20px;
+  }
+
+  .local-high-score-card h2 {
+    font-size: clamp(1.55rem, 8vw, 2.4rem);
+  }
+
+  .local-high-score-card strong {
+    font-size: clamp(2rem, 13vw, 3.4rem);
+  }
+
+  .local-high-score-card p {
+    font-size: 0.78rem;
+  }
+}
+
+/* Let the home document grow when its cards need more vertical room. */
+.home-page,
+:root[data-theme='light'] .home-page,
+:root[data-theme='dark'] .home-page {
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+
+@media (max-width: 1180px) {
+  .popular-seeds-home {
+    order: 3;
+  }
+
+  .today-setup-showcase {
+    order: 4;
+  }
+}
