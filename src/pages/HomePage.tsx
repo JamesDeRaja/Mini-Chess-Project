@@ -658,7 +658,7 @@ export function HomePage({
               <span className="action-badge invite-badge"><LinkIcon size={14} aria-hidden="true" /> Link</span>
               <span className="card-sparkle card-sparkle-three" aria-hidden="true" />
               <img className="action-piece action-piece-knight" src="/pieces/white-knight.png" alt="White knight" draggable={false} />
-              <span className="action-card-copy"><strong>Invite Friend</strong><small>{shuffleMode === 'daily' ? 'Share today’s setup' : 'Share one random setup'}</small></span>
+              <span className="action-card-copy"><strong>Challenge Friend</strong><small>{shuffleMode === 'daily' ? 'Share today’s setup' : 'Share one random setup'}</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
             <button type="button" className="home-action-card home-action-date" onClick={() => { trackEvent('homepage_cta_click', { cta: 'choose_date' }); setModal('date'); }}>
@@ -843,7 +843,7 @@ export function HomePage({
             <div className="panel-actions centered-actions">
               <button type="button" onClick={() => onStartBot(calendarDateKey)}>Play AI</button>
               <button type="button" onClick={() => requestMatchFor(selectedDailySeed, selectedDailyBackRankCode)}>Find Match</button>
-              <button type="button" onClick={() => onDaily(calendarDateKey)}>Invite Friend</button>
+              <button type="button" onClick={() => onDaily(calendarDateKey)}>Challenge Friend</button>
             </div>
           </div>
         </div>
@@ -886,7 +886,7 @@ export function HomePage({
             <div className="panel-actions centered-actions">
               <button type="button" onClick={playCustomSeedAgainstAi}>Play AI</button>
               <button type="button" onClick={() => { void requestCustomMatch(); }}>Find Match</button>
-              <button type="submit">Invite Friend</button>
+              <button type="submit">Challenge Friend</button>
             </div>
           </form>
         </div>
@@ -935,7 +935,7 @@ export function HomePage({
             {matchmaking.status === 'timeout' && <p>No one matched within about a minute. You can keep waiting or send an invite link.</p>}
             <div className="panel-actions centered-actions">
               {matchmaking.status === 'timeout' && <button type="button" onClick={() => requestMatchFor(matchTarget.seed, matchTarget.backRankCode)}><Users size={18} /> Keep Waiting</button>}
-              <button type="button" onClick={() => { void switchFromMatchmaking(inviteMatchTarget); }}><LinkIcon size={18} /> Invite Friend Instead</button>
+              <button type="button" onClick={() => { void switchFromMatchmaking(inviteMatchTarget); }}><LinkIcon size={18} /> Challenge Friend Instead</button>
               <button type="button" onClick={() => { void switchFromMatchmaking(() => playAiForSeed(matchTarget.seed, matchTarget.backRankCode)); }}><Bot size={18} /> Play AI While Waiting</button>
               <button type="button" onClick={cancelMatch}>Cancel</button>
             </div>
