@@ -8,6 +8,7 @@ import { GameResultPanel } from '../components/GameResultPanel.js';
 import { MoveHistory } from '../components/MoveHistory.js';
 import { ScoreExplanation } from '../components/ScoreExplanation.js';
 import { ShareChallengeModal } from '../components/ShareChallengeModal.js';
+import { ResultScreenshotButton } from '../components/ResultScreenshotButton.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
 import { type BotLevel, getBotMoveByLevel, getMoveIdentity } from '../game/bot.js';
@@ -31,6 +32,7 @@ import { compareChallengeResult, createChallengePayload, createSeedChallengeUrl,
 import { buildShareMessage, getContextualTauntContext, getRandomComparisonText, getRandomShareTaunt, type TauntContext } from '../game/shareTaunts.js';
 import { getAnonymousPlayerId, getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
+import { recordPlayStreak } from '../game/playStreak.js';
 import { calculateGameScore, getCaptureScore } from '../game/scoring.js';
 import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
 import { createChallenge, submitSeedScore } from '../multiplayer/challengeApi.js';
@@ -309,6 +311,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       moves: scoreBreakdown.fullMoves,
     });
     setLocalBestScore(getLocalBestScore(dailySeedInfo.seed, scoreMode, playerColor) ?? entry);
+    recordPlayStreak();
   }, [dailySeedInfo.backRankCode, dailySeedInfo.seed, playerColor, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode]);
 
   useEffect(() => {
@@ -677,6 +680,13 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     }
   }
 
+  useEffect(() => {
+    if (!roundResult || submittedScore) return;
+    void handleSubmitScore();
+  // handleSubmitScore reads the latest completed score state and is intentionally triggered once per result.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundResult, submittedScore]);
+
 
   return (
     <main className="game-page">
@@ -837,7 +847,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           )}
           actions={(
             <>
-              <button type="button" onClick={openShareModal}><Share2 size={17} /> Challenge a Friend</button>
+              <button type="button" onClick={openShareModal}><Share2 size={17} /> Challenge a Friend</button><ResultScreenshotButton title={roundResult.didPlayerWin ? 'You won' : roundResult.status === 'draw' ? 'Draw' : 'You lost'} summary={roundResult.message} score={scoreBreakdown.totalScore} moves={scoreBreakdown.fullMoves} seed={seedSlug} setup={dailySeedInfo.backRankCode} />
               <button type="button" className="secondary-action" onClick={() => { void copyChallengeLink(); }}><Copy size={22} /> Copy Link</button>
               <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seedSlug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}><Trophy size={24} /> View Seed Leaderboard</button>
               <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Save Score'}</button>

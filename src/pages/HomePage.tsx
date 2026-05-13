@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, RefreshCw, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
+import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Flame, Link as LinkIcon, RefreshCw, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput, createSeedFromInput } from '../game/seed.js';
 import { createRandomGameSeed, getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
@@ -8,6 +8,7 @@ import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
 import { trackEvent } from '../app/analytics.js';
 import { getLocalBestScoreForSeedMode, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
+import { getPlayStreak } from '../game/playStreak.js';
 import { getShareUrl } from '../app/seo.js';
 import { fetchLeaderboard, fetchScoreboard, type LeaderboardEntry, type LeaderboardScope } from '../multiplayer/scoreApi.js';
 import { CURATED_SEEDS } from '../game/curatedSeeds.js';
@@ -185,6 +186,7 @@ export function HomePage({
   const [leaderboardFeed, setLeaderboardFeed] = useState<LeaderboardFeedItem[]>([]);
   const [leaderboardFeedIndex, setLeaderboardFeedIndex] = useState(0);
   const [leaderboardChipExpanded, setLeaderboardChipExpanded] = useState(false);
+  const [playStreak, setPlayStreak] = useState(() => getPlayStreak(todayKey));
   const previousLeaderboardFeedSignatureRef = useRef('');
   const [leaderboardDialogOpen, setLeaderboardDialogOpen] = useState(false);
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('daily');
@@ -216,6 +218,17 @@ export function HomePage({
     const dateRefreshId = window.setInterval(() => setTodayKey(getUtcDateKey()), 60000);
     return () => window.clearInterval(dateRefreshId);
   }, []);
+
+  useEffect(() => {
+    const refreshStreak = () => setPlayStreak(getPlayStreak(todayKey));
+    refreshStreak();
+    window.addEventListener('play-streak-updated', refreshStreak);
+    window.addEventListener('storage', refreshStreak);
+    return () => {
+      window.removeEventListener('play-streak-updated', refreshStreak);
+      window.removeEventListener('storage', refreshStreak);
+    };
+  }, [todayKey]);
 
   useEffect(() => {
     function refreshHomeProgress() {
@@ -496,9 +509,9 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
   return (
     <main className="home-page">
       <button type="button" className={`home-leaderboard-chip ${leaderboardChipExpanded ? 'is-expanded' : 'is-collapsed'}`} onClick={() => setLeaderboardDialogOpen(true)} aria-label="Open leaderboards">
-        <Trophy size={18} aria-hidden="true" />
+        <span className="streak-fire-badge" aria-label={`${playStreak.count} day play streak`}><Flame size={30} aria-hidden="true" /><b>{playStreak.count}</b></span>
         <div>
-          <strong>Live scores</strong>
+          <strong>{playStreak.count > 0 ? `${playStreak.count}-day streak` : 'Start streak'}</strong>
           <ol aria-live="polite">
             {visibleLeaderboardFeed.length > 0 ? visibleLeaderboardFeed.map((entry, index) => (
               <li key={`${entry.id}-${index}`} className={entry.kind === 'new-score' ? 'new-score-pulse' : ''}>
@@ -506,7 +519,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               </li>
             )) : <li><span>No daily scores yet</span><b>—</b></li>}
           </ol>
-          <small>Tap for top 10 and global scores</small>
+          <small>Play any match each UTC day to keep the fire alive. Tap for scores.</small>
         </div>
       </button>
       {leaderboardDialogOpen && (
