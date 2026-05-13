@@ -1775,24 +1775,40 @@ button,
   border-color: rgba(229, 202, 137, 0.74);
   box-shadow: 0 5px 0 #e5ca89, 0 12px 22px rgba(119, 102, 60, 0.13);
 }
-button:hover:not(:disabled) {
-  transform: translateY(-1px);
+button:not(.history-move):hover:not(:disabled) {
+  transform: translateY(2px);
   filter: brightness(1.015);
+  box-shadow: 0 3px 0 #e5ca89, 0 8px 16px rgba(119, 102, 60, 0.11);
 }
-button:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow: 0 2px 0 currentColor, 0 7px 14px rgba(99, 91, 70, 0.1);
+.secondary-action:hover:not(:disabled),
+.wide-action.secondary-action:hover:not(:disabled),
+.stacked-actions .secondary-action:hover:not(:disabled),
+.review-controls button:nth-child(3):hover:not(:disabled),
+.success-action:hover:not(:disabled) {
+  box-shadow: 0 3px 0 #a9c0a9, 0 8px 16px rgba(83, 105, 83, 0.11);
+}
+.danger-action:hover:not(:disabled),
+.stacked-actions .danger-action:hover:not(:disabled) {
+  box-shadow: 0 3px 0 #dfada5, 0 8px 16px rgba(119, 72, 66, 0.1);
+}
+.review-controls button:hover:not(:disabled) {
+  box-shadow: 0 3px 0 #eddfc1, 0 7px 14px rgba(115, 102, 76, 0.1);
+}
+button:not(.history-move):active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #e5ca89, 0 5px 10px rgba(99, 91, 70, 0.09);
   animation: button-squish-pop 180ms ease-out;
 }
 .secondary-action:active:not(:disabled),
 .wide-action.secondary-action:active:not(:disabled),
-.review-controls button:nth-child(3):active:not(:disabled) { box-shadow: 0 2px 0 #a9c0a9, 0 7px 14px rgba(83, 105, 83, 0.1); }
+.review-controls button:nth-child(3):active:not(:disabled),
+.success-action:active:not(:disabled) { box-shadow: 0 1px 0 #a9c0a9, 0 5px 10px rgba(83, 105, 83, 0.09); }
 .theme-action:active:not(:disabled),
 .primary-action:active:not(:disabled),
 .gold-action:active:not(:disabled),
-.stacked-actions .gold-action:active:not(:disabled) { box-shadow: 0 2px 0 #e5ca89, 0 7px 14px rgba(119, 102, 60, 0.1); }
-.danger-action:active:not(:disabled) { box-shadow: 0 2px 0 #dfada5, 0 7px 14px rgba(119, 72, 66, 0.1); }
-.review-controls button:active:not(:disabled) { box-shadow: 0 2px 0 #eddfc1, 0 7px 14px rgba(115, 102, 76, 0.1); }
+.stacked-actions .gold-action:active:not(:disabled) { box-shadow: 0 1px 0 #e5ca89, 0 5px 10px rgba(119, 102, 60, 0.09); }
+.danger-action:active:not(:disabled) { box-shadow: 0 1px 0 #dfada5, 0 5px 10px rgba(119, 72, 66, 0.09); }
+.review-controls button:active:not(:disabled) { box-shadow: 0 1px 0 #eddfc1, 0 5px 10px rgba(115, 102, 76, 0.09); }
 
 .brand-icon {
   width: 34px;
