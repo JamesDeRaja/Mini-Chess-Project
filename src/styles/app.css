@@ -6440,7 +6440,7 @@ button:focus-visible,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 5px;
   color: #647067;
   font-size: 0.72rem;
   font-weight: 950;
@@ -6461,15 +6461,15 @@ button:focus-visible,
   margin: 0;
 }
 .score-label-row .score-help-button {
-  width: 1.65em !important;
-  height: 1.65em !important;
-  min-width: 1.65em !important;
+  width: 1.36em !important;
+  height: 1.36em !important;
+  min-width: 1.36em !important;
   padding: 0 !important;
   border-radius: 999px;
   font-size: 1em !important;
   line-height: 1;
-  transform: none;
-  box-shadow: 0 3px 0 rgba(180, 145, 44, 0.22), inset 0 -1px rgba(45, 43, 40, 0.08);
+  transform: translateY(-0.04em);
+  box-shadow: 0 2px 0 rgba(180, 145, 44, 0.2), inset 0 -1px rgba(45, 43, 40, 0.08);
 }
 .score-value-row {
   --result-score-size: clamp(3rem, 8vw, 4.8rem);
