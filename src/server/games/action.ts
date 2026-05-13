@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getOpponent } from '../../src/game/gameStatus.js';
-import type { Color } from '../../src/game/types.js';
-import { safeSupabaseUpdate } from '../../src/multiplayer/safeSupabaseUpdate.js';
+import { getOpponent } from '../../game/gameStatus.js';
+import type { Color } from '../../game/types.js';
+import { safeSupabaseUpdate } from '../../multiplayer/safeSupabaseUpdate.js';
 import { assessGameLifecycle } from './lifecycle.js';
-import { getServerSupabase } from './serverSupabase.js';
+import { getServerSupabase } from '../supabase.js';
 
 type GameRow = Record<string, unknown>;
 type GameAction = 'resign' | 'request_draw' | 'accept_draw';

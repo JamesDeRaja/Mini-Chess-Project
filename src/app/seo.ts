@@ -119,7 +119,7 @@ export function getSeoConfig(input: SeoInput): SeoConfig {
 
   if (input.routeName === 'seed' && input.seed) {
     const seedValidation = validateSeedInput(input.seed);
-    if (!seedValidation.ok) {
+    if (seedValidation.ok === false) {
       const config = {
         title: 'Invalid Seed - Pocket Shuffle Chess',
         description: 'This seed is invalid. Return home or enter a valid Pocket Shuffle Chess custom seed.',

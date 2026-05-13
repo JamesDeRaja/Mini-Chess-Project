@@ -40,13 +40,19 @@ export function getDefaultDisplayName(playerId = getAnonymousPlayerId()) {
   return defaultDisplayNames[defaultNameIndex(playerId)] ?? 'Amigo';
 }
 
+export function sanitizePlayerName(name: string): string {
+  const withoutTags = name.replace(/<[^>]*>/g, '');
+  const normalizedName = withoutTags.trim().replace(/\s+/g, ' ').slice(0, 20);
+  return normalizedName || 'Anonymous Player';
+}
+
 export function getDisplayName(): string {
-  if (typeof localStorage === 'undefined') return getDefaultDisplayName();
-  return localStorage.getItem(displayNameKey) || getDefaultDisplayName();
+  if (typeof localStorage === 'undefined') return 'Anonymous Player';
+  return localStorage.getItem(displayNameKey) || 'Anonymous Player';
 }
 
 export function saveDisplayName(name: string): string {
-  const normalizedName = name.trim().replace(/\s+/g, ' ').slice(0, 24) || getDefaultDisplayName();
+  const normalizedName = sanitizePlayerName(name);
   if (typeof localStorage !== 'undefined') localStorage.setItem(displayNameKey, normalizedName);
   return normalizedName;
 }

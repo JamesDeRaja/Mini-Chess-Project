@@ -1,4 +1,4 @@
-import { safeSupabaseUpdate } from '../../src/multiplayer/safeSupabaseUpdate.js';
+import { safeSupabaseUpdate } from '../../multiplayer/safeSupabaseUpdate.js';
 
 const INVITE_EXPIRATION_MINUTES = 60;
 const GAME_TIMEOUT_MINUTES = 60;
