@@ -7,6 +7,7 @@ import { GameHeader } from '../components/GameHeader.js';
 import { GameResultPanel } from '../components/GameResultPanel.js';
 import { MoveHistory } from '../components/MoveHistory.js';
 import { ScoreExplanation } from '../components/ScoreExplanation.js';
+import { ResultScreenshotButton } from '../components/ResultScreenshotButton.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { findKingIndex, isKingInCheck } from '../game/check.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
@@ -16,6 +17,7 @@ import { getLegalMoves } from '../game/legalMoves.js';
 import { deriveBackRankCodeFromBoard } from '../game/seed.js';
 import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
+import { recordPlayStreak } from '../game/playStreak.js';
 import { calculateGameScore, getMoveCaptureRecord } from '../game/scoring.js';
 import { playCheckSound, playMoveSound } from '../game/sound.js';
 import { applyMoveDelta, isMoveDelta, moveDeltaToMove, rebuildBoardFromHistory, replayMoves } from '../game/moveDelta.js';
@@ -226,6 +228,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
       moves: scoreBreakdown.fullMoves,
     });
     setLocalBestScore(getLocalBestScore(seedLabel, scoreMode, scoreSide) ?? entry);
+    recordPlayStreak();
   }, [backRankCode, isCompleted, isLifecycleTerminal, role, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode, scoreSide, seedLabel, status]);
 
   useEffect(() => {
@@ -245,6 +248,13 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
       setScoreSubmitMessage('Could not submit online, but your local score is saved.');
     }
   }
+
+  useEffect(() => {
+    if (!isCompleted || submittedScore || role === 'spectator') return;
+    void handleSubmitScore();
+  // handleSubmitScore reads the latest completed score state and is intentionally triggered once per result.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCompleted, role, submittedScore]);
 
   function setPendingIds(updater: (ids: Set<string>) => Set<string>) {
     setPendingClientMoveIds((currentIds) => {
@@ -849,7 +859,7 @@ ${inviteLink}`;
           )}
           actions={(
             <>
-              {role !== 'spectator' && <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Submit Score'}</button>}
+              {role !== 'spectator' && <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Submit Score'}</button>}<ResultScreenshotButton title={onlineResultTitle} summary={onlineResultSummary} score={scoreBreakdown.totalScore} moves={scoreBreakdown.fullMoves} seed={seedLabel} setup={backRankCode} />
               {isLifecycleTerminal ? <button type="button" onClick={handleCreateNewChallenge}>Create New Challenge</button> : <button type="button" onClick={onNewOnlineGame}>New Online Game</button>}
               <button type="button" onClick={onHome}>Back Home</button>
             </>

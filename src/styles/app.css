@@ -7527,3 +7527,333 @@ button:focus-visible,
     padding-right: 102px;
   }
 }
+
+/* Popular seed discovery and share/streak additions */
+.seed-card-grid {
+  height: auto;
+  max-height: none;
+  overflow-y: visible;
+  padding-bottom: clamp(24px, 4vw, 60px);
+}
+.popular-seeds-page .challenge-card { min-height: calc(100svh - clamp(36px, 8vw, 88px)); }
+.seed-card-open {
+  display: block;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+.seed-card-open:hover:not(:disabled) { transform: none; background: transparent; text-decoration: underline; }
+.seed-detail-page { position: relative; }
+.seed-detail-home-button,
+.result-home-button {
+  position: fixed;
+  top: clamp(14px, 2vw, 24px);
+  left: clamp(14px, 2vw, 24px);
+  z-index: 5;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+}
+.seed-detail-card { text-align: left; }
+.seed-detail-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 440px);
+  gap: clamp(22px, 4vw, 54px);
+  align-items: center;
+}
+.seed-detail-copy h1 { margin-inline: 0; }
+.seed-detail-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0;
+}
+.seed-detail-facts span {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid rgba(222, 217, 203, 0.78);
+  border-radius: 18px;
+  background: rgba(255, 251, 239, 0.74);
+}
+.seed-detail-facts small { color: #647067; font-weight: 950; text-transform: uppercase; letter-spacing: .08em; }
+.seed-detail-facts strong { color: #222428; overflow-wrap: anywhere; }
+.seed-preview-board {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  overflow: hidden;
+  border: 8px solid var(--board-frame);
+  border-radius: 28px;
+  background: var(--board-frame);
+  box-shadow: 0 24px 40px rgba(80, 122, 108, 0.22);
+}
+.seed-preview-board span {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  background: var(--square-light);
+}
+.seed-preview-board span.dark { background: var(--square-dark); }
+.seed-preview-board img { width: 78%; height: 78%; object-fit: contain; filter: drop-shadow(0 8px 5px rgba(45,43,40,.18)); }
+.seed-loop-section { margin-top: clamp(28px, 5vw, 58px); }
+.seed-loop-grid { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.name-gate-backdrop { z-index: 20; }
+.name-gate-card { width: min(94vw, 560px); }
+.name-gate-card input { width: 100%; }
+.streak-fire-badge {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: #f59e0b;
+}
+.streak-fire-badge b {
+  position: absolute;
+  top: 17px;
+  color: #2d2b28;
+  font-size: .78rem;
+  font-weight: 1000;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255,255,255,.72);
+}
+.result-screenshot-menu { position: relative; display: inline-grid; gap: 6px; }
+.result-screenshot-dropdown {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 8px);
+  left: 50%;
+  display: grid;
+  gap: 6px;
+  min-width: 190px;
+  padding: 8px;
+  border: 1px solid rgba(222, 217, 203, 0.88);
+  border-radius: 18px;
+  background: rgba(255, 251, 239, 0.98);
+  box-shadow: 0 18px 32px rgba(80, 122, 108, 0.18);
+  transform: translateX(-50%);
+}
+.result-screenshot-dropdown button { justify-content: flex-start; padding: 9px 11px; border-radius: 12px; }
+@media (max-width: 760px) {
+  .seed-detail-hero,
+  .seed-detail-facts { grid-template-columns: 1fr; }
+  .seed-detail-home-button { position: sticky; top: 12px; }
+  .seed-preview-board { order: -1; }
+}
+
+/* Keep result screenshots faithful to the result card without moving controls after copy. */
+.result-screenshot-status {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  width: max-content;
+  max-width: min(280px, 80vw);
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #647067;
+  background: rgba(255, 251, 239, 0.9);
+  font-size: 0.78rem;
+  font-weight: 850;
+  line-height: 1.2;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+.result-screenshot-status:not(:empty) { opacity: 1; }
+
+/* Review fixes: popular pages must scroll, seed cards open from anywhere, and the streak lives in the brand slot. */
+.challenge-page {
+  height: 100vh;
+  height: 100svh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.seed-card-clickable {
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.seed-card-clickable:hover,
+.seed-card-clickable:focus-visible {
+  border-color: rgba(127, 159, 134, 0.62);
+  box-shadow: 0 16px 28px rgba(80, 122, 108, 0.14);
+  transform: translateY(-2px);
+  outline: none;
+}
+.seed-card-clickable .panel-actions button { position: relative; z-index: 1; }
+.streak-brand-tile {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border-radius: 20px;
+  color: #ff9f1c;
+  background:
+    radial-gradient(circle at 50% 62%, rgba(255, 255, 255, 0.98) 0 18%, transparent 19%),
+    radial-gradient(circle at 50% 50%, rgba(255, 219, 92, 0.96), rgba(255, 130, 35, 0.42) 58%, rgba(255, 65, 65, 0.22));
+  box-shadow: 0 12px 0 rgba(166, 91, 23, 0.14), 0 20px 34px rgba(255, 130, 35, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+.streak-brand-tile svg {
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 5px 4px rgba(132, 66, 10, 0.22));
+  fill: rgba(255, 180, 50, 0.3);
+  stroke-width: 2.6;
+}
+.streak-brand-tile b {
+  position: absolute;
+  top: 27px;
+  left: 50%;
+  color: #2d2b28;
+  font-size: 0.98rem;
+  font-weight: 1000;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.88), 0 0 8px rgba(255, 255, 255, 0.92);
+  transform: translate(-50%, -50%);
+}
+.seed-detail-hero {
+  grid-template-columns: minmax(0, 1fr) minmax(500px, 540px);
+}
+.seed-detail-showcase {
+  width: min(100%, 540px);
+  justify-self: center;
+  text-align: center;
+}
+.seed-detail-showcase .interactive-board-shell,
+.seed-detail-showcase .preview-board-frame {
+  width: min(100%, 390px);
+}
+.seed-detail-showcase .meet-board-hint { margin-bottom: 0; }
+@media (max-width: 920px) {
+  .seed-detail-hero { grid-template-columns: 1fr; }
+  .seed-detail-showcase { width: min(100%, 540px); }
+}
+@media (max-width: 760px) {
+  .streak-brand-tile {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+  }
+  .streak-brand-tile svg { width: 39px; height: 39px; }
+  .streak-brand-tile b { top: 22px; font-size: 0.84rem; }
+}
+
+/* Seed detail uses a fixed home shortcut, but result cards keep their home icon inside the card. */
+.winner-card .result-home-button {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+}
+
+/* Keep decorative floor pieces behind the popular seed cards and make the streak number pop. */
+.popular-seeds-home {
+  position: relative;
+  z-index: 4;
+  isolation: isolate;
+}
+.popular-seed-home-card,
+.popular-seeds-home > .secondary-action {
+  position: relative;
+  z-index: 1;
+}
+.decorative-home-pieces {
+  z-index: 0;
+  opacity: 0.74;
+}
+.streak-brand-tile b {
+  top: 29px;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  color: #1f2328;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.98), rgba(255, 246, 196, 0.9));
+  font-size: 1.16rem;
+  box-shadow: 0 2px 8px rgba(147, 71, 7, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+@media (max-width: 760px) {
+  .streak-brand-tile b {
+    top: 23px;
+    min-width: 21px;
+    height: 21px;
+    font-size: 1rem;
+  }
+}
+
+/* Seed listing cards now expose details via the card itself; actions stay to Play AI + Challenge Friend only. */
+.seed-list-actions {
+  align-items: center;
+}
+.seed-list-actions button {
+  flex: 1 1 130px;
+}
+.popular-seed-home-card.seed-card-clickable:focus-visible {
+  outline: 3px solid rgba(126, 166, 133, 0.72);
+  outline-offset: 3px;
+}
+
+/* Lower the home showcase board so it overlaps the popular seeds area instead of floating too high. */
+@media (min-width: 1181px) {
+  .home-page .home-hero-shell > .today-setup-showcase:not(.seed-detail-showcase) {
+    transform: translateY(clamp(52px, 8vh, 112px));
+  }
+}
+
+/* Popular seed card actions: row one Play + share/leaderboard bubbles, row two Challenge Friend CTA. */
+.seed-card,
+.popular-seed-home-card {
+  min-height: 150px;
+}
+.seed-card-action-stack {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.seed-card-action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 7px;
+  align-items: center;
+}
+.seed-card-action-row button:not(.seed-icon-action),
+.seed-challenge-action {
+  min-height: 42px;
+}
+.seed-icon-action {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid rgba(126, 166, 133, 0.28);
+  border-radius: 999px;
+  color: #2d2b28;
+  background: rgba(255, 251, 239, 0.92);
+  box-shadow: 0 7px 0 rgba(45, 43, 40, 0.07), 0 10px 18px rgba(80, 122, 108, 0.1);
+}
+.seed-icon-action:hover:not(:disabled) {
+  color: #243027;
+  background: #f6d678;
+}
+.seed-challenge-action {
+  width: 100%;
+}
+.popular-seed-home-card .seed-card-action-stack { margin-top: 4px; }
+.popular-seed-home-card .seed-card-action-row { gap: 5px; }
+.popular-seed-home-card .seed-icon-action {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+}
+.popular-seed-home-card .seed-card-action-row button:not(.seed-icon-action),
+.popular-seed-home-card .seed-challenge-action {
+  min-height: 34px;
+}
+.popular-seed-home-card {
+  min-height: 126px;
+}
+@media (max-width: 760px) {
+  .seed-card,
+  .popular-seed-home-card { min-height: 0; }
+}
