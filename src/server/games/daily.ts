@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createInitialBoard } from '../../src/game/createInitialBoard.js';
-import { dailyBackRankCodeFromSeed, getDailySeed, isCompleteDailyBackRankCode, getUtcDateKey } from '../../src/game/seed.js';
-import { safeSupabaseInsert } from '../../src/multiplayer/safeSupabaseInsert.js';
+import { createInitialBoard } from '../../game/createInitialBoard.js';
+import { dailyBackRankCodeFromSeed, getDailySeed, isCompleteDailyBackRankCode, getUtcDateKey } from '../../game/seed.js';
+import { safeSupabaseInsert } from '../../multiplayer/safeSupabaseInsert.js';
 import { cleanupOldGames, getNewGameLifecycleFields } from './lifecycle.js';
-import { getServerSupabase } from './serverSupabase.js';
+import { getServerSupabase } from '../supabase.js';
 
 type DailySeedRecord = {
   seed?: string;

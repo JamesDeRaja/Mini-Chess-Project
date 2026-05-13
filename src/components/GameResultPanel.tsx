@@ -11,6 +11,7 @@ type GameResultPanelProps = {
   summary: string;
   progressionMessage?: string;
   titleAccessory?: ReactNode;
+  homeAction?: ReactNode;
   details?: ReactNode;
   actions: ReactNode;
 };
@@ -39,7 +40,7 @@ function ResultAvatar({ winner, result }: { winner: Color | null; result: GameRe
   );
 }
 
-export function GameResultPanel({ result, winner, eyebrow, title, summary, progressionMessage, titleAccessory, details, actions }: GameResultPanelProps) {
+export function GameResultPanel({ result, winner, eyebrow, title, summary, progressionMessage, titleAccessory, homeAction, details, actions }: GameResultPanelProps) {
   const [dismissedResultKey, setDismissedResultKey] = useState<string | null>(null);
   const didWin = result === 'win';
   const cardClassName = didWin ? 'winner-card player-winner-card' : result === 'stalemate' ? 'winner-card stalemate-result-card' : 'winner-card calm-result-card';
@@ -51,6 +52,7 @@ export function GameResultPanel({ result, winner, eyebrow, title, summary, progr
     <div className="winner-overlay" role="status">
       {didWin && <div className="confetti" />}
       <div className={cardClassName}>
+        {homeAction}
         <button
           type="button"
           className="result-close-button"

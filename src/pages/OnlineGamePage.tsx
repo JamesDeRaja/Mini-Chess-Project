@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { Home, RotateCcw } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
@@ -805,13 +805,17 @@ ${inviteLink}`;
           eyebrow="Game complete"
           title={onlineResult === 'win' ? 'You won' : onlineResult === 'loss' ? 'You lost' : onlineResult === 'stalemate' ? 'Stalemate' : onlineResult === 'spectator' ? 'Game complete' : 'Draw'}
           summary={onlineResultSummary}
-          titleAccessory={<ScoreExplanation breakdown={scoreBreakdown} resultLabel={onlineResult === 'stalemate' ? 'stalemate' : onlineResult} />}
+          homeAction={(
+            <button type="button" className="result-home-button" aria-label="Go home" onClick={onHome}>
+              <Home size={24} aria-hidden="true" />
+            </button>
+          )}
           details={(
             <>
               <div className="score-result-bento" aria-label="Score breakdown">
                 <div className="score-hero-tile">
-                  <span>Score</span>
-                  <strong>{scoreBreakdown.totalScore}</strong>
+                  <div className="score-label-row"><span className="score-label-text">Score</span><ScoreExplanation breakdown={scoreBreakdown} resultLabel={onlineResult === 'stalemate' ? 'stalemate' : onlineResult} /></div>
+                  <div className="score-value-row"><strong>{scoreBreakdown.totalScore}</strong></div>
                   {localBestScore && <small>Local best {localBestScore.score}</small>}
                 </div>
                 <div className="score-mini-grid">
@@ -834,7 +838,7 @@ ${inviteLink}`;
                   <h3>Today’s Best Scores</h3>
                   <div className="leaderboard-table">
                     <div className="leaderboard-row leaderboard-head"><span>Rank</span><span>Name</span><span>Score</span><span>Moves</span><span>Side</span><span>Result</span></div>
-                    {leaderboard.slice(0, 5).map((entry, index) => (
+                    {leaderboard.slice(0, 3).map((entry, index) => (
                       <div className="leaderboard-row" key={entry.id}><span>{index + 1}</span><span>{entry.display_name}</span><span>{entry.score}</span><span>{entry.moves}</span><span>{entry.side}</span><span>{entry.result}</span></div>
                     ))}
                   </div>

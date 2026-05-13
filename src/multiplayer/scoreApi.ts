@@ -28,9 +28,9 @@ async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {
 
 export async function submitScore(payload: ScorePayload): Promise<{ ok: boolean; score?: LeaderboardEntry }> {
   if (!isPlausibleScore(payload.score, payload.moves)) throw new Error('Score is outside allowed bounds.');
-  return requestJson('/api/scores/submit', {
+  return requestJson('/api/leaderboard', {
     method: 'POST',
-    body: JSON.stringify({ ...payload, playerId: getAnonymousPlayerId(), displayName: getDisplayName() }),
+    body: JSON.stringify({ action: 'submit', ...payload, playerId: getAnonymousPlayerId(), displayName: getDisplayName() }),
   });
 }
 
@@ -38,13 +38,13 @@ export type LeaderboardScope = 'daily' | 'global' | 'global-start-points';
 
 export async function fetchLeaderboard(seed: string, mode = 'daily'): Promise<LeaderboardEntry[]> {
   const params = new URLSearchParams({ seed, mode });
-  const result = await requestJson<{ scores: LeaderboardEntry[] }>(`/api/scores/list?${params.toString()}`);
+  const result = await requestJson<{ scores: LeaderboardEntry[] }>(`/api/leaderboard?action=list&${params.toString()}`);
   return result.scores;
 }
 
 export async function fetchScoreboard(scope: LeaderboardScope, seed?: string, mode = 'daily'): Promise<LeaderboardEntry[]> {
   const params = new URLSearchParams({ scope, mode });
   if (seed) params.set('seed', seed);
-  const result = await requestJson<{ scores: LeaderboardEntry[] }>(`/api/scores/list?${params.toString()}`);
+  const result = await requestJson<{ scores: LeaderboardEntry[] }>(`/api/leaderboard?action=list&${params.toString()}`);
   return result.scores;
 }

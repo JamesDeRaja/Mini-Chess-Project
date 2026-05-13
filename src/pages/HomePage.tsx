@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Link as LinkIcon, MoreHorizontal, RefreshCw, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
 import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
-import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput } from '../game/seed.js';
+import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput, createSeedFromInput } from '../game/seed.js';
 import { createRandomGameSeed, getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
 import type { MatchmakingResponse } from '../multiplayer/gameApi.js';
@@ -10,6 +10,7 @@ import { getLocalBestScoreForSeedMode, type CompletedScoreEntry } from '../game/
 import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getShareUrl } from '../app/seo.js';
 import { fetchLeaderboard, fetchScoreboard, type LeaderboardEntry, type LeaderboardScope } from '../multiplayer/scoreApi.js';
+import { CURATED_SEEDS } from '../game/curatedSeeds.js';
 
 type HomePageProps = {
   initialModal?: Exclude<ModalName, null>;
@@ -202,7 +203,7 @@ export function HomePage({
   const activeHeaderDescription = shuffleMode === 'daily' ? 'Same board for everyone today.' : 'Active until refresh.';
   const blackBackRankCode = [...activeBackRankCode].reverse().join('');
   const customSeedValidation = validateSeedInput(customSeed);
-  const customSeedError = customSeedWasSubmitted && !customSeedValidation.ok ? customSeedValidation.error : null;
+  const customSeedError = customSeedWasSubmitted && customSeedValidation.ok === false ? customSeedValidation.error : null;
   const customBackRankCode = customSeedValidation.ok ? customSeedValidation.backRankCode : null;
   const dailyAIStatusLine = getDailyAIStatusLine(dailyAIProgress);
   const activeLeaderboardView = leaderboardViews.find((view) => view.scope === leaderboardScope) ?? leaderboardViews[0];
@@ -370,19 +371,19 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
 
   function playCustomSeedAgainstAi() {
     setCustomSeedWasSubmitted(true);
-    if (!customSeedValidation.ok) return;
+    if (customSeedValidation.ok === false) return;
     onStartSeededBot(customSeedValidation.normalizedSeed);
   }
 
   async function requestCustomMatch() {
     setCustomSeedWasSubmitted(true);
-    if (!customSeedValidation.ok) return;
+    if (customSeedValidation.ok === false) return;
     await requestMatchFor(customSeedValidation.normalizedSeed, customSeedValidation.backRankCode);
   }
 
   async function inviteCustomSeed() {
     setCustomSeedWasSubmitted(true);
-    if (!customSeedValidation.ok) return;
+    if (customSeedValidation.ok === false) return;
     await onSeeded(customSeedValidation.normalizedSeed);
   }
 
@@ -644,6 +645,31 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             <button type="button" onClick={() => { trackEvent('homepage_cta_click', { cta: 'custom_seed' }); setModal('custom'); }}><Shuffle size={17} aria-hidden="true" /> Custom Seed</button>
             <button type="button" onClick={() => { trackEvent('homepage_cta_click', { cta: 'how_it_works' }); setModal('rules'); }}><BookOpen size={17} aria-hidden="true" /> How It Works</button>
           </div>
+
+          <section className="popular-seeds-home" aria-labelledby="popular-seeds-home-title">
+            <div>
+              <p className="eyebrow">Popular Seeds</p>
+              <h2 id="popular-seeds-home-title">Play a shared setup and try to beat the best score.</h2>
+            </div>
+            <div className="popular-seed-home-grid">
+              {[{ slug: getDailySeed(todayKey), displayName: "Today's Daily" }, ...CURATED_SEEDS.filter((seed) => ['gotham-chaos', 'boss-battle', 'queen-rush', 'knight-panic', 'final-boss'].includes(seed.slug))].map((seed) => {
+                const created = createSeedFromInput(seed.slug);
+                const setup = created.ok ? created.backRankCode : activeBackRankCode;
+                return (
+                  <article className="popular-seed-home-card" key={seed.slug}>
+                    <strong>{seed.displayName}</strong>
+                    <span>{seed.slug}</span>
+                    <small>Setup {setup}</small>
+                    <div className="panel-actions">
+                      <button type="button" onClick={() => onStartSeededBot(seed.slug, setup)}>Play</button>
+                      <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seed.slug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Leaderboard</button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', '/seeds'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Popular Seeds</button>
+          </section>
         </div>
 
         <aside className="today-setup-showcase" aria-label="Today’s 5 by 6 setup preview">
