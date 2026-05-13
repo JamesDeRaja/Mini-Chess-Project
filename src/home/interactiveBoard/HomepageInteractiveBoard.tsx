@@ -239,9 +239,8 @@ export function HomepageInteractiveBoard({ backRankCode, dailySeed, blackBackRan
   return (
     <>
       <div className="preview-board-frame meet-board-frame" ref={frameRef}>
-        <button type="button" className="learn-board-button" onClick={() => openLearnChess(selectedPiece ?? undefined)} aria-label={selectedPiece ? `Learn how the ${getPieceName(selectedPiece)} moves` : 'Learn chess piece movement'}>
-          <CircleHelp size={17} aria-hidden="true" />
-          <span>Learn</span>
+        <button type="button" className="learn-board-button" onClick={() => openLearnChess(selectedPiece ?? undefined)} aria-label={selectedPiece ? `Learn how the ${getPieceName(selectedPiece)} moves` : 'Learn chess piece movement'} title={selectedPiece ? `Learn how the ${getPieceName(selectedPiece)} moves` : 'Learn chess piece movement'}>
+          <CircleHelp size={20} aria-hidden="true" />
         </button>
         <div
           className="preview-board-grid meet-board-grid"

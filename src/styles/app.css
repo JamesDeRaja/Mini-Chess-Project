@@ -8101,22 +8101,19 @@ body.home-modal-open .home-page {
 
 .learn-board-button {
   position: absolute;
-  top: -14px;
-  right: -14px;
+  top: -20px;
+  right: -20px;
   z-index: 9;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 38px;
-  padding: 9px 12px;
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
   border: 1px solid rgba(146, 176, 151, 0.58);
   border-radius: 999px;
   color: #31332f;
   background: linear-gradient(135deg, #fff8dc, #edf2e9);
   box-shadow: 0 12px 24px rgba(69, 61, 54, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.92);
-  font-size: 0.78rem;
-  font-weight: 950;
-  letter-spacing: 0.03em;
 }
 
 .learn-board-button:hover,
@@ -8144,8 +8141,13 @@ body.home-modal-open .home-page {
 }
 
 .learn-page {
+  height: 100vh;
+  height: 100svh;
   min-height: 100vh;
   padding: clamp(22px, 4vw, 48px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   color: #31332f;
   background:
     radial-gradient(circle at 12% 9%, rgba(242, 208, 99, 0.2), transparent 28%),
@@ -8352,8 +8354,7 @@ body.home-modal-open .home-page {
 
 @media (max-width: 560px) {
   .learn-page { padding: 18px 12px 28px; }
-  .learn-board-button { top: -11px; right: -8px; min-height: 34px; padding: 7px 10px; }
-  .learn-board-button span { display: none; }
+  .learn-board-button { top: -14px; right: -10px; width: 42px; height: 42px; }
   .learn-piece-tabs button { flex: 1 1 130px; }
   .learn-lesson-title { align-items: flex-start; }
 }
