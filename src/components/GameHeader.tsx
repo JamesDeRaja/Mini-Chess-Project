@@ -1,3 +1,4 @@
+import { Shield } from 'lucide-react';
 import type { Color, GameStatus } from '../game/types.js';
 
 type GameHeaderProps = {
@@ -58,11 +59,17 @@ export function GameHeader({ title, turn, status, playerRole, details, onTitleCl
         {details && <p className="game-details">{details}</p>}
       </div>
       <div className="status-card" aria-live="polite">
+        <span className={`status-corner-dot status-dot-${dotState}`} aria-hidden="true" />
         <div className={`status-avatar ${avatarColor === 'black' ? 'black-avatar' : 'white-avatar'}`} role="img" aria-label={avatarLabel}>
           <img className="status-piece-img" data-piece="pawn" src={`/pieces/${avatarColor}-pawn.png`} alt="" draggable={false} />
         </div>
         <div className="status-copy">
-          {playerRole && <span>{playerRole}</span>}
+          {playerRole && (
+            <span className="status-role-line">
+              <Shield size={16} strokeWidth={2.8} aria-hidden="true" />
+              <span>{playerRole}</span>
+            </span>
+          )}
           <span className="status-main-line">
             <strong className={`status-word status-word-${dotState}`}>{statusLabelOverride ?? statusLabel(status, isOwnTurn)}</strong>
           </span>

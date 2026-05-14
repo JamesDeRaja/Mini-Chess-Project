@@ -9305,3 +9305,47 @@ body.home-modal-open .home-page {
 .analysis-panel-blunder span {
   color: #6e211b;
 }
+
+/* Restore the player shield and live-state dot in the game status card. */
+.status-role-line {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  gap: 7px;
+  padding: 5px 10px;
+  border: 1px solid rgba(126, 172, 142, 0.22);
+  border-radius: 999px;
+  color: #4f735f;
+  background: rgba(227, 241, 233, 0.82);
+  font-weight: 950;
+  line-height: 1;
+}
+
+.status-role-line svg {
+  flex: 0 0 auto;
+  color: #6fac8e;
+  filter: drop-shadow(0 1px 0 rgba(255, 251, 239, 0.9));
+}
+
+.status-role-line span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-card .status-corner-dot {
+  box-shadow: 0 0 0 5px rgba(255, 251, 239, 0.85), 0 0 18px currentColor;
+}
+
+.status-card .status-dot-active { color: #65ad91; }
+.status-card .status-dot-waiting { color: #e1bd4f; }
+.status-card .status-dot-neutral { color: #aab1aa; }
+
+@media (max-width: 760px) {
+  .status-role-line {
+    padding: 4px 8px;
+    gap: 5px;
+  }
+}
