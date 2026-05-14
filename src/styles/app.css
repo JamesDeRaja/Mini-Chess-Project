@@ -8902,7 +8902,7 @@ body.home-modal-open .home-page {
   }
 }
 
-/* Home polish fixes: let the piece tip float over the lower seed rail, fill the wide AI card, and simplify the streak count. */
+/* Home polish fixes: let the piece tip float over the lower seed rail, compose the wide AI card art, and simplify the streak count. */
 .today-setup-showcase {
   position: relative;
   z-index: 12;
@@ -8914,26 +8914,52 @@ body.home-modal-open .home-page {
 .meet-piece-card {
   z-index: 40;
 }
-.home-action-ai .action-piece-pawn-primary {
-  left: 50%;
-  width: min(38%, 104px);
-  --piece-scale: 0.92;
+.home-action-ai .action-piece-ai {
+  top: var(--ai-piece-top, 50%);
+  right: auto;
+  left: var(--ai-piece-left, 62%);
+  z-index: var(--ai-piece-layer, 1);
+  width: var(--ai-piece-width, 112px);
+  height: var(--ai-piece-height, 126px);
+  max-width: none;
+  opacity: var(--ai-piece-opacity, 0.96);
+  filter: drop-shadow(0 18px 20px rgba(40, 34, 24, 0.26));
+  transform: translate(-50%, var(--ai-piece-y, -50%)) rotate(var(--piece-rotate, 0deg)) scale(var(--piece-scale, 1));
 }
-.home-action-ai .action-piece-pawn-secondary,
-.home-action-ai .action-piece-pawn-tertiary {
-  top: 30px;
-  width: min(32%, 82px);
-  opacity: 0.82;
+.home-action-ai .action-piece-ai-knight {
+  --ai-piece-left: 54%;
+  --ai-piece-top: 54%;
+  --ai-piece-width: 138px;
+  --ai-piece-height: 148px;
+  --ai-piece-opacity: 0.88;
+  --piece-rotate: -8deg;
+  --piece-scale: 0.88;
 }
-.home-action-ai .action-piece-pawn-secondary {
-  left: 68%;
-  --piece-scale: 0.76;
-  --piece-rotate: 8deg;
+.home-action-ai .action-piece-ai-pawn {
+  --ai-piece-left: 64%;
+  --ai-piece-top: 49%;
+  --ai-piece-width: 154px;
+  --ai-piece-height: 168px;
+  --ai-piece-layer: 2;
+  --piece-scale: 1;
 }
-.home-action-ai .action-piece-pawn-tertiary {
-  left: 34%;
-  --piece-scale: 0.7;
-  --piece-rotate: -7deg;
+.home-action-ai .action-piece-ai-bishop {
+  --ai-piece-left: 75%;
+  --ai-piece-top: 52%;
+  --ai-piece-width: 134px;
+  --ai-piece-height: 150px;
+  --ai-piece-opacity: 0.9;
+  --piece-rotate: 7deg;
+  --piece-scale: 0.9;
+}
+.home-action-ai.home-action-card:hover:not(:disabled) .action-piece-ai {
+  animation: ai-piece-cluster-bob 760ms cubic-bezier(.18, 1.45, .32, 1);
+}
+@keyframes ai-piece-cluster-bob {
+  0% { transform: translate(-50%, var(--ai-piece-y, -50%)) rotate(var(--piece-rotate, 0deg)) scale(var(--piece-scale, 1)); }
+  42% { transform: translate(-50%, calc(var(--ai-piece-y, -50%) - 10px)) rotate(calc(var(--piece-rotate, 0deg) - 4deg)) scale(calc(var(--piece-scale, 1) * 1.04), calc(var(--piece-scale, 1) * 0.96)); }
+  72% { transform: translate(-50%, calc(var(--ai-piece-y, -50%) + 2px)) rotate(calc(var(--piece-rotate, 0deg) + 2deg)) scale(calc(var(--piece-scale, 1) * 0.98), calc(var(--piece-scale, 1) * 1.03)); }
+  100% { transform: translate(-50%, var(--ai-piece-y, -50%)) rotate(var(--piece-rotate, 0deg)) scale(var(--piece-scale, 1)); }
 }
 .streak-brand-tile b {
   min-width: 0;
@@ -8943,9 +8969,21 @@ body.home-modal-open .home-page {
   box-shadow: none;
 }
 @media (max-width: 760px) {
-  .home-action-ai .action-piece-pawn-primary { width: 82px; }
-  .home-action-ai .action-piece-pawn-secondary { left: auto; right: 78px; width: 64px; }
-  .home-action-ai .action-piece-pawn-tertiary { left: auto; right: 24px; width: 58px; }
+  .home-action-ai .action-piece-ai-knight {
+    --ai-piece-left: 58%;
+    --ai-piece-width: 76px;
+    --ai-piece-height: 84px;
+  }
+  .home-action-ai .action-piece-ai-pawn {
+    --ai-piece-left: 70%;
+    --ai-piece-width: 86px;
+    --ai-piece-height: 98px;
+  }
+  .home-action-ai .action-piece-ai-bishop {
+    --ai-piece-left: 82%;
+    --ai-piece-width: 74px;
+    --ai-piece-height: 86px;
+  }
   .streak-brand-tile b {
     min-width: 0;
     height: auto;
