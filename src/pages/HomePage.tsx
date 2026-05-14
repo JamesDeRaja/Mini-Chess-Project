@@ -675,7 +675,9 @@ export function HomePage({
             <button type="button" className="home-action-card home-action-ai" onClick={playActiveModeAgainstAi}>
               <span className="action-badge"><Bot size={14} aria-hidden="true" /> AI</span>
               <span className="card-sparkle card-sparkle-one" aria-hidden="true" />
-              <img className="action-piece action-piece-pawn" src="/pieces/white-pawn.png" alt="White pawn" draggable={false} />
+              <img className="action-piece action-piece-ai action-piece-ai-knight" src="/pieces/white-knight.png" alt="" aria-hidden="true" draggable={false} />
+              <img className="action-piece action-piece-ai action-piece-ai-pawn" src="/pieces/white-pawn.png" alt="" aria-hidden="true" draggable={false} />
+              <img className="action-piece action-piece-ai action-piece-ai-bishop" src="/pieces/white-bishop.png" alt="" aria-hidden="true" draggable={false} />
               {shuffleMode === 'daily' && <span className="daily-ai-stars" aria-label={`Daily AI progress: ${getDailyAIProgressAria(dailyAIProgress)}`}><DailyAIStarMarks progress={dailyAIProgress} /></span>}
               <span className="action-card-copy"><strong>Play AI</strong><small>{shuffleMode === 'daily' ? 'Instant daily game' : 'Use displayed setup'}</small>{shuffleMode === 'daily' && <small className="daily-ai-status">{dailyAIStatusLine}</small>}</span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>

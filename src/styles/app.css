@@ -8901,3 +8901,97 @@ body.home-modal-open .home-page {
     height: 64px;
   }
 }
+
+/* Home polish fixes: let the piece tip float over the lower seed rail, compose the wide AI card art, and simplify the streak count. */
+.today-setup-showcase {
+  position: relative;
+  z-index: 12;
+  overflow: visible;
+}
+.meet-board-frame {
+  z-index: 20;
+}
+.meet-piece-card {
+  z-index: 40;
+}
+.home-action-ai .action-piece-ai {
+  top: var(--ai-piece-top, 50%);
+  right: auto;
+  left: var(--ai-piece-left, 62%);
+  z-index: var(--ai-piece-layer, 1);
+  width: var(--ai-piece-width, 112px);
+  height: var(--ai-piece-height, 126px);
+  max-width: none;
+  opacity: var(--ai-piece-opacity, 0.96);
+  filter: drop-shadow(0 18px 20px rgba(40, 34, 24, 0.26));
+  transform: translate(-50%, var(--ai-piece-y, -50%)) rotate(var(--piece-rotate, 0deg)) scale(var(--piece-scale, 1));
+}
+.home-action-ai .action-piece-ai-knight {
+  --ai-piece-left: 54%;
+  --ai-piece-top: 54%;
+  --ai-piece-width: 138px;
+  --ai-piece-height: 148px;
+  --ai-piece-opacity: 0.88;
+  --piece-rotate: -8deg;
+  --piece-scale: 0.88;
+}
+.home-action-ai .action-piece-ai-pawn {
+  --ai-piece-left: 64%;
+  --ai-piece-top: 49%;
+  --ai-piece-width: 154px;
+  --ai-piece-height: 168px;
+  --ai-piece-layer: 2;
+  --piece-scale: 1;
+}
+.home-action-ai .action-piece-ai-bishop {
+  --ai-piece-left: 75%;
+  --ai-piece-top: 52%;
+  --ai-piece-width: 134px;
+  --ai-piece-height: 150px;
+  --ai-piece-opacity: 0.9;
+  --piece-rotate: 7deg;
+  --piece-scale: 0.9;
+}
+.home-action-ai.home-action-card:hover:not(:disabled) .action-piece-ai {
+  animation: ai-piece-cluster-bob 760ms cubic-bezier(.18, 1.45, .32, 1);
+}
+@keyframes ai-piece-cluster-bob {
+  0% { transform: translate(-50%, var(--ai-piece-y, -50%)) rotate(var(--piece-rotate, 0deg)) scale(var(--piece-scale, 1)); }
+  42% { transform: translate(-50%, calc(var(--ai-piece-y, -50%) - 10px)) rotate(calc(var(--piece-rotate, 0deg) - 4deg)) scale(calc(var(--piece-scale, 1) * 1.04), calc(var(--piece-scale, 1) * 0.96)); }
+  72% { transform: translate(-50%, calc(var(--ai-piece-y, -50%) + 2px)) rotate(calc(var(--piece-rotate, 0deg) + 2deg)) scale(calc(var(--piece-scale, 1) * 0.98), calc(var(--piece-scale, 1) * 1.03)); }
+  100% { transform: translate(-50%, var(--ai-piece-y, -50%)) rotate(var(--piece-rotate, 0deg)) scale(var(--piece-scale, 1)); }
+}
+.streak-brand-tile b {
+  min-width: 0;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+@media (max-width: 760px) {
+  .home-action-ai .action-piece-ai-knight {
+    --ai-piece-left: 62%;
+    --ai-piece-top: 52%;
+    --ai-piece-width: 92px;
+    --ai-piece-height: 102px;
+  }
+  .home-action-ai .action-piece-ai-pawn {
+    --ai-piece-left: 70%;
+    --ai-piece-top: 49%;
+    --ai-piece-width: 108px;
+    --ai-piece-height: 122px;
+  }
+  .home-action-ai .action-piece-ai-bishop {
+    --ai-piece-left: 78%;
+    --ai-piece-top: 52%;
+    --ai-piece-width: 90px;
+    --ai-piece-height: 104px;
+  }
+  .streak-brand-tile b {
+    min-width: 0;
+    height: auto;
+  }
+}
+.home-hero-shell .today-setup-showcase {
+  z-index: 12;
+}
