@@ -8758,6 +8758,44 @@ body.home-modal-open .home-page {
   }
 }
 
+
+/* Popular seeds tabs: keep every filter on one line with label sizing that matches the pill height. */
+.popular-seeds-page .leaderboard-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: clamp(4px, 0.8vw, 12px);
+  width: 100%;
+  padding: clamp(5px, 0.8vw, 8px);
+  overflow: hidden;
+  border-radius: 32px;
+}
+.popular-seeds-page .leaderboard-tabs button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: clamp(48px, 5.5vw, 64px);
+  padding: 10px clamp(6px, 1.4vw, 18px);
+  font-size: clamp(0.92rem, 1.45vw, 1.16rem);
+  line-height: 1;
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .popular-seeds-page .leaderboard-tabs {
+    display: flex;
+    grid-template-columns: none;
+    flex-wrap: nowrap;
+    gap: 2px;
+    width: calc(100% + 12px);
+    margin-inline: -6px;
+    padding: 4px;
+    border-radius: 24px;
+  }
+  .popular-seeds-page .leaderboard-tabs button {
+    min-height: 42px;
+    padding-inline: 3px;
+    font-size: clamp(0.86rem, 3.7vw, 1rem);
+  }
+}
+
 /* Popular seeds page polish: wider four-column cards with bottom-aligned actions. */
 .popular-seeds-page .challenge-card.wide {
   width: min(100%, 1520px);
