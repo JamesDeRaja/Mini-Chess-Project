@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Copy, Flag, Handshake, Home, Pause, Play, RotateCcw, Share2, Shuffle, Trophy } from 'lucide-react';
+import { CalendarDays, Copy, Flag, Handshake, Home, Pause, Play, RotateCcw, Share2, Shuffle, Sparkles, Trophy } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
@@ -10,6 +10,7 @@ import { ScoreExplanation } from '../components/ScoreExplanation.js';
 import { ShareChallengeModal } from '../components/ShareChallengeModal.js';
 import { ResultScreenshotButton } from '../components/ResultScreenshotButton.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
+import { analyzeMove, getMoveNotation } from '../game/analysis.js';
 import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
 import { type BotLevel, getBotMoveByLevel, getMoveIdentity } from '../game/bot.js';
 import {
@@ -33,11 +34,12 @@ import { buildShareMessage, getContextualTauntContext, getRandomComparisonText, 
 import { getAnonymousPlayerId, getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { recordPlayStreak } from '../game/playStreak.js';
+import { formatMoveNotation } from '../game/moveNotation.js';
 import { calculateGameScore, getCaptureScore } from '../game/scoring.js';
 import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
 import { createChallenge, submitSeedScore } from '../multiplayer/challengeApi.js';
 import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
-import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord, PieceType } from '../game/types.js';
+import type { Board as ChessBoard, Color, GameStatus, Move, MoveAnalysis, MoveRecord, PieceType } from '../game/types.js';
 
 export type MatchMode = 'single' | 'best-of-3' | 'best-of-5';
 
@@ -252,11 +254,13 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<(Pick<Move, 'from' | 'to'> & { color?: Color; isCapture?: boolean; captureScore?: number | null }) | null>(null);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
+  const [analysisByPly, setAnalysisByPly] = useState<Record<number, MoveAnalysis | undefined>>({});
   const [moveAnnouncement, setMoveAnnouncement] = useState('');
   const [score, setScore] = useState<MatchScore>({ white: 0, black: 0 });
   const [roundNumber, setRoundNumber] = useState(1);
   const [roundResetId, setRoundResetId] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
+  const [isResultPanelDismissed, setIsResultPanelDismissed] = useState(false);
   const [matchWinner, setMatchWinner] = useState<Color | null>(null);
   const [isFlipped, setIsFlipped] = useState(() => playerColor === 'black');
   const [isBoardReady, setIsBoardReady] = useState(false);
@@ -268,7 +272,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [displayNameDraft, setDisplayNameDraft] = useState(() => getDisplayName());
   const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(null);
   const [submittedScore, setSubmittedScore] = useState(false);
-  const [scoreSubmitMessage, setScoreSubmitMessage] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareTaunt, setShareTaunt] = useState('');
@@ -282,14 +285,30 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const config = modeConfig[matchMode];
   const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber);
   const latestPly = boardTimeline.length - 1;
+  const activeReviewPly = roundResult ? previewPly ?? latestPly : previewPly;
   const isPreviewing = previewPly !== null && previewPly < latestPly;
   const displayBoard = isPreviewing ? boardTimeline[previewPly] : board;
   const displayMove = isPreviewing && previewPly > 0 ? moveHistory[previewPly - 1] : lastMove;
   const displayTurn = isPreviewing ? (previewPly % 2 === 0 ? 'white' : 'black') : turn;
+  const currentAnalysis = roundResult && activeReviewPly && activeReviewPly > 0 ? analysisByPly[activeReviewPly] ?? null : null;
+  const currentReviewMove = roundResult && activeReviewPly && activeReviewPly > 0 ? moveHistory[activeReviewPly - 1] ?? null : null;
   const checkedKingIndex = useMemo(
     () => (displayBoard.length && isKingInCheck(displayBoard, displayTurn) ? findKingIndex(displayBoard, displayTurn) : null),
     [displayBoard, displayTurn],
   );
+
+
+
+  useEffect(() => {
+    if (!roundResult || !activeReviewPly || activeReviewPly <= 0) return;
+    if (analysisByPly[activeReviewPly]) return;
+    const actualMove = moveHistory[activeReviewPly - 1];
+    const boardBeforeMove = boardTimeline[activeReviewPly - 1];
+    if (!actualMove || !boardBeforeMove) return;
+
+    const analysis = analyzeMove(boardBeforeMove, actualMove);
+    setAnalysisByPly((cachedAnalysis) => ({ ...cachedAnalysis, [activeReviewPly]: analysis }));
+  }, [activeReviewPly, analysisByPly, boardTimeline, moveHistory, roundResult]);
 
   useEffect(() => {
     pendingDailyAIProgressRef.current = null;
@@ -348,8 +367,18 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     const historyList = historyListRef.current;
     if (!historyList) return;
 
-    historyList.scrollTop = historyList.scrollHeight;
-  }, [moveHistory.length]);
+    const animationFrame = window.requestAnimationFrame(() => {
+      if (activeReviewPly && activeReviewPly > 0) {
+        const activeMove = historyList.querySelector<HTMLElement>(`[data-history-ply="${activeReviewPly}"]`);
+        activeMove?.scrollIntoView({ block: 'center', inline: 'nearest' });
+        return;
+      }
+
+      historyList.scrollTop = historyList.scrollHeight;
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [activeReviewPly, moveHistory.length]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -477,6 +506,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       setScore(updatedScore);
       if (!isDailyAI && updatedScore[winner] >= config.winsRequired) setMatchWinner(winner);
     }
+    setIsResultPanelDismissed(false);
     setRoundResult({ status: nextStatus, winner, message: getRoundMessage(nextStatus, drawReason), progressionMessage, didPlayerWin, drawReason });
   }, [config.winsRequired, dailyAIProgress, isDailyAI, playerColor, score]);
 
@@ -524,14 +554,15 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setLegalMoves([]);
     setLastMove(null);
     setMoveHistory([]);
+    setAnalysisByPly({});
     setMoveAnnouncement('');
     setSubmittedScore(false);
-    setScoreSubmitMessage(null);
     setShareTaunt('');
     setChallengeUrl('');
     setCreatedChallengeId(null);
     setShareModalOpen(false);
     setRoundResult(null);
+    setIsResultPanelDismissed(false);
     setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, roundAscensionTier));
     setPreviewPly(null);
     setIsHistoryAutoplaying(false);
@@ -665,7 +696,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setIsBoardReady(true);
   }, []);
 
-  const activeLegalMoves = isPreviewing || !isBoardReady ? [] : legalMoves;
+  const activeLegalMoves = isPreviewing || roundResult || !isBoardReady ? [] : legalMoves;
   const headerStatusLabel = roundResult ? 'Game Over' : undefined;
   const headerTurnLabel = roundResult
     ? roundResult.status === 'draw'
@@ -703,6 +734,35 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const canAutoplayHistory = Boolean(roundResult && moveHistory.length > 0);
   const confirmActionClassName = pendingAction ? 'danger-action' : undefined;
   const restartActionLabel = canUseBotGameActions ? 'Restart Match' : 'Rematch';
+
+
+
+  function startPostGameReview() {
+    if (!roundResult || moveHistory.length === 0) return;
+    setIsHistoryAutoplaying(false);
+    setPreviewPly(1);
+    setIsResultPanelDismissed(true);
+  }
+
+  const analysisPanel = roundResult ? (() => {
+    if (!activeReviewPly || activeReviewPly <= 0 || !currentReviewMove) {
+      return <div className="analysis-panel"><strong>Review</strong><span>Step through the game and see where the computer wanted to move.</span></div>;
+    }
+    const actualNotation = formatMoveNotation(currentReviewMove).text;
+    if (!currentAnalysis) {
+      return <div className="analysis-panel"><strong>Analysis</strong><span>Review preparing…</span></div>;
+    }
+    const sideLabel = currentReviewMove.color === 'white' ? 'White' : 'Black';
+    const actorLabel = currentReviewMove.color === playerColor ? 'You' : 'Bot';
+    const suggestedNotation = getMoveNotation(currentAnalysis.bestMove);
+    return (
+      <div className={currentAnalysis.isBestMove ? 'analysis-panel analysis-panel-best' : 'analysis-panel analysis-panel-suggested'}>
+        <strong>Move {activeReviewPly} / {moveHistory.length}</strong>
+        <span>{sideLabel} played: {actualNotation}</span>
+        <span>{currentAnalysis.isBestMove ? (currentReviewMove.color === playerColor ? 'Nice. You found the best move. ⭐' : 'Bot played the suggested move. ⭐') : `${actorLabel === 'You' ? 'Computer preferred' : 'Suggested for bot'}: ${suggestedNotation}`}</span>
+      </div>
+    );
+  })() : null;
 
   async function ensureChallengeRecord(finalShareText?: string, finalTaunt?: string): Promise<string> {
     if (!roundResult) return effectiveChallengeUrl;
@@ -744,7 +804,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   async function copyChallengeLink() {
     const url = await ensureChallengeRecord();
     if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
-    setScoreSubmitMessage('Challenge link copied.');
   }
 
   function openShareModal() {
@@ -755,7 +814,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   async function handleSubmitScore() {
     if (!roundResult) return;
-    setScoreSubmitMessage('Submitting...');
     try {
       saveDisplayName(displayNameDraft);
       await submitScore({
@@ -768,9 +826,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         moves: scoreBreakdown.fullMoves,
       });
       setSubmittedScore(true);
-      setScoreSubmitMessage('Score submitted to today’s best scores.');
-    } catch {
-      setScoreSubmitMessage('Could not submit online, but your local score is saved.');
+    } catch (error) {
+      console.warn('Could not submit score online, but the local score is saved.', error);
     }
   }
 
@@ -834,6 +891,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             legalMoves={activeLegalMoves}
             lastMove={displayMove}
             checkedKingIndex={checkedKingIndex}
+            analysis={currentAnalysis}
             isFlipped={isFlipped}
             isInteractive={!isPreviewing && isBoardReady && status === 'active'}
             scoringSide={playerColor}
@@ -853,14 +911,16 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               <h2>Move history</h2>
             </div>
             <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
+            {analysisPanel}
           </div>
           <ol ref={historyListRef} className="move-history move-list history-list">
             <MoveHistory
               moves={moveHistory}
               emptyPrimary="No moves yet."
               emptySecondary="Select a piece to see legal moves."
-              activePly={previewPly}
+              activePly={activeReviewPly}
               scoringSide={playerColor}
+              analysisByPly={analysisByPly}
               onSelectPly={handleSelectHistoryPly}
             />
           </ol>
@@ -900,6 +960,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           title={matchWinner ? 'Match complete' : roundResult.drawReason === 'stalemate' ? 'Stalemate' : roundResult.status === 'draw' ? 'Draw agreed' : roundResult.didPlayerWin ? 'You won' : 'You lost'}
           summary={roundResult.message}
           progressionMessage={roundResult.progressionMessage}
+          dismissed={isResultPanelDismissed}
+          onDismiss={() => setIsResultPanelDismissed(true)}
           homeAction={(
             <button type="button" className="result-home-button" aria-label="Go home" onClick={onHome}>
               <Home size={24} aria-hidden="true" />
@@ -936,7 +998,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                 </div>
               )}
               <blockquote className="result-taunt">“{currentShareTaunt}”</blockquote>
-              <p className="panel-note">{activeChallengeContext && challengeComparison?.beatPrevious ? 'Now challenge someone else.' : activeChallengeContext ? 'Try again or share your attempt.' : `Share ${displaySeedName} as a beat-my-score challenge.`}</p>
               {leaderboard.length > 0 && (
                 <div className="leaderboard-mini">
                   <h3>Today’s Best Scores</h3>
@@ -948,15 +1009,14 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                   </div>
                 </div>
               )}
-              {scoreSubmitMessage && <p className="panel-note">{scoreSubmitMessage}</p>}
             </>
           )}
           actions={(
             <>
-              <button type="button" onClick={openShareModal}><Share2 size={17} /> Challenge a Friend</button><ResultScreenshotButton title={roundResult.didPlayerWin ? 'You won' : roundResult.status === 'draw' ? 'Draw' : 'You lost'} summary={roundResult.message} score={scoreBreakdown.totalScore} moves={scoreBreakdown.fullMoves} seed={seedSlug} setup={dailySeedInfo.backRankCode} />
+              <button type="button" onClick={openShareModal}><Share2 size={17} /> Challenge a Friend</button>
+              <button type="button" className="secondary-action" onClick={startPostGameReview}><Sparkles size={18} /> Review Game</button><ResultScreenshotButton title={roundResult.didPlayerWin ? 'You won' : roundResult.status === 'draw' ? 'Draw' : 'You lost'} summary={roundResult.message} score={scoreBreakdown.totalScore} moves={scoreBreakdown.fullMoves} seed={seedSlug} setup={dailySeedInfo.backRankCode} />
               <button type="button" className="secondary-action" onClick={() => { void copyChallengeLink(); }}><Copy size={22} /> Copy Link</button>
               <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seedSlug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}><Trophy size={24} /> View Seed Leaderboard</button>
-              <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Save Score'}</button>
               {!matchWinner && <button type="button" onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay Seed' : 'Replay Seed'}</button>}
               <button type="button" onClick={() => { window.history.pushState(null, '', `/bot?seed=${encodeURIComponent(seedSlug)}&setup=${encodeURIComponent(dailySeedInfo.backRankCode)}&side=${playerColor === 'white' ? 'black' : 'white'}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Other Side</button>
               <button type="button" onClick={requestRestart}>Rematch</button>
