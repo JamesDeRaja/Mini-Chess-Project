@@ -9039,3 +9039,22 @@ body.home-modal-open .home-page {
   color: #4f745d;
   font-weight: 950;
 }
+
+/* Keep the home menu scrollable at every viewport size, even for tiny overflows. */
+.home-page,
+:root[data-theme='light'] .home-page,
+:root[data-theme='dark'] .home-page {
+  height: 100vh;
+  height: 100svh;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: max(clamp(24px, 3.5vw, 56px), calc(env(safe-area-inset-bottom) + 24px));
+}
+
+body.home-modal-open .home-page {
+  overflow: hidden;
+}
