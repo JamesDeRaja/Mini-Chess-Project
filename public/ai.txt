@@ -26,18 +26,24 @@ Important URLs:
 Representative popular seed URLs:
 - Gotham Chaos: https://chess.alphaden.club/seed/gotham-chaos — A dark tactical setup with early queen pressure.
 - Boss Battle: https://chess.alphaden.club/seed/boss-battle — A direct challenge seed for competitive rematches.
+- Rook Rage: https://chess.alphaden.club/seed/rook-rage — Rooks hit open lanes early and punish slow development.
+- Queen Panic: https://chess.alphaden.club/seed/queen-panic — Queen pressure starts loud and forces immediate defensive choices.
 - Rook Trap: https://chess.alphaden.club/seed/rook-trap — Rooks become tempting targets early.
 - Queen Rush: https://chess.alphaden.club/seed/queen-rush — Queen activity appears early, but greed can backfire.
 - Knight Panic: https://chess.alphaden.club/seed/knight-panic — Knight jumps create instant tactical threats.
 - Bishop Storm: https://chess.alphaden.club/seed/bishop-storm — Diagonal pressure builds quickly.
 - Pawn Wall: https://chess.alphaden.club/seed/pawn-wall — A cramped setup that rewards pawn timing.
+- No Mercy: https://chess.alphaden.club/seed/no-mercy — A ruthless seed where loose pieces disappear quickly.
 - Tiny War: https://chess.alphaden.club/seed/tiny-war — A compact battlefield with no slow opening phase.
+- Bishop Trap: https://chess.alphaden.club/seed/bishop-trap — Diagonal bait sets up quick tactical punishment.
+- Knightmare: https://chess.alphaden.club/seed/knightmare — Knight jumps turn the tiny board into a tactical nightmare.
 - Mirror Madness: https://chess.alphaden.club/seed/mirror-madness — Same material, strange symmetry, sharp tactics.
 - Crown Hunt: https://chess.alphaden.club/seed/crown-hunt — The king becomes vulnerable faster than expected.
 - Blitz Cave: https://chess.alphaden.club/seed/blitz-cave — A fast seed built for short tactical games.
 - Trap Door: https://chess.alphaden.club/seed/trap-door — One careless capture opens the board.
 - Fork Factory: https://chess.alphaden.club/seed/fork-factory — Knight and queen forks appear often.
 - Check Rush: https://chess.alphaden.club/seed/check-rush — Early checks can snowball into mate threats.
+- Checkmate Me: https://chess.alphaden.club/seed/checkmate-me — A daring seed for players who want immediate mate threats.
 - Queen Bait: https://chess.alphaden.club/seed/queen-bait — The queen looks powerful, but can become a target.
 - Rook Rumble: https://chess.alphaden.club/seed/rook-rumble — Rooks fight for open files quickly.
 - Bishop Bite: https://chess.alphaden.club/seed/bishop-bite — Diagonal captures decide the pace.
@@ -54,5 +60,10 @@ Representative popular seed URLs:
 - Fast Mate: https://chess.alphaden.club/seed/fast-mate — Built for players hunting quick checkmates.
 - Narrow Board: https://chess.alphaden.club/seed/narrow-board — The small width creates forced confrontations.
 - Queen Corner: https://chess.alphaden.club/seed/queen-corner — Queen placement changes the whole opening fight.
+- Pawn Chaos: https://chess.alphaden.club/seed/pawn-chaos — Pawns create messy tactical openings.
+- Rage Quit: https://chess.alphaden.club/seed/rage-quit — A volatile setup built for dramatic swings and instant rematches.
+- Fork Frenzy: https://chess.alphaden.club/seed/fork-frenzy — Fork threats arrive early and force awkward choices.
+- Queen Tilt: https://chess.alphaden.club/seed/queen-tilt — Queen pressure creates unstable positions from move one.
+- Rook Riot: https://chess.alphaden.club/seed/rook-riot — Rooks crash through files in a noisy tactical race.
 
 Robots policy: public pages are crawlable; private /game/ URLs are disallowed.

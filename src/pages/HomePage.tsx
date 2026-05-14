@@ -154,6 +154,7 @@ export function HomePage({
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
   const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(() => getLocalBestScoreForSeedMode(getDailySeed(todayKey), 'daily'));
   const [leaderboardFeed, setLeaderboardFeed] = useState<LeaderboardFeedItem[]>([]);
+  const [leaderboardFeedLoading, setLeaderboardFeedLoading] = useState(true);
   const [leaderboardFeedIndex, setLeaderboardFeedIndex] = useState(0);
   const [leaderboardChipExpanded, setLeaderboardChipExpanded] = useState(false);
   const [playStreak, setPlayStreak] = useState(() => getPlayStreak());
@@ -161,6 +162,7 @@ export function HomePage({
   const [leaderboardDialogOpen, setLeaderboardDialogOpen] = useState(false);
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('daily');
   const [leaderboardDialogRows, setLeaderboardDialogRows] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardDialogLoading, setLeaderboardDialogLoading] = useState(false);
   const [matchTarget, setMatchTarget] = useState({ seed: getDailySeed(todayKey), backRankCode: dailyBackRankCodeFromSeed(getDailySeed(todayKey)), mode: 'daily' as ShuffleMode });
   const dailySeed = getDailySeed(todayKey);
   const dailyBackRankCode = dailyBackRankCodeFromSeed(dailySeed);
@@ -234,7 +236,7 @@ export function HomePage({
       const topScores = scores.slice(0, 10);
       setLeaderboardFeed(topScores.map(leaderboardEntryToFeedItem));
       setLeaderboardFeedIndex(0);
-    }).catch(() => setLeaderboardFeed([]));
+    }).catch(() => setLeaderboardFeed([])).finally(() => setLeaderboardFeedLoading(false));
   }, [dailySeed]);
 
   useEffect(() => {
@@ -257,7 +259,7 @@ export function HomePage({
   useEffect(() => {
     if (!leaderboardDialogOpen) return;
     const loadScores = leaderboardScope === 'daily' ? fetchScoreboard('daily', dailySeed, 'daily') : fetchScoreboard(leaderboardScope);
-    loadScores.then((scores) => setLeaderboardDialogRows(scores.slice(0, 25))).catch(() => setLeaderboardDialogRows([]));
+    loadScores.then((scores) => setLeaderboardDialogRows(scores.slice(0, 10))).catch(() => setLeaderboardDialogRows([])).finally(() => setLeaderboardDialogLoading(false));
   }, [dailySeed, leaderboardDialogOpen, leaderboardScope]);
 
   useEffect(() => {
@@ -274,6 +276,20 @@ export function HomePage({
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [leaderboardDialogOpen]);
+
+
+  function openLeaderboardDialog() {
+    setLeaderboardDialogRows([]);
+    setLeaderboardDialogLoading(true);
+    setLeaderboardDialogOpen(true);
+  }
+
+  function chooseLeaderboardScope(scope: LeaderboardScope) {
+    if (scope === leaderboardScope && leaderboardDialogRows.length > 0) return;
+    setLeaderboardDialogRows([]);
+    setLeaderboardDialogLoading(true);
+    setLeaderboardScope(scope);
+  }
 
   function handleDateChange(nextDateKey: string) {
     if (nextDateKey > todayKey) {
@@ -525,12 +541,14 @@ export function HomePage({
 
   return (
     <main className="home-page">
-      <button type="button" className={`home-leaderboard-chip ${leaderboardChipExpanded ? 'is-expanded' : 'is-collapsed'}`} onClick={() => setLeaderboardDialogOpen(true)} aria-label="Open leaderboards">
+      <button type="button" className={`home-leaderboard-chip ${leaderboardChipExpanded ? 'is-expanded' : 'is-collapsed'}`} onClick={openLeaderboardDialog} aria-label="Open leaderboards">
         <Trophy size={18} aria-hidden="true" />
         <div>
           <strong>Live scores</strong>
           <ol aria-live="polite">
-            {visibleLeaderboardFeed.length > 0 ? visibleLeaderboardFeed.map((entry, index) => (
+            {leaderboardFeedLoading ? [0, 1, 2].map((item) => (
+              <li key={`leaderboard-feed-skeleton-${item}`} className="leaderboard-skeleton-row" aria-hidden="true"><span /><b /></li>
+            )) : visibleLeaderboardFeed.length > 0 ? visibleLeaderboardFeed.map((entry, index) => (
               <li key={`${entry.id}-${index}`} className={entry.kind === 'new-score' ? 'new-score-pulse' : ''}>
                 <span>{entry.kind === 'new-score' ? `${entry.displayName} got a new score` : `${entry.rank ?? index + 1}. ${entry.displayName}`}</span><b>{entry.score}</b>
               </li>
@@ -550,13 +568,19 @@ export function HomePage({
             </div>
             <div className="leaderboard-tabs" role="tablist" aria-label="Choose leaderboard">
               {leaderboardViews.map((view) => (
-                <button key={view.scope} type="button" role="tab" aria-selected={leaderboardScope === view.scope} className={leaderboardScope === view.scope ? 'selected' : ''} onClick={() => setLeaderboardScope(view.scope)}>
+                <button key={view.scope} type="button" role="tab" aria-selected={leaderboardScope === view.scope} className={leaderboardScope === view.scope ? 'selected' : ''} onClick={() => chooseLeaderboardScope(view.scope)}>
                   {view.label}
                 </button>
               ))}
             </div>
-            <ol className="leaderboard-dialog-list">
-              {leaderboardDialogRows.length > 0 ? leaderboardDialogRows.slice(0, 10).map((entry, index) => (
+            <ol className="leaderboard-dialog-list" aria-busy={leaderboardDialogLoading}>
+              {leaderboardDialogLoading ? Array.from({ length: 10 }, (_item, index) => (
+                <li key={`leaderboard-dialog-skeleton-${index}`} className="leaderboard-skeleton-card" aria-hidden="true">
+                  <span className="leaderboard-rank">{index + 1}</span>
+                  <span className="leaderboard-player"><strong /><small /></span>
+                  <b />
+                </li>
+              )) : leaderboardDialogRows.length > 0 ? leaderboardDialogRows.slice(0, 10).map((entry, index) => (
                 <li key={entry.id}>
                   <span className="leaderboard-rank">{index + 1}</span>
                   <span className="leaderboard-player">
@@ -607,7 +631,15 @@ export function HomePage({
               </button>
               <span className="copy-status" aria-live="polite">{copyStatus === 'copied' ? 'Copied.' : ''}</span>
             </div>
-            {localBestScore && <span className="today-high-score-chip">High Score: {localBestScore.score}</span>}
+            {localBestScore && (
+              <span className="today-high-score-chip" aria-label={`High score ${localBestScore.score}`}>
+                <Trophy size={18} aria-hidden="true" />
+                <span>
+                  <small>High score</small>
+                  <strong>{localBestScore.score}</strong>
+                </span>
+              </span>
+            )}
             <div className="shuffle-mode-toggle" role="group" aria-label="Choose global shuffle mode">
               <button
                 type="button"
