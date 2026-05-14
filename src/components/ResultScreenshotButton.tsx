@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { toBlob } from 'html-to-image';
 import { Camera, Copy, Download, Share2 } from 'lucide-react';
 
-type Props = { title: string; summary: string; score: number; moves: number; seed: string; setup?: string | null };
+type Props = { title: string; summary: string; score: number; moves: number; seed: string; setup?: string | null; className?: string };
 
 async function writeImageToClipboard(blob: Blob) {
   const ClipboardItemCtor = (window as unknown as { ClipboardItem?: typeof ClipboardItem }).ClipboardItem;
@@ -14,7 +14,7 @@ function shouldIncludeInScreenshot(node: HTMLElement) {
   return !node.classList?.contains('result-screenshot-dropdown') && !node.classList?.contains('result-screenshot-status');
 }
 
-export function ResultScreenshotButton({ title, summary, seed }: Props) {
+export function ResultScreenshotButton({ title, summary, seed, className }: Props) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState('');
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -60,7 +60,7 @@ export function ResultScreenshotButton({ title, summary, seed }: Props) {
 
   return (
     <div className="result-screenshot-menu" ref={menuRef}>
-      <button type="button" className="secondary-action" onClick={() => setOpen((value) => !value)} aria-expanded={open}><Camera size={17} /> Screenshot</button>
+      <button type="button" className={className ? `secondary-action ${className}` : 'secondary-action'} onClick={() => setOpen((value) => !value)} aria-expanded={open}><Camera size={17} /> Screenshot</button>
       {open && (
         <div className="result-screenshot-dropdown">
           {'share' in navigator && <button type="button" onClick={() => { void shareImage().catch(() => setStatus('Image share is not supported here.')); }}><Share2 size={16} /> Share image</button>}
