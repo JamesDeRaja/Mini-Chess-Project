@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Flame, Link as LinkIcon, RefreshCw, Share2, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
+import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Copy, Flame, Link as LinkIcon, RefreshCw, Share2, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
 import { getDailyAIDifficulty, getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput, createSeedFromInput } from '../game/seed.js';
 import { createRandomGameSeed, getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
@@ -156,9 +156,6 @@ export function HomePage({
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
   const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(() => getLocalBestScoreForSeedMode(getDailySeed(todayKey), 'daily'));
   const [leaderboardFeed, setLeaderboardFeed] = useState<LeaderboardFeedItem[]>([]);
-  const [leaderboardFeedLoading, setLeaderboardFeedLoading] = useState(true);
-  const [leaderboardFeedIndex, setLeaderboardFeedIndex] = useState(0);
-  const [leaderboardChipExpanded, setLeaderboardChipExpanded] = useState(false);
   const [playStreak, setPlayStreak] = useState(() => getPlayStreak());
   const previousLeaderboardFeedSignatureRef = useRef('');
   const [leaderboardDialogOpen, setLeaderboardDialogOpen] = useState(false);
@@ -187,9 +184,6 @@ export function HomePage({
   const dailyMasteredSeedSuggestions = CURATED_SEEDS.filter((seed) => ['gotham-chaos', 'boss-battle', 'queen-rush'].includes(seed.slug)).slice(0, 3);
   const activeLeaderboardView = leaderboardViews.find((view) => view.scope === leaderboardScope) ?? leaderboardViews[0];
   const leaderboardFeedSignature = useMemo(() => leaderboardFeed.map((entry) => `${entry.id}:${entry.score}:${entry.rank ?? ''}`).join('|'), [leaderboardFeed]);
-  const visibleLeaderboardFeed = leaderboardFeed.length > 0
-    ? [0, 1, 2].map((offset) => leaderboardFeed[(leaderboardFeedIndex + offset) % leaderboardFeed.length]).filter(Boolean) as LeaderboardFeedItem[]
-    : [];
   const decorativePieces = useMemo(() => {
     const pieces = ['pawn', 'knight', 'bishop', 'rook', 'queen'] as const;
     const seedText = activeSeedSource.seed;
@@ -238,25 +232,11 @@ export function HomePage({
     fetchLeaderboard(dailySeed, 'daily').then((scores) => {
       const topScores = scores.slice(0, 10);
       setLeaderboardFeed(topScores.map(leaderboardEntryToFeedItem));
-      setLeaderboardFeedIndex(0);
-    }).catch(() => setLeaderboardFeed([])).finally(() => setLeaderboardFeedLoading(false));
+    }).catch(() => setLeaderboardFeed([]));
   }, [dailySeed]);
 
   useEffect(() => {
-    const scrollId = window.setInterval(() => {
-      setLeaderboardFeedIndex((currentIndex) => (leaderboardFeed.length <= 1 ? 0 : (currentIndex + 1) % leaderboardFeed.length));
-    }, 2600);
-    return () => window.clearInterval(scrollId);
-  }, [leaderboardFeed.length]);
-
-  useEffect(() => {
-    const previousSignature = previousLeaderboardFeedSignatureRef.current;
     previousLeaderboardFeedSignatureRef.current = leaderboardFeedSignature;
-    if (!leaderboardFeedSignature || leaderboardFeedSignature === previousSignature) return undefined;
-
-    setLeaderboardChipExpanded(true);
-    const collapseId = window.setTimeout(() => setLeaderboardChipExpanded(false), 7800);
-    return () => window.clearTimeout(collapseId);
   }, [leaderboardFeedSignature]);
 
   useEffect(() => {
@@ -272,19 +252,21 @@ export function HomePage({
       if (event.key === 'Escape') setLeaderboardDialogOpen(false);
     }
 
-    document.body.classList.add('home-modal-open');
     window.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.body.classList.remove('home-modal-open');
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [leaderboardDialogOpen]);
 
 
-  function openLeaderboardDialog() {
-    setLeaderboardDialogRows([]);
-    setLeaderboardDialogLoading(true);
-    setLeaderboardDialogOpen(true);
+  function toggleLeaderboardDropdown() {
+    setLeaderboardDialogOpen((isOpen) => {
+      if (!isOpen) {
+        setLeaderboardDialogRows([]);
+        setLeaderboardDialogLoading(true);
+      }
+      return !isOpen;
+    });
   }
 
   function chooseLeaderboardScope(scope: LeaderboardScope) {
@@ -544,29 +526,24 @@ export function HomePage({
 
   return (
     <main className="home-page">
-      <button type="button" className={`home-leaderboard-chip ${leaderboardChipExpanded ? 'is-expanded' : 'is-collapsed'}`} onClick={openLeaderboardDialog} aria-label="Open leaderboards">
-        <Trophy size={18} aria-hidden="true" />
-        <div>
-          <strong>Live scores</strong>
-          <ol aria-live="polite">
-            {leaderboardFeedLoading ? [0, 1, 2].map((item) => (
-              <li key={`leaderboard-feed-skeleton-${item}`} className="leaderboard-skeleton-row" aria-hidden="true"><span /><b /></li>
-            )) : visibleLeaderboardFeed.length > 0 ? visibleLeaderboardFeed.map((entry, index) => (
-              <li key={`${entry.id}-${index}`} className={entry.kind === 'new-score' ? 'new-score-pulse' : ''}>
-                <span>{entry.kind === 'new-score' ? `${entry.displayName} got a new score` : `${entry.rank ?? index + 1}. ${entry.displayName}`}</span><b>{entry.score}</b>
-              </li>
-            )) : <li><span>No daily scores yet</span><b>—</b></li>}
-          </ol>
-          <small>Tap for top 10 and global scores</small>
-        </div>
-      </button>
-      {leaderboardDialogOpen && (
-        <div className="modal-backdrop leaderboard-dialog-backdrop" role="presentation" onClick={() => setLeaderboardDialogOpen(false)}>
-          <section className="modal-card leaderboard-dialog" role="dialog" aria-modal="true" aria-labelledby="leaderboard-dialog-title" onClick={(event) => event.stopPropagation()}>
-            <button type="button" className="modal-close-button" onClick={() => setLeaderboardDialogOpen(false)} aria-label="Close leaderboards"><X size={18} aria-hidden="true" /></button>
+      <div className="home-leaderboard-shell">
+        <button
+          type="button"
+          className={`home-leaderboard-chip ${leaderboardDialogOpen ? 'is-expanded' : 'is-collapsed'}`}
+          onClick={toggleLeaderboardDropdown}
+          aria-expanded={leaderboardDialogOpen}
+          aria-controls="home-leaderboard-dropdown"
+          aria-label="Open leaderboards"
+        >
+          <Trophy size={18} aria-hidden="true" />
+          <strong>Leaderboard</strong>
+          <ChevronDown size={16} aria-hidden="true" />
+        </button>
+        {leaderboardDialogOpen && (
+          <section id="home-leaderboard-dropdown" className="home-leaderboard-dropdown" aria-labelledby="home-leaderboard-title">
             <div className="leaderboard-dialog-heading">
               <span className="eyebrow"><Trophy size={16} aria-hidden="true" /> Leaderboards</span>
-              <h2 id="leaderboard-dialog-title">{activeLeaderboardView.title}</h2>
+              <h2 id="home-leaderboard-title">{activeLeaderboardView.title}</h2>
               <p>{activeLeaderboardView.description}</p>
             </div>
             <div className="leaderboard-tabs" role="tablist" aria-label="Choose leaderboard">
@@ -595,8 +572,8 @@ export function HomePage({
               )) : <li className="leaderboard-empty">No scores yet. Be the first tiny-board menace.</li>}
             </ol>
           </section>
-        </div>
-      )}
+        )}
+      </div>
       <section className="home-hero-shell" aria-labelledby="home-title">
         <div className="hero-copy">
           <div className="brand-row">
@@ -619,7 +596,9 @@ export function HomePage({
           <span className="title-spark title-spark-mint" aria-hidden="true" />
           <h1 id="home-title" className="hero-title"><span>Pocket</span><span>Shuffle</span><span>Chess</span></h1>
           <p className="hero-tagline"><Zap size={18} aria-hidden="true" /><span>Fast chess without <strong>memorized openings</strong>.</span></p>
+        </div>
 
+        <div className="home-main-column">
           <div className="shuffle-mode-panel">
             <div className="today-pill">
               <span className="today-pill-icon" aria-hidden="true">{shuffleMode === 'daily' ? <CalendarDays size={21} /> : <Shuffle size={21} />}</span>
@@ -634,15 +613,6 @@ export function HomePage({
               </button>
               <span className="copy-status" aria-live="polite">{copyStatus === 'copied' ? 'Copied.' : ''}</span>
             </div>
-            {localBestScore && (
-              <span className="today-high-score-chip" aria-label={`High score ${localBestScore.score}`}>
-                <Trophy size={18} aria-hidden="true" />
-                <span>
-                  <small>High score</small>
-                  <strong>{localBestScore.score}</strong>
-                </span>
-              </span>
-            )}
             <div className="shuffle-mode-toggle" role="group" aria-label="Choose global shuffle mode">
               <button
                 type="button"
@@ -672,42 +642,63 @@ export function HomePage({
                 </button>
               </span>
             </div>
+            {localBestScore && (
+              <div className="setup-stat-row" aria-label="Daily setup stats">
+                <span className="today-high-score-chip" aria-label={`High score ${localBestScore.score}`}>
+                  <Trophy size={18} aria-hidden="true" />
+                  <span>
+                    <small>High score</small>
+                    <strong>{localBestScore.score}</strong>
+                    <em>Best: {localBestScore.moves} moves</em>
+                  </span>
+                </span>
+                <span className="today-high-score-chip" aria-label={`Your best ${localBestScore.moves} moves`}>
+                  <Trophy size={18} aria-hidden="true" />
+                  <span>
+                    <small>Your best</small>
+                    <strong>{localBestScore.moves} moves</strong>
+                    <em>{getDisplayDate(localBestScore.createdAt.slice(0, 10))}</em>
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="home-action-grid" aria-label="Choose how to play">
             <button type="button" className="home-action-card home-action-ai" onClick={playActiveModeAgainstAi}>
-              <span className="action-badge"><Bot size={14} aria-hidden="true" /> AI</span>
+              <span className="action-badge"><Zap size={14} aria-hidden="true" /> Play</span>
               <span className="card-sparkle card-sparkle-one" aria-hidden="true" />
-              <img className="action-piece action-piece-ai action-piece-ai-knight" src="/pieces/white-knight.png" alt="" aria-hidden="true" draggable={false} />
               <img className="action-piece action-piece-ai action-piece-ai-pawn" src="/pieces/white-pawn.png" alt="" aria-hidden="true" draggable={false} />
-              <img className="action-piece action-piece-ai action-piece-ai-bishop" src="/pieces/white-bishop.png" alt="" aria-hidden="true" draggable={false} />
               {shuffleMode === 'daily' && <span className="daily-ai-stars" aria-label={`Daily AI progress: ${getDailyAIProgressAria(dailyAIProgress)}`}><DailyAIStarMarks progress={dailyAIProgress} /></span>}
-              <span className="action-card-copy"><strong>Play AI</strong><small>{shuffleMode === 'daily' ? 'Instant daily game' : 'Use displayed setup'}</small>{shuffleMode === 'daily' && <small className="daily-ai-status">{dailyAIStatusLine}</small>}</span>
-              <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
-            </button>
-            <button type="button" className="home-action-card home-action-match" onClick={() => { void requestActiveMatch(); }}>
-              <span className="card-sparkle card-sparkle-two" aria-hidden="true" />
-              <img className="action-piece action-piece-rook" src="/pieces/white-rook.png" alt="White rook" draggable={false} />
-              <span className="action-card-copy"><strong>Find Match</strong><small>Join any open player</small></span>
+              <span className="action-card-copy"><strong>Play Any Game</strong><small>Start a game now</small>{shuffleMode === 'daily' && <small className="daily-ai-status">{dailyAIStatusLine}</small>}</span>
+              <span className="play-mode-chip-row" aria-hidden="true"><span><Bot size={13} />vs Bot</span><span><Users size={13} />vs Friend</span><span>Solo</span></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
             <button type="button" className="home-action-card home-action-invite" onClick={() => { void inviteActiveMode(); }}>
-              <span className="action-badge invite-badge"><LinkIcon size={14} aria-hidden="true" /> Link</span>
+              <span className="action-badge invite-badge"><LinkIcon size={14} aria-hidden="true" /> Challenge</span>
               <span className="card-sparkle card-sparkle-three" aria-hidden="true" />
               <img className="action-piece action-piece-knight" src="/pieces/white-knight.png" alt="White knight" draggable={false} />
-              <span className="action-card-copy"><strong>Challenge Friend</strong><small>{shuffleMode === 'daily' ? 'Share today’s setup' : 'Share one random setup'}</small></span>
+              <span className="action-card-copy"><strong>Challenge a Friend</strong><small>Share today’s setup</small></span>
+              <span className="action-link-affordance" aria-hidden="true"><LinkIcon size={18} /></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
-            <button type="button" className="home-action-card home-action-date" onClick={() => { trackEvent('homepage_cta_click', { cta: 'choose_date' }); setModal('date'); }}>
-              <span className="action-badge date-badge"><CalendarDays size={14} aria-hidden="true" /> Date</span>
-              <span className="action-glyph" aria-hidden="true"><CalendarDays size={52} /></span>
-              <span className="action-card-copy"><strong>Choose Date</strong><small>Replay any daily</small></span>
+            <button type="button" className="home-action-card home-action-match" onClick={() => { void requestActiveMatch(); }}>
+              <span className="action-badge match-badge">Match</span>
+              <span className="card-sparkle card-sparkle-two" aria-hidden="true" />
+              <img className="action-piece action-piece-rook" src="/pieces/white-rook.png" alt="White rook" draggable={false} />
+              <span className="action-card-copy"><strong>Find a Match</strong><small>Join any open player</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
             <button type="button" className="home-action-card home-action-seed" onClick={() => { trackEvent('homepage_cta_click', { cta: 'custom_seed' }); setModal('custom'); }}>
-              <span className="action-badge seed-badge"><Shuffle size={14} aria-hidden="true" /> Seed</span>
+              <span className="action-badge seed-badge">Seed</span>
               <span className="action-glyph" aria-hidden="true"><Shuffle size={52} /></span>
               <span className="action-card-copy"><strong>Custom Seed</strong><small>Your own setup</small></span>
+              <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
+            </button>
+            <button type="button" className="home-action-card home-action-date" onClick={() => { trackEvent('homepage_cta_click', { cta: 'choose_date' }); setModal('date'); }}>
+              <span className="action-badge date-badge">Date</span>
+              <span className="action-glyph" aria-hidden="true"><CalendarDays size={52} /></span>
+              <span className="action-card-copy"><strong>Choose Date</strong><small>Replay any daily</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
             <button type="button" className="home-action-card home-action-rules" onClick={() => { trackEvent('homepage_cta_click', { cta: 'how_it_works' }); setModal('rules'); }}>
@@ -716,7 +707,6 @@ export function HomePage({
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
           </div>
-
         </div>
 
         <aside className="today-setup-showcase" aria-label="Today's 5 by 6 setup preview">
@@ -743,9 +733,12 @@ export function HomePage({
         </aside>
 
         <section className="popular-seeds-home" aria-labelledby="popular-seeds-home-title">
-          <div>
-            <p className="eyebrow">Popular Seeds</p>
-            <h2 id="popular-seeds-home-title">Play a shared setup and try to beat the best score.</h2>
+          <div className="popular-seeds-header">
+            <div>
+              <p className="eyebrow">Popular Seeds</p>
+              <h2 id="popular-seeds-home-title">Play a shared setup and try to beat the best score.</h2>
+            </div>
+            <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', '/seeds'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Popular Seeds</button>
           </div>
           <div className="popular-seed-home-grid">
             {[{ slug: getDailySeed(todayKey), displayName: "Today's Daily" }, ...CURATED_SEEDS.filter((seed) => ['gotham-chaos', 'boss-battle', 'queen-rush', 'knight-panic', 'final-boss'].includes(seed.slug))].map((seed) => {
@@ -780,7 +773,6 @@ export function HomePage({
               );
             })}
           </div>
-          <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', '/seeds'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Popular Seeds</button>
         </section>
 
         <div className="decorative-home-pieces" aria-hidden="true">
