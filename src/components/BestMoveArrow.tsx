@@ -1,49 +1,61 @@
-import { useId } from 'react';
-import { getSquareBounds, getSquareCenter, type BoardOrientation } from '../game/boardGeometry.js';
+import { useId, useRef } from 'react';
+import type { BoardOrientation } from '../game/boardGeometry.js';
 import type { Move } from '../game/types.js';
+import { getOverlaySquareGeometry, useOverlayLayout, type OverlaySquareGeometry } from './boardOverlayGeometry.js';
 
 type BestMoveArrowProps = {
   move: Move;
   orientation: BoardOrientation;
 };
 
-function trimArrowEndpoints(from: ReturnType<typeof getSquareCenter>, to: ReturnType<typeof getSquareCenter>) {
-  const deltaX = to.x - from.x;
-  const deltaY = to.y - from.y;
+type Point = {
+  x: number;
+  y: number;
+};
+
+function trimArrowEndpoints(from: OverlaySquareGeometry, to: OverlaySquareGeometry): { start: Point; end: Point } {
+  const deltaX = to.centerX - from.centerX;
+  const deltaY = to.centerY - from.centerY;
   const length = Math.hypot(deltaX, deltaY) || 1;
   const unitX = deltaX / length;
   const unitY = deltaY / length;
-  const startTrim = Math.min(4.2, length * 0.22);
-  const endTrim = Math.min(7.2, length * 0.34);
+  const startTrim = Math.min(Math.min(from.width, from.height) * 0.28, length * 0.24);
+  const endTrim = Math.min(Math.min(to.width, to.height) * 0.38, length * 0.34);
 
   return {
-    start: { x: from.x + unitX * startTrim, y: from.y + unitY * startTrim },
-    end: { x: to.x - unitX * endTrim, y: to.y - unitY * endTrim },
+    start: { x: from.centerX + unitX * startTrim, y: from.centerY + unitY * startTrim },
+    end: { x: to.centerX - unitX * endTrim, y: to.centerY - unitY * endTrim },
   };
 }
 
 export function BestMoveArrow({ move, orientation }: BestMoveArrowProps) {
   const markerId = useId().replace(/:/g, '');
-  const from = getSquareCenter(move.from, orientation);
-  const to = getSquareCenter(move.to, orientation);
-  const target = getSquareBounds(move.to, orientation);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const layout = useOverlayLayout(svgRef);
+
+  if (!layout) return <svg ref={svgRef} className="best-move-arrow" aria-hidden="true" />;
+
+  const from = getOverlaySquareGeometry(move.from, orientation, layout);
+  const to = getOverlaySquareGeometry(move.to, orientation, layout);
   const { start, end } = trimArrowEndpoints(from, to);
   const deltaX = end.x - start.x;
   const deltaY = end.y - start.y;
-  const curveStrength = Math.min(5, Math.hypot(deltaX, deltaY) * 0.12);
-  const curveX = (start.x + end.x) / 2 + (deltaY / (Math.hypot(deltaX, deltaY) || 1)) * curveStrength;
-  const curveY = (start.y + end.y) / 2 - (deltaX / (Math.hypot(deltaX, deltaY) || 1)) * curveStrength;
+  const arrowLength = Math.hypot(deltaX, deltaY) || 1;
+  const curveStrength = Math.min(Math.min(from.width, from.height) * 0.28, arrowLength * 0.12);
+  const curveX = (start.x + end.x) / 2 + (deltaY / arrowLength) * curveStrength;
+  const curveY = (start.y + end.y) / 2 - (deltaX / arrowLength) * curveStrength;
   const arrowPath = `M ${start.x} ${start.y} Q ${curveX} ${curveY} ${end.x} ${end.y}`;
+  const haloInset = Math.min(to.width, to.height) * 0.08;
 
   return (
-    <svg className="best-move-arrow" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+    <svg ref={svgRef} className="best-move-arrow" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true">
       <defs>
-        <marker id={markerId} markerWidth="4.8" markerHeight="4.8" refX="4.2" refY="2.4" orient="auto" markerUnits="strokeWidth">
-          <path d="M0,0 L4.8,2.4 L0,4.8 Z" />
+        <marker id={markerId} markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L12,6 L0,12 Z" />
         </marker>
       </defs>
-      <rect className="best-move-target-halo" x={target.x + 1.3} y={target.y + 1.1} width={target.width - 2.6} height={target.height - 2.2} rx="2.2" />
-      <circle className="best-move-source-dot" cx={from.x} cy={from.y} r="1.9" />
+      <rect className="best-move-source-halo" x={from.x + haloInset} y={from.y + haloInset} width={from.width - haloInset * 2} height={from.height - haloInset * 2} rx="14" />
+      <rect className="best-move-target-halo" x={to.x + haloInset} y={to.y + haloInset} width={to.width - haloInset * 2} height={to.height - haloInset * 2} rx="14" />
       <path className="best-move-arrow-path-shadow" d={arrowPath} />
       <path className="best-move-arrow-path" d={arrowPath} markerEnd={`url(#${markerId})`} />
     </svg>

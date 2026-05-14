@@ -14,11 +14,13 @@ export function AnalysisOverlay({ analysis, actualTo, isFlipped = false }: Analy
 
   return (
     <div className="analysis-overlay" aria-hidden="true">
-      {analysis.isBestMove && actualTo !== null ? (
-        <MoveQualityBadge square={actualTo} orientation={orientation} />
-      ) : analysis.bestMove ? (
-        <BestMoveArrow move={analysis.bestMove} orientation={orientation} />
-      ) : null}
+      <div className="analysis-overlay-content">
+        {analysis.isBestMove && actualTo !== null ? (
+          <MoveQualityBadge square={actualTo} orientation={orientation} />
+        ) : analysis.bestMove ? (
+          <BestMoveArrow move={analysis.bestMove} orientation={orientation} />
+        ) : null}
+      </div>
     </div>
   );
 }
