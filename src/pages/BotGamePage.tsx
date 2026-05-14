@@ -272,7 +272,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [displayNameDraft, setDisplayNameDraft] = useState(() => getDisplayName());
   const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(null);
   const [submittedScore, setSubmittedScore] = useState(false);
-  const [scoreSubmitMessage, setScoreSubmitMessage] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareTaunt, setShareTaunt] = useState('');
@@ -558,7 +557,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setAnalysisByPly({});
     setMoveAnnouncement('');
     setSubmittedScore(false);
-    setScoreSubmitMessage(null);
     setShareTaunt('');
     setChallengeUrl('');
     setCreatedChallengeId(null);
@@ -806,7 +804,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   async function copyChallengeLink() {
     const url = await ensureChallengeRecord();
     if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
-    setScoreSubmitMessage('Challenge link copied.');
   }
 
   function openShareModal() {
@@ -817,7 +814,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   async function handleSubmitScore() {
     if (!roundResult) return;
-    setScoreSubmitMessage('Submitting...');
     try {
       saveDisplayName(displayNameDraft);
       await submitScore({
@@ -830,9 +826,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         moves: scoreBreakdown.fullMoves,
       });
       setSubmittedScore(true);
-      setScoreSubmitMessage('Score submitted to today’s best scores.');
-    } catch {
-      setScoreSubmitMessage('Could not submit online, but your local score is saved.');
+    } catch (error) {
+      console.warn('Could not submit score online, but the local score is saved.', error);
     }
   }
 
@@ -1003,7 +998,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                 </div>
               )}
               <blockquote className="result-taunt">“{currentShareTaunt}”</blockquote>
-              <p className="panel-note">{activeChallengeContext && challengeComparison?.beatPrevious ? 'Now challenge someone else.' : activeChallengeContext ? 'Try again or share your attempt.' : `Share ${displaySeedName} as a beat-my-score challenge.`}</p>
               {leaderboard.length > 0 && (
                 <div className="leaderboard-mini">
                   <h3>Today’s Best Scores</h3>
@@ -1015,7 +1009,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                   </div>
                 </div>
               )}
-              {scoreSubmitMessage && <p className="panel-note">{scoreSubmitMessage}</p>}
             </>
           )}
           actions={(
@@ -1024,7 +1017,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               <button type="button" className="secondary-action" onClick={startPostGameReview}><Sparkles size={18} /> Review Game</button><ResultScreenshotButton title={roundResult.didPlayerWin ? 'You won' : roundResult.status === 'draw' ? 'Draw' : 'You lost'} summary={roundResult.message} score={scoreBreakdown.totalScore} moves={scoreBreakdown.fullMoves} seed={seedSlug} setup={dailySeedInfo.backRankCode} />
               <button type="button" className="secondary-action" onClick={() => { void copyChallengeLink(); }}><Copy size={22} /> Copy Link</button>
               <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seedSlug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}><Trophy size={24} /> View Seed Leaderboard</button>
-              <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Save Score'}</button>
               {!matchWinner && <button type="button" onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay Seed' : 'Replay Seed'}</button>}
               <button type="button" onClick={() => { window.history.pushState(null, '', `/bot?seed=${encodeURIComponent(seedSlug)}&setup=${encodeURIComponent(dailySeedInfo.backRankCode)}&side=${playerColor === 'white' ? 'black' : 'white'}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Other Side</button>
               <button type="button" onClick={requestRestart}>Rematch</button>
