@@ -905,7 +905,10 @@
 }
 
 .best-move-arrow marker path {
-  fill: rgba(74, 109, 86, 0.94);
+  fill: rgba(74, 109, 86, 0.96);
+  stroke: rgba(255, 248, 233, 0.88);
+  stroke-linejoin: round;
+  stroke-width: 1.4;
 }
 
 .best-move-source-halo,
@@ -941,7 +944,7 @@
 
 .best-move-arrow-path {
   stroke: rgba(74, 109, 86, 0.94);
-  stroke-width: 5;
+  stroke-width: 5.5;
   filter: drop-shadow(0 3px 3px rgba(45, 43, 40, 0.2));
 }
 

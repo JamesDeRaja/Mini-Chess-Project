@@ -46,12 +46,15 @@ export function BestMoveArrow({ move, orientation }: BestMoveArrowProps) {
   const curveY = (start.y + end.y) / 2 - (deltaX / arrowLength) * curveStrength;
   const arrowPath = `M ${start.x} ${start.y} Q ${curveX} ${curveY} ${end.x} ${end.y}`;
   const haloInset = Math.min(to.width, to.height) * 0.08;
+  const arrowHeadSize = Math.max(20, Math.min(30, Math.min(to.width, to.height) * 0.28));
+  const arrowHeadTip = arrowHeadSize * 0.88;
+  const arrowHeadMid = arrowHeadSize / 2;
 
   return (
     <svg ref={svgRef} className="best-move-arrow" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true">
       <defs>
-        <marker id={markerId} markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-          <path d="M0,0 L12,6 L0,12 Z" />
+        <marker id={markerId} markerWidth={arrowHeadSize} markerHeight={arrowHeadSize} refX={arrowHeadTip} refY={arrowHeadMid} orient="auto" markerUnits="userSpaceOnUse">
+          <path d={`M0,0 L${arrowHeadSize},${arrowHeadMid} L0,${arrowHeadSize} Z`} />
         </marker>
       </defs>
       <rect className="best-move-source-halo" x={from.x + haloInset} y={from.y + haloInset} width={from.width - haloInset * 2} height={from.height - haloInset * 2} rx="14" />
