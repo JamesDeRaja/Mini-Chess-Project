@@ -9653,3 +9653,152 @@ body.home-modal-open .home-page {
     width: calc(100% + 32px);
   }
 }
+
+/* Final polish for shield modal and result buttons. */
+.power-shield-guide-backdrop {
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  overflow: auto;
+}
+
+.power-shield-guide {
+  box-sizing: border-box;
+  width: min(100%, 500px);
+  max-height: min(88dvh, 680px);
+  padding: clamp(18px, 3vw, 24px);
+  overflow-x: hidden;
+  border-radius: 26px;
+}
+
+.power-shield-guide-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-right: 42px;
+}
+
+.power-shield-guide-hero h2 {
+  margin: 0 0 5px;
+  font-size: clamp(1.9rem, 8vw, 3rem);
+}
+
+.power-shield-guide-hero p:not(.eyebrow) {
+  max-width: 38rem;
+  font-size: 0.94rem;
+  line-height: 1.35;
+}
+
+.power-shield-guide .power-shield-icon {
+  min-width: 42px;
+  height: 48px;
+  font-size: 0.82rem;
+}
+
+.power-shield-guide-list {
+  gap: 7px;
+}
+
+.power-shield-guide-list li {
+  grid-template-columns: 62px minmax(0, 1fr);
+  grid-template-areas:
+    'level title'
+    'level detail';
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.power-shield-guide-list li > span {
+  grid-area: level;
+  display: grid;
+  place-items: center;
+  min-height: 40px;
+  border-radius: 14px;
+  color: #52625a;
+  background: rgba(207, 230, 218, 0.7);
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.power-shield-guide-list li > strong {
+  grid-area: title;
+  font-size: 1rem;
+}
+
+.power-shield-guide-list li > small {
+  grid-area: detail;
+  min-width: 0;
+  color: #647067;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.power-shield-guide-list .current-shield-group {
+  border-color: rgba(200, 148, 50, 0.45);
+  background: rgba(255, 240, 196, 0.62);
+}
+
+.power-shield-guide-note {
+  font-size: 0.86rem;
+  line-height: 1.3;
+}
+
+.winner-card > .panel-actions.centered-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    'share review'
+    'screenshot copy'
+    'leaderboard replay'
+    'other rematch';
+  width: min(100%, 620px);
+  gap: 9px;
+}
+
+.winner-card .result-action-row button,
+.winner-card .result-action-row .result-screenshot-menu > button {
+  display: inline-flex;
+  min-height: 48px;
+  padding: 9px 12px;
+  gap: 8px;
+  border-radius: 18px;
+  font-size: clamp(0.86rem, 1.45vw, 1rem);
+  line-height: 1.1;
+  overflow: visible;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.winner-card .result-action-row button svg,
+.winner-card .result-action-row .result-screenshot-menu svg {
+  justify-self: auto;
+  width: 19px;
+  height: 19px;
+}
+
+@media (max-width: 520px) {
+  .power-shield-guide {
+    border-radius: 22px;
+  }
+
+  .power-shield-guide-hero {
+    grid-template-columns: 1fr;
+    padding-right: 42px;
+  }
+
+  .power-shield-guide-list li {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'level' 'title' 'detail';
+  }
+
+  .winner-card > .panel-actions.centered-actions {
+    gap: 7px;
+  }
+
+  .winner-card .result-action-row button,
+  .winner-card .result-action-row .result-screenshot-menu > button {
+    min-height: 44px;
+    padding: 8px 9px;
+    font-size: clamp(0.78rem, 3.4vw, 0.9rem);
+  }
+}

@@ -1191,7 +1191,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           actions={(
             <>
               <div className="result-action-row result-action-row-primary">
-                <button type="button" className="result-primary-action result-share-action" onClick={openShareModal}><Share2 size={17} /> Challenge a Friend</button>
+                <button type="button" className="result-primary-action result-share-action" onClick={openShareModal}><Share2 size={17} /> Challenge Friend</button>
                 <button type="button" className="secondary-action result-primary-action result-review-action" onClick={startPostGameReview}><Sparkles size={18} /> Review Game</button>
               </div>
               <div className="result-action-row result-action-row-tools">
@@ -1199,11 +1199,11 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                 <button type="button" className="secondary-action result-tool-action result-copy-action" onClick={() => { void copyChallengeLink(); }}><Copy size={22} /> Copy Link</button>
               </div>
               <div className="result-action-row result-action-row-secondary">
-                <button type="button" className="secondary-action result-leaderboard-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seedSlug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}><Trophy size={24} /> View Seed Leaderboard</button>
+                <button type="button" className="secondary-action result-leaderboard-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seedSlug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}><Trophy size={24} /> Seed Leaderboard</button>
                 {!matchWinner && <button type="button" className="result-replay-action" onClick={nextRound}>Replay Seed</button>}
               </div>
               <div className="result-action-row result-action-row-rematch">
-                <button type="button" className="result-other-side-action" onClick={() => { window.history.pushState(null, '', `/bot?seed=${encodeURIComponent(seedSlug)}&setup=${encodeURIComponent(dailySeedInfo.backRankCode)}&side=${playerColor === 'white' ? 'black' : 'white'}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Other Side</button>
+                <button type="button" className="result-other-side-action" onClick={() => { window.history.pushState(null, '', `/bot?seed=${encodeURIComponent(seedSlug)}&setup=${encodeURIComponent(dailySeedInfo.backRankCode)}&side=${playerColor === 'white' ? 'black' : 'white'}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Other Side</button>
                 <button type="button" className="result-rematch-action" onClick={requestRestart}>Rematch</button>
               </div>
             </>
