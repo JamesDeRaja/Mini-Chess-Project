@@ -8823,3 +8823,43 @@ body.home-modal-open .home-page {
     min-height: 0;
   }
 }
+
+/* Home secondary card icons: make Date and Seed glyphs larger and nudge right. */
+.home-action-date .action-glyph,
+.home-action-seed .action-glyph {
+  left: calc(50% + 28px);
+  width: 76px;
+  height: 76px;
+}
+.home-action-date .action-glyph svg,
+.home-action-seed .action-glyph svg {
+  width: 76px;
+  height: 76px;
+}
+@media (max-width: 1180px) {
+  .home-action-date .action-glyph,
+  .home-action-seed .action-glyph {
+    right: 28px;
+    left: auto;
+    width: 74px;
+    height: 74px;
+  }
+  .home-action-date .action-glyph svg,
+  .home-action-seed .action-glyph svg {
+    width: 74px;
+    height: 74px;
+  }
+}
+@media (max-width: 760px) {
+  .home-action-date .action-glyph,
+  .home-action-seed .action-glyph {
+    right: 18px;
+    width: 64px;
+    height: 64px;
+  }
+  .home-action-date .action-glyph svg,
+  .home-action-seed .action-glyph svg {
+    width: 64px;
+    height: 64px;
+  }
+}
