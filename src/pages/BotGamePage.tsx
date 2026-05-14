@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Copy, Flag, Handshake, Home, Pause, Play, RotateCcw, Share2, Shuffle, Trophy } from 'lucide-react';
+import { CalendarDays, Copy, Flag, Handshake, Home, Pause, Play, RotateCcw, Share2, Shuffle, Sparkles, Trophy } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
@@ -10,6 +10,7 @@ import { ScoreExplanation } from '../components/ScoreExplanation.js';
 import { ShareChallengeModal } from '../components/ShareChallengeModal.js';
 import { ResultScreenshotButton } from '../components/ResultScreenshotButton.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
+import { analyzeMove, getMoveNotation } from '../game/analysis.js';
 import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
 import { type BotLevel, getBotMoveByLevel, getMoveIdentity } from '../game/bot.js';
 import {
@@ -33,11 +34,12 @@ import { buildShareMessage, getContextualTauntContext, getRandomComparisonText, 
 import { getAnonymousPlayerId, getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { recordPlayStreak } from '../game/playStreak.js';
+import { formatMoveNotation } from '../game/moveNotation.js';
 import { calculateGameScore, getCaptureScore } from '../game/scoring.js';
 import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
 import { createChallenge, submitSeedScore } from '../multiplayer/challengeApi.js';
 import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
-import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord, PieceType } from '../game/types.js';
+import type { Board as ChessBoard, Color, GameStatus, Move, MoveAnalysis, MoveRecord, PieceType } from '../game/types.js';
 
 export type MatchMode = 'single' | 'best-of-3' | 'best-of-5';
 
@@ -65,6 +67,42 @@ type RoundResult = {
 };
 
 type PendingAction = 'resign' | 'draw' | 'restart' | null;
+
+type BotAdaptationProfile = {
+  winStreak: number;
+  lossStreak: number;
+};
+
+const botAdaptationStorageKey = 'pocket-shuffle-bot-adaptation';
+
+function readBotAdaptationProfile(): BotAdaptationProfile {
+  if (typeof localStorage === 'undefined') return { winStreak: 0, lossStreak: 0 };
+  try {
+    const parsed = JSON.parse(localStorage.getItem(botAdaptationStorageKey) ?? '{}') as Partial<BotAdaptationProfile>;
+    return {
+      winStreak: Number.isFinite(parsed.winStreak) ? Math.max(0, Math.floor(parsed.winStreak ?? 0)) : 0,
+      lossStreak: Number.isFinite(parsed.lossStreak) ? Math.max(0, Math.floor(parsed.lossStreak ?? 0)) : 0,
+    };
+  } catch {
+    return { winStreak: 0, lossStreak: 0 };
+  }
+}
+
+function saveBotAdaptationProfile(profile: BotAdaptationProfile): BotAdaptationProfile {
+  const safeProfile = {
+    winStreak: Math.max(0, Math.floor(profile.winStreak)),
+    lossStreak: Math.max(0, Math.floor(profile.lossStreak)),
+  };
+  if (typeof localStorage !== 'undefined') localStorage.setItem(botAdaptationStorageKey, JSON.stringify(safeProfile));
+  return safeProfile;
+}
+
+function getNextBotAdaptationProfile(profile: BotAdaptationProfile, didPlayerWin: boolean): BotAdaptationProfile {
+  return {
+    winStreak: didPlayerWin ? profile.winStreak + 1 : 0,
+    lossStreak: didPlayerWin ? 0 : profile.lossStreak + 1,
+  };
+}
 
 const BOT_MOVE_DELAY_MIN_MS = 650;
 const BOT_MOVE_DELAY_SPREAD_MS = 450;
@@ -157,7 +195,11 @@ function getRoundMessage(status: GameStatus, drawReason?: RoundResult['drawReaso
   return '';
 }
 
-function getBotLevel(matchMode: MatchMode, score: MatchScore, winsRequired: number, roundNumber: number): BotLevel {
+function getBotLevel(matchMode: MatchMode, score: MatchScore, winsRequired: number, roundNumber: number, adaptation: BotAdaptationProfile): BotLevel {
+  if (adaptation.lossStreak >= 3) return 'random';
+  if (adaptation.lossStreak >= 2) return 'weak';
+  if (adaptation.winStreak >= 3) return 'powerful';
+  if (adaptation.winStreak >= 2) return 'strong';
   if (matchMode === 'single') return 'medium';
   if (score.white === winsRequired - 1 && score.black < winsRequired - 1) return 'powerful';
   if (roundNumber > 1 || score.black > score.white) return 'medium';
@@ -166,12 +208,15 @@ function getBotLevel(matchMode: MatchMode, score: MatchScore, winsRequired: numb
 
 
 function getBotLevelForDailyDifficulty(difficulty: DailyAIDifficulty): BotLevel {
+  if (difficulty === 'random') return 'random';
   if (difficulty === 'easy') return 'weak';
   if (difficulty === 'medium') return 'medium';
+  if (difficulty === 'hard') return 'strong';
   return 'powerful';
 }
 
 function getAscensionTierForDailyDifficulty(difficulty: DailyAIDifficulty | null): AscensionTier {
+  if (difficulty === 'random' || difficulty === 'easy') return 0;
   if (difficulty === 'medium') return 1;
   if (difficulty === 'hard') return 2;
   if (difficulty === 'extreme') return 3;
@@ -235,6 +280,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const isDailyAI = !customSeed;
   const seedInfoLabel = isDailyAI ? '🌱 Daily seed' : '🌱 Random seed';
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
+  const [botAdaptationProfile, setBotAdaptationProfile] = useState(readBotAdaptationProfile);
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
   const dailyAscensionTier = getAscensionTierForDailyDifficulty(dailyAIDifficulty);
   const ascensionMissingNote = isDailyAI ? getAscensionMissingNote(dailyAscensionTier) : null;
@@ -252,11 +298,13 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<(Pick<Move, 'from' | 'to'> & { color?: Color; isCapture?: boolean; captureScore?: number | null }) | null>(null);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
+  const [analysisByPly, setAnalysisByPly] = useState<Record<number, MoveAnalysis | undefined>>({});
   const [moveAnnouncement, setMoveAnnouncement] = useState('');
   const [score, setScore] = useState<MatchScore>({ white: 0, black: 0 });
   const [roundNumber, setRoundNumber] = useState(1);
   const [roundResetId, setRoundResetId] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
+  const [isResultPanelDismissed, setIsResultPanelDismissed] = useState(false);
   const [matchWinner, setMatchWinner] = useState<Color | null>(null);
   const [isFlipped, setIsFlipped] = useState(() => playerColor === 'black');
   const [isBoardReady, setIsBoardReady] = useState(false);
@@ -268,8 +316,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [displayNameDraft, setDisplayNameDraft] = useState(() => getDisplayName());
   const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(null);
   const [submittedScore, setSubmittedScore] = useState(false);
-  const [scoreSubmitMessage, setScoreSubmitMessage] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareTaunt, setShareTaunt] = useState('');
   const [challengeUrl, setChallengeUrl] = useState('');
@@ -280,16 +328,32 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const lastQueuedBotMoveKeyRef = useRef('');
   const recentBotMoveKeysRef = useRef<string[]>([]);
   const config = modeConfig[matchMode];
-  const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber);
+  const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber, botAdaptationProfile);
   const latestPly = boardTimeline.length - 1;
+  const activeReviewPly = roundResult ? previewPly ?? latestPly : previewPly;
   const isPreviewing = previewPly !== null && previewPly < latestPly;
   const displayBoard = isPreviewing ? boardTimeline[previewPly] : board;
   const displayMove = isPreviewing && previewPly > 0 ? moveHistory[previewPly - 1] : lastMove;
   const displayTurn = isPreviewing ? (previewPly % 2 === 0 ? 'white' : 'black') : turn;
+  const currentAnalysis = roundResult && activeReviewPly && activeReviewPly > 0 ? analysisByPly[activeReviewPly] ?? null : null;
+  const currentReviewMove = roundResult && activeReviewPly && activeReviewPly > 0 ? moveHistory[activeReviewPly - 1] ?? null : null;
   const checkedKingIndex = useMemo(
     () => (displayBoard.length && isKingInCheck(displayBoard, displayTurn) ? findKingIndex(displayBoard, displayTurn) : null),
     [displayBoard, displayTurn],
   );
+
+
+
+  useEffect(() => {
+    if (!roundResult || !activeReviewPly || activeReviewPly <= 0) return;
+    if (analysisByPly[activeReviewPly]) return;
+    const actualMove = moveHistory[activeReviewPly - 1];
+    const boardBeforeMove = boardTimeline[activeReviewPly - 1];
+    if (!actualMove || !boardBeforeMove) return;
+
+    const analysis = analyzeMove(boardBeforeMove, actualMove);
+    setAnalysisByPly((cachedAnalysis) => ({ ...cachedAnalysis, [activeReviewPly]: analysis }));
+  }, [activeReviewPly, analysisByPly, boardTimeline, moveHistory, roundResult]);
 
   useEffect(() => {
     pendingDailyAIProgressRef.current = null;
@@ -323,8 +387,27 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }, [dailySeedInfo.backRankCode, dailySeedInfo.seed, playerColor, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode]);
 
   useEffect(() => {
-    if (!roundResult || !isDailyAI) return;
-    fetchLeaderboard(dailySeedInfo.seed, scoreMode).then(setLeaderboard).catch(() => setLeaderboard([]));
+    if (!roundResult || !isDailyAI) {
+      setIsLeaderboardLoading(false);
+      return undefined;
+    }
+
+    let isCancelled = false;
+    setIsLeaderboardLoading(true);
+    fetchLeaderboard(dailySeedInfo.seed, scoreMode)
+      .then((entries) => {
+        if (!isCancelled) setLeaderboard(entries);
+      })
+      .catch(() => {
+        if (!isCancelled) setLeaderboard([]);
+      })
+      .finally(() => {
+        if (!isCancelled) setIsLeaderboardLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [dailySeedInfo.seed, isDailyAI, roundResult, scoreMode, submittedScore]);
 
   useEffect(() => {
@@ -348,8 +431,18 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     const historyList = historyListRef.current;
     if (!historyList) return;
 
-    historyList.scrollTop = historyList.scrollHeight;
-  }, [moveHistory.length]);
+    const animationFrame = window.requestAnimationFrame(() => {
+      if (activeReviewPly && activeReviewPly > 0) {
+        const activeMove = historyList.querySelector<HTMLElement>(`[data-history-ply="${activeReviewPly}"]`);
+        activeMove?.scrollIntoView({ block: 'center', inline: 'nearest' });
+        return;
+      }
+
+      historyList.scrollTop = historyList.scrollHeight;
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [activeReviewPly, moveHistory.length]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -470,6 +563,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     if (isDailyAI) {
       progressionMessage = getDailyProgressionMessage(dailyAIProgress, didPlayerWin);
       pendingDailyAIProgressRef.current = getNextDailyAIProgress(dailyAIProgress, didPlayerWin ? 'win' : 'loss');
+    } else {
+      setBotAdaptationProfile((profile) => saveBotAdaptationProfile(getNextBotAdaptationProfile(profile, didPlayerWin)));
     }
 
     if (winner) {
@@ -477,6 +572,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       setScore(updatedScore);
       if (!isDailyAI && updatedScore[winner] >= config.winsRequired) setMatchWinner(winner);
     }
+    setIsResultPanelDismissed(false);
     setRoundResult({ status: nextStatus, winner, message: getRoundMessage(nextStatus, drawReason), progressionMessage, didPlayerWin, drawReason });
   }, [config.winsRequired, dailyAIProgress, isDailyAI, playerColor, score]);
 
@@ -524,14 +620,15 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setLegalMoves([]);
     setLastMove(null);
     setMoveHistory([]);
+    setAnalysisByPly({});
     setMoveAnnouncement('');
     setSubmittedScore(false);
-    setScoreSubmitMessage(null);
     setShareTaunt('');
     setChallengeUrl('');
     setCreatedChallengeId(null);
     setShareModalOpen(false);
     setRoundResult(null);
+    setIsResultPanelDismissed(false);
     setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, roundAscensionTier));
     setPreviewPly(null);
     setIsHistoryAutoplaying(false);
@@ -665,7 +762,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setIsBoardReady(true);
   }, []);
 
-  const activeLegalMoves = isPreviewing || !isBoardReady ? [] : legalMoves;
+  const activeLegalMoves = isPreviewing || roundResult || !isBoardReady ? [] : legalMoves;
   const headerStatusLabel = roundResult ? 'Game Over' : undefined;
   const headerTurnLabel = roundResult
     ? roundResult.status === 'draw'
@@ -703,6 +800,42 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const canAutoplayHistory = Boolean(roundResult && moveHistory.length > 0);
   const confirmActionClassName = pendingAction ? 'danger-action' : undefined;
   const restartActionLabel = canUseBotGameActions ? 'Restart Match' : 'Rematch';
+
+
+
+  function startPostGameReview() {
+    if (!roundResult || moveHistory.length === 0) return;
+    setIsHistoryAutoplaying(false);
+    setPreviewPly(1);
+    setIsResultPanelDismissed(true);
+  }
+
+  const analysisPanel = roundResult ? (() => {
+    if (!activeReviewPly || activeReviewPly <= 0 || !currentReviewMove) {
+      return <div className="analysis-panel"><strong>Review</strong><span>Step through the game and see where the computer wanted to move.</span></div>;
+    }
+    const actualNotation = formatMoveNotation(currentReviewMove).text;
+    if (!currentAnalysis) {
+      return <div className="analysis-panel"><strong>Analysis</strong><span>Review preparing…</span></div>;
+    }
+    const sideLabel = currentReviewMove.color === 'white' ? 'White' : 'Black';
+    const actorLabel = currentReviewMove.color === playerColor ? 'You' : 'Bot';
+    const suggestedNotation = getMoveNotation(currentAnalysis.bestMove);
+    const replyNotation = getMoveNotation(currentAnalysis.bestReply ?? null);
+    const panelClassName = currentAnalysis.isBlunder ? 'analysis-panel analysis-panel-blunder' : currentAnalysis.isBestMove ? 'analysis-panel analysis-panel-best' : 'analysis-panel analysis-panel-suggested';
+    const analysisSummary = currentAnalysis.isBlunder
+      ? `${actorLabel === 'You' ? 'Careful' : 'Blunder'}: ${replyNotation} is a strong reply. Preferred: ${suggestedNotation}`
+      : currentAnalysis.isBestMove
+        ? (currentReviewMove.color === playerColor ? 'Nice. You found the best move. ⭐' : 'Bot played the suggested move. ⭐')
+        : `${actorLabel === 'You' ? 'Computer preferred' : 'Suggested for bot'}: ${suggestedNotation}`;
+    return (
+      <div className={panelClassName}>
+        <strong>Move {activeReviewPly} / {moveHistory.length}</strong>
+        <span>{sideLabel} played: {actualNotation}</span>
+        <span>{analysisSummary}</span>
+      </div>
+    );
+  })() : null;
 
   async function ensureChallengeRecord(finalShareText?: string, finalTaunt?: string): Promise<string> {
     if (!roundResult) return effectiveChallengeUrl;
@@ -744,7 +877,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   async function copyChallengeLink() {
     const url = await ensureChallengeRecord();
     if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
-    setScoreSubmitMessage('Challenge link copied.');
   }
 
   function openShareModal() {
@@ -755,7 +887,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   async function handleSubmitScore() {
     if (!roundResult) return;
-    setScoreSubmitMessage('Submitting...');
     try {
       saveDisplayName(displayNameDraft);
       await submitScore({
@@ -768,9 +899,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         moves: scoreBreakdown.fullMoves,
       });
       setSubmittedScore(true);
-      setScoreSubmitMessage('Score submitted to today’s best scores.');
-    } catch {
-      setScoreSubmitMessage('Could not submit online, but your local score is saved.');
+    } catch (error) {
+      console.warn('Could not submit score online, but the local score is saved.', error);
     }
   }
 
@@ -834,6 +964,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             legalMoves={activeLegalMoves}
             lastMove={displayMove}
             checkedKingIndex={checkedKingIndex}
+            analysis={currentAnalysis}
             isFlipped={isFlipped}
             isInteractive={!isPreviewing && isBoardReady && status === 'active'}
             scoringSide={playerColor}
@@ -853,14 +984,16 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               <h2>Move history</h2>
             </div>
             <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
+            {analysisPanel}
           </div>
           <ol ref={historyListRef} className="move-history move-list history-list">
             <MoveHistory
               moves={moveHistory}
               emptyPrimary="No moves yet."
               emptySecondary="Select a piece to see legal moves."
-              activePly={previewPly}
+              activePly={activeReviewPly}
               scoringSide={playerColor}
+              analysisByPly={analysisByPly}
               onSelectPly={handleSelectHistoryPly}
             />
           </ol>
@@ -900,6 +1033,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           title={matchWinner ? 'Match complete' : roundResult.drawReason === 'stalemate' ? 'Stalemate' : roundResult.status === 'draw' ? 'Draw agreed' : roundResult.didPlayerWin ? 'You won' : 'You lost'}
           summary={roundResult.message}
           progressionMessage={roundResult.progressionMessage}
+          dismissed={isResultPanelDismissed}
+          onDismiss={() => setIsResultPanelDismissed(true)}
           homeAction={(
             <button type="button" className="result-home-button" aria-label="Go home" onClick={onHome}>
               <Home size={24} aria-hidden="true" />
@@ -936,30 +1071,56 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                 </div>
               )}
               <blockquote className="result-taunt">“{currentShareTaunt}”</blockquote>
-              <p className="panel-note">{activeChallengeContext && challengeComparison?.beatPrevious ? 'Now challenge someone else.' : activeChallengeContext ? 'Try again or share your attempt.' : `Share ${displaySeedName} as a beat-my-score challenge.`}</p>
-              {leaderboard.length > 0 && (
-                <div className="leaderboard-mini">
-                  <h3>Today’s Best Scores</h3>
-                  <div className="leaderboard-table">
-                    <div className="leaderboard-row leaderboard-head"><span>Rank</span><span>Name</span><span>Score</span><span>Moves</span><span>Side</span><span>Result</span></div>
-                    {leaderboard.slice(0, 3).map((entry, index) => (
-                      <div className="leaderboard-row" key={entry.id}><span>{index + 1}</span><span>{entry.display_name}</span><span>{entry.score}</span><span>{entry.moves}</span><span>{entry.side}</span><span>{entry.result}</span></div>
+              {isDailyAI && (isLeaderboardLoading || leaderboard.length > 0) && (
+                <div className="leaderboard-mini result-leaderboard-card">
+                  <div className="leaderboard-mini-heading">
+                    <div>
+                      <p className="eyebrow">Leaderboard</p>
+                      <h3>Today’s Best Scores</h3>
+                    </div>
+                    {isLeaderboardLoading && <span className="leaderboard-loading-pill">Loading…</span>}
+                  </div>
+                  <div className={isLeaderboardLoading ? 'leaderboard-table leaderboard-result-list leaderboard-table-loading' : 'leaderboard-table leaderboard-result-list'} aria-busy={isLeaderboardLoading}>
+                    {isLeaderboardLoading ? (
+                      Array.from({ length: 3 }, (_, index) => (
+                        <div className="leaderboard-row leaderboard-result-row leaderboard-skeleton-result-row" key={`leaderboard-skeleton-${index}`}>
+                          <span className="leaderboard-rank-badge" />
+                          <span className="leaderboard-skeleton-name" />
+                          <span className="leaderboard-skeleton-score" />
+                          <span className="leaderboard-skeleton-chip" />
+                        </div>
+                      ))
+                    ) : leaderboard.slice(0, 3).map((entry, index) => (
+                      <div className="leaderboard-row leaderboard-result-row" key={entry.id}>
+                        <span className="leaderboard-rank-badge">{index + 1}</span>
+                        <span className="leaderboard-player-name">{entry.display_name}</span>
+                        <strong>{entry.score}</strong>
+                        <span className="leaderboard-result-meta">{entry.moves} moves · {entry.side}</span>
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
-              {scoreSubmitMessage && <p className="panel-note">{scoreSubmitMessage}</p>}
             </>
           )}
           actions={(
             <>
-              <button type="button" onClick={openShareModal}><Share2 size={17} /> Challenge a Friend</button><ResultScreenshotButton title={roundResult.didPlayerWin ? 'You won' : roundResult.status === 'draw' ? 'Draw' : 'You lost'} summary={roundResult.message} score={scoreBreakdown.totalScore} moves={scoreBreakdown.fullMoves} seed={seedSlug} setup={dailySeedInfo.backRankCode} />
-              <button type="button" className="secondary-action" onClick={() => { void copyChallengeLink(); }}><Copy size={22} /> Copy Link</button>
-              <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seedSlug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}><Trophy size={24} /> View Seed Leaderboard</button>
-              <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Save Score'}</button>
-              {!matchWinner && <button type="button" onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay Seed' : 'Replay Seed'}</button>}
-              <button type="button" onClick={() => { window.history.pushState(null, '', `/bot?seed=${encodeURIComponent(seedSlug)}&setup=${encodeURIComponent(dailySeedInfo.backRankCode)}&side=${playerColor === 'white' ? 'black' : 'white'}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Other Side</button>
-              <button type="button" onClick={requestRestart}>Rematch</button>
+              <div className="result-action-row result-action-row-primary">
+                <button type="button" className="result-primary-action" onClick={openShareModal}><Share2 size={17} /> Challenge a Friend</button>
+                <button type="button" className="secondary-action result-primary-action" onClick={startPostGameReview}><Sparkles size={18} /> Review Game</button>
+              </div>
+              <div className="result-action-row result-action-row-tools">
+                <ResultScreenshotButton title={roundResult.didPlayerWin ? 'You won' : roundResult.status === 'draw' ? 'Draw' : 'You lost'} summary={roundResult.message} score={scoreBreakdown.totalScore} moves={scoreBreakdown.fullMoves} seed={seedSlug} setup={dailySeedInfo.backRankCode} className="result-tool-action" />
+                <button type="button" className="secondary-action result-tool-action" onClick={() => { void copyChallengeLink(); }}><Copy size={22} /> Copy Link</button>
+              </div>
+              <div className="result-action-row result-action-row-secondary">
+                <button type="button" className="secondary-action result-leaderboard-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seedSlug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}><Trophy size={24} /> View Seed Leaderboard</button>
+                {!matchWinner && <button type="button" className="result-replay-action" onClick={nextRound}>Replay Seed</button>}
+              </div>
+              <div className="result-action-row result-action-row-rematch">
+                <button type="button" onClick={() => { window.history.pushState(null, '', `/bot?seed=${encodeURIComponent(seedSlug)}&setup=${encodeURIComponent(dailySeedInfo.backRankCode)}&side=${playerColor === 'white' ? 'black' : 'white'}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Other Side</button>
+                <button type="button" onClick={requestRestart}>Rematch</button>
+              </div>
             </>
           )}
         />
