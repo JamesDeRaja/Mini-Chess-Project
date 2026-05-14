@@ -8995,3 +8995,66 @@ body.home-modal-open .home-page {
 .home-hero-shell .today-setup-showcase {
   z-index: 12;
 }
+
+.analysis-panel {
+  display: grid;
+  gap: 3px;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(127, 183, 155, 0.28);
+  border-radius: 16px;
+  background: rgba(255, 251, 239, 0.58);
+  box-shadow: inset 0 -2px rgba(45, 43, 40, 0.03);
+}
+
+.analysis-panel strong {
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.analysis-panel span {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.analysis-panel-best {
+  border-color: rgba(242, 208, 99, 0.56);
+  background: rgba(255, 242, 187, 0.62);
+}
+
+.analysis-panel-suggested {
+  border-color: rgba(127, 183, 155, 0.42);
+  background: rgba(207, 230, 218, 0.5);
+}
+
+.history-analysis-marker {
+  margin-left: auto;
+  font-size: 0.84rem;
+  line-height: 1;
+}
+
+.history-analysis-suggested {
+  color: #4f745d;
+  font-weight: 950;
+}
+
+/* Keep the home menu scrollable at every viewport size, even for tiny overflows. */
+.home-page,
+:root[data-theme='light'] .home-page,
+:root[data-theme='dark'] .home-page {
+  height: 100vh;
+  height: 100svh;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: max(clamp(24px, 3.5vw, 56px), calc(env(safe-area-inset-bottom) + 24px));
+}
+
+body.home-modal-open .home-page {
+  overflow: hidden;
+}
