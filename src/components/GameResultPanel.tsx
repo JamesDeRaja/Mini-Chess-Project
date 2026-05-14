@@ -14,6 +14,8 @@ type GameResultPanelProps = {
   homeAction?: ReactNode;
   details?: ReactNode;
   actions: ReactNode;
+  dismissed?: boolean;
+  onDismiss?: () => void;
 };
 
 function ResultAvatar({ winner, result }: { winner: Color | null; result: GameResult }) {
@@ -40,13 +42,13 @@ function ResultAvatar({ winner, result }: { winner: Color | null; result: GameRe
   );
 }
 
-export function GameResultPanel({ result, winner, eyebrow, title, summary, progressionMessage, titleAccessory, homeAction, details, actions }: GameResultPanelProps) {
+export function GameResultPanel({ result, winner, eyebrow, title, summary, progressionMessage, titleAccessory, homeAction, details, actions, dismissed = false, onDismiss }: GameResultPanelProps) {
   const [dismissedResultKey, setDismissedResultKey] = useState<string | null>(null);
   const didWin = result === 'win';
   const cardClassName = didWin ? 'winner-card player-winner-card' : result === 'stalemate' ? 'winner-card stalemate-result-card' : 'winner-card calm-result-card';
   const resultKey = `${result}:${winner ?? 'none'}:${title}:${summary}`;
 
-  if (dismissedResultKey === resultKey) return null;
+  if (dismissed || dismissedResultKey === resultKey) return null;
 
   return (
     <div className="winner-overlay" role="status">
@@ -57,7 +59,7 @@ export function GameResultPanel({ result, winner, eyebrow, title, summary, progr
           type="button"
           className="result-close-button"
           aria-label="Close result panel"
-          onClick={() => setDismissedResultKey(resultKey)}
+          onClick={() => { setDismissedResultKey(resultKey); onDismiss?.(); }}
         >
           ×
         </button>

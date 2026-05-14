@@ -2,7 +2,7 @@ import type { Color } from './types.js';
 
 export type DailyAIStage = 0 | 1 | 2 | 3 | 4;
 export type DailyAIStars = 0 | 1 | 2 | 3;
-export type DailyAIDifficulty = 'easy' | 'medium' | 'hard' | 'extreme';
+export type DailyAIDifficulty = 'random' | 'easy' | 'medium' | 'hard' | 'extreme';
 export type DailyAIGameResult = 'win' | 'loss';
 
 export type DailyAIProgress = {
@@ -13,6 +13,8 @@ export type DailyAIProgress = {
   gamesPlayed: number;
   wins: number;
   losses: number;
+  winStreak: number;
+  lossStreak: number;
 };
 
 function storageKey(dateKey: string): string {
@@ -28,6 +30,8 @@ function createDailyAIProgress(dateKey: string): DailyAIProgress {
     gamesPlayed: 0,
     wins: 0,
     losses: 0,
+    winStreak: 0,
+    lossStreak: 0,
   };
 }
 
@@ -55,6 +59,8 @@ function sanitizeDailyAIProgress(dateKey: string, stored: unknown): DailyAIProgr
     gamesPlayed: Number.isFinite(candidate.gamesPlayed) ? Math.max(0, Math.floor(candidate.gamesPlayed ?? 0)) : 0,
     wins: Number.isFinite(candidate.wins) ? Math.max(0, Math.floor(candidate.wins ?? 0)) : 0,
     losses: Number.isFinite(candidate.losses) ? Math.max(0, Math.floor(candidate.losses ?? 0)) : 0,
+    winStreak: Number.isFinite(candidate.winStreak) ? Math.max(0, Math.floor(candidate.winStreak ?? 0)) : 0,
+    lossStreak: Number.isFinite(candidate.lossStreak) ? Math.max(0, Math.floor(candidate.lossStreak ?? 0)) : 0,
   };
 }
 
@@ -83,11 +89,17 @@ export function resetDailyAIProgressIfNeeded(dateKey: string): DailyAIProgress {
   return getDailyAIProgress(dateKey);
 }
 
+const adaptiveDifficulties: DailyAIDifficulty[] = ['random', 'easy', 'medium', 'hard', 'extreme'];
+
+function clampDifficultyIndex(index: number): number {
+  return Math.min(adaptiveDifficulties.length - 1, Math.max(0, index));
+}
+
 export function getDailyAIDifficulty(progress: DailyAIProgress): DailyAIDifficulty {
-  if (progress.currentStage === 0) return 'easy';
-  if (progress.currentStage === 1) return 'medium';
-  if (progress.currentStage === 2) return 'hard';
-  return 'extreme';
+  const baseIndex = progress.currentStage === 0 ? 1 : progress.currentStage === 1 ? 2 : progress.currentStage === 2 ? 3 : 4;
+  const lossAdjustment = progress.lossStreak >= 3 ? -2 : progress.lossStreak >= 2 ? -1 : 0;
+  const winAdjustment = progress.winStreak >= 2 ? 1 : 0;
+  return adaptiveDifficulties[clampDifficultyIndex(baseIndex + lossAdjustment + winAdjustment)];
 }
 
 export function getDailyAIPlayerColor(progress: DailyAIProgress): Color {
@@ -101,6 +113,8 @@ export function getNextDailyAIProgress(progress: DailyAIProgress, result: DailyA
     gamesPlayed: progress.gamesPlayed + 1,
     wins: progress.wins + (result === 'win' ? 1 : 0),
     losses: progress.losses + (result === 'loss' ? 1 : 0),
+    winStreak: result === 'win' ? progress.winStreak + 1 : 0,
+    lossStreak: result === 'loss' ? progress.lossStreak + 1 : 0,
   };
 
   if (result === 'win') {
@@ -123,6 +137,9 @@ export function handleDailyAIGameResult(progress: DailyAIProgress, result: Daily
 }
 
 export function getDailyAIStatusLine(progress: DailyAIProgress): string {
+  const difficulty = getDailyAIDifficulty(progress);
+  if (progress.lossStreak >= 2) return `${difficulty[0].toUpperCase()}${difficulty.slice(1)} bot mercy mode`;
+  if (progress.winStreak >= 2) return `${difficulty[0].toUpperCase()}${difficulty.slice(1)} bot is adapting`;
   if (progress.magicStarUnlocked) return 'Daily mastered';
   if (progress.stars === 0) return 'Easy bot awaits';
   if (progress.stars === 1) return 'Medium bot unlocked';

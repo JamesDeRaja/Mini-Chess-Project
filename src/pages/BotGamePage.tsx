@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Copy, Flag, Handshake, Home, Pause, Play, RotateCcw, Share2, Shuffle, Trophy } from 'lucide-react';
+import { CalendarDays, Copy, Flag, Handshake, Home, Pause, Play, RotateCcw, Share2, Shuffle, Sparkles, Trophy } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
@@ -9,7 +9,9 @@ import { MoveHistory } from '../components/MoveHistory.js';
 import { ScoreExplanation } from '../components/ScoreExplanation.js';
 import { ShareChallengeModal } from '../components/ShareChallengeModal.js';
 import { ResultScreenshotButton } from '../components/ResultScreenshotButton.js';
+import { PowerShieldBadge } from '../components/PowerShieldBadge.js';
 import { applyMove, createMoveRecord } from '../game/applyMove.js';
+import { analyzeMove, getBestMoveForPosition, getMoveNotation } from '../game/analysis.js';
 import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
 import { type BotLevel, getBotMoveByLevel, getMoveIdentity } from '../game/bot.js';
 import {
@@ -33,11 +35,13 @@ import { buildShareMessage, getContextualTauntContext, getRandomComparisonText, 
 import { getAnonymousPlayerId, getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { recordPlayStreak } from '../game/playStreak.js';
+import { formatMoveNotation } from '../game/moveNotation.js';
 import { calculateGameScore, getCaptureScore } from '../game/scoring.js';
+import { getBestMoveChanceForPower, getPlayerPowerTier, getPowerRomanNumeral } from '../game/playerPower.js';
 import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
 import { createChallenge, submitSeedScore } from '../multiplayer/challengeApi.js';
 import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
-import type { Board as ChessBoard, Color, GameStatus, Move, MoveRecord, PieceType } from '../game/types.js';
+import type { Board as ChessBoard, Color, GameStatus, Move, MoveAnalysis, MoveRecord, PieceType } from '../game/types.js';
 
 export type MatchMode = 'single' | 'best-of-3' | 'best-of-5';
 
@@ -65,6 +69,42 @@ type RoundResult = {
 };
 
 type PendingAction = 'resign' | 'draw' | 'restart' | null;
+
+type BotAdaptationProfile = {
+  winStreak: number;
+  lossStreak: number;
+};
+
+const botAdaptationStorageKey = 'pocket-shuffle-bot-adaptation';
+
+function readBotAdaptationProfile(): BotAdaptationProfile {
+  if (typeof localStorage === 'undefined') return { winStreak: 0, lossStreak: 0 };
+  try {
+    const parsed = JSON.parse(localStorage.getItem(botAdaptationStorageKey) ?? '{}') as Partial<BotAdaptationProfile>;
+    return {
+      winStreak: Number.isFinite(parsed.winStreak) ? Math.max(0, Math.floor(parsed.winStreak ?? 0)) : 0,
+      lossStreak: Number.isFinite(parsed.lossStreak) ? Math.max(0, Math.floor(parsed.lossStreak ?? 0)) : 0,
+    };
+  } catch {
+    return { winStreak: 0, lossStreak: 0 };
+  }
+}
+
+function saveBotAdaptationProfile(profile: BotAdaptationProfile): BotAdaptationProfile {
+  const safeProfile = {
+    winStreak: Math.max(0, Math.floor(profile.winStreak)),
+    lossStreak: Math.max(0, Math.floor(profile.lossStreak)),
+  };
+  if (typeof localStorage !== 'undefined') localStorage.setItem(botAdaptationStorageKey, JSON.stringify(safeProfile));
+  return safeProfile;
+}
+
+function getNextBotAdaptationProfile(profile: BotAdaptationProfile, didPlayerWin: boolean): BotAdaptationProfile {
+  return {
+    winStreak: didPlayerWin ? profile.winStreak + 1 : 0,
+    lossStreak: didPlayerWin ? 0 : profile.lossStreak + 1,
+  };
+}
 
 const BOT_MOVE_DELAY_MIN_MS = 650;
 const BOT_MOVE_DELAY_SPREAD_MS = 450;
@@ -157,7 +197,11 @@ function getRoundMessage(status: GameStatus, drawReason?: RoundResult['drawReaso
   return '';
 }
 
-function getBotLevel(matchMode: MatchMode, score: MatchScore, winsRequired: number, roundNumber: number): BotLevel {
+function getBotLevel(matchMode: MatchMode, score: MatchScore, winsRequired: number, roundNumber: number, adaptation: BotAdaptationProfile): BotLevel {
+  if (adaptation.lossStreak >= 3) return 'random';
+  if (adaptation.lossStreak >= 2) return 'weak';
+  if (adaptation.winStreak >= 3) return 'powerful';
+  if (adaptation.winStreak >= 2) return 'strong';
   if (matchMode === 'single') return 'medium';
   if (score.white === winsRequired - 1 && score.black < winsRequired - 1) return 'powerful';
   if (roundNumber > 1 || score.black > score.white) return 'medium';
@@ -166,12 +210,15 @@ function getBotLevel(matchMode: MatchMode, score: MatchScore, winsRequired: numb
 
 
 function getBotLevelForDailyDifficulty(difficulty: DailyAIDifficulty): BotLevel {
+  if (difficulty === 'random') return 'random';
   if (difficulty === 'easy') return 'weak';
   if (difficulty === 'medium') return 'medium';
+  if (difficulty === 'hard') return 'strong';
   return 'powerful';
 }
 
 function getAscensionTierForDailyDifficulty(difficulty: DailyAIDifficulty | null): AscensionTier {
+  if (difficulty === 'random' || difficulty === 'easy') return 0;
   if (difficulty === 'medium') return 1;
   if (difficulty === 'hard') return 2;
   if (difficulty === 'extreme') return 3;
@@ -235,6 +282,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const isDailyAI = !customSeed;
   const seedInfoLabel = isDailyAI ? '🌱 Daily seed' : '🌱 Random seed';
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
+  const [botAdaptationProfile, setBotAdaptationProfile] = useState(readBotAdaptationProfile);
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
   const dailyAscensionTier = getAscensionTierForDailyDifficulty(dailyAIDifficulty);
   const ascensionMissingNote = isDailyAI ? getAscensionMissingNote(dailyAscensionTier) : null;
@@ -252,11 +300,13 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<(Pick<Move, 'from' | 'to'> & { color?: Color; isCapture?: boolean; captureScore?: number | null }) | null>(null);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
+  const [analysisByPly, setAnalysisByPly] = useState<Record<number, MoveAnalysis | undefined>>({});
   const [moveAnnouncement, setMoveAnnouncement] = useState('');
   const [score, setScore] = useState<MatchScore>({ white: 0, black: 0 });
   const [roundNumber, setRoundNumber] = useState(1);
   const [roundResetId, setRoundResetId] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
+  const [isResultPanelDismissed, setIsResultPanelDismissed] = useState(false);
   const [matchWinner, setMatchWinner] = useState<Color | null>(null);
   const [isFlipped, setIsFlipped] = useState(() => playerColor === 'black');
   const [isBoardReady, setIsBoardReady] = useState(false);
@@ -268,8 +318,12 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [displayNameDraft, setDisplayNameDraft] = useState(() => getDisplayName());
   const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(null);
   const [submittedScore, setSubmittedScore] = useState(false);
-  const [scoreSubmitMessage, setScoreSubmitMessage] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
+  const [variationStartPly, setVariationStartPly] = useState<number | null>(null);
+  const [variationBoard, setVariationBoard] = useState<ChessBoard | null>(null);
+  const [variationTurn, setVariationTurn] = useState<Color | null>(null);
+  const [variationLastMove, setVariationLastMove] = useState<(Pick<Move, 'from' | 'to'> & { color?: Color; isCapture?: boolean; captureScore?: number | null }) | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareTaunt, setShareTaunt] = useState('');
   const [challengeUrl, setChallengeUrl] = useState('');
@@ -280,16 +334,40 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const lastQueuedBotMoveKeyRef = useRef('');
   const recentBotMoveKeysRef = useRef<string[]>([]);
   const config = modeConfig[matchMode];
-  const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber);
+  const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber, botAdaptationProfile);
+  const playerPowerTier = getPlayerPowerTier({ botLevel, dailyDifficulty: dailyAIDifficulty, dailyProgress: isDailyAI ? dailyAIProgress : null });
+  const playerPowerLabel = getPowerRomanNumeral(playerPowerTier);
   const latestPly = boardTimeline.length - 1;
+  const activeReviewPly = roundResult ? previewPly ?? latestPly : previewPly;
   const isPreviewing = previewPly !== null && previewPly < latestPly;
-  const displayBoard = isPreviewing ? boardTimeline[previewPly] : board;
-  const displayMove = isPreviewing && previewPly > 0 ? moveHistory[previewPly - 1] : lastMove;
-  const displayTurn = isPreviewing ? (previewPly % 2 === 0 ? 'white' : 'black') : turn;
+  const isVariationReview = Boolean(roundResult && variationBoard && variationTurn);
+  const displayBoard = variationBoard ?? (isPreviewing ? boardTimeline[previewPly] : board);
+  const displayMove = variationLastMove ?? (isPreviewing && previewPly > 0 ? moveHistory[previewPly - 1] : lastMove);
+  const displayTurn = variationTurn ?? (isPreviewing ? (previewPly % 2 === 0 ? 'white' : 'black') : turn);
+  const currentAnalysis = roundResult && activeReviewPly && activeReviewPly > 0 ? analysisByPly[activeReviewPly] ?? null : null;
+  const currentReviewMove = roundResult && activeReviewPly && activeReviewPly > 0 ? moveHistory[activeReviewPly - 1] ?? null : null;
+  const variationAnalysis = useMemo<MoveAnalysis | null>(() => {
+    if (!variationBoard || !variationTurn) return null;
+    return { bestMove: getBestMoveForPosition({ board: variationBoard, sideToMove: variationTurn }), isBestMove: false };
+  }, [variationBoard, variationTurn]);
+  const boardAnalysis = variationAnalysis ?? currentAnalysis;
   const checkedKingIndex = useMemo(
     () => (displayBoard.length && isKingInCheck(displayBoard, displayTurn) ? findKingIndex(displayBoard, displayTurn) : null),
     [displayBoard, displayTurn],
   );
+
+
+
+  useEffect(() => {
+    if (!roundResult || !activeReviewPly || activeReviewPly <= 0) return;
+    if (analysisByPly[activeReviewPly]) return;
+    const actualMove = moveHistory[activeReviewPly - 1];
+    const boardBeforeMove = boardTimeline[activeReviewPly - 1];
+    if (!actualMove || !boardBeforeMove) return;
+
+    const analysis = analyzeMove(boardBeforeMove, actualMove);
+    setAnalysisByPly((cachedAnalysis) => ({ ...cachedAnalysis, [activeReviewPly]: analysis }));
+  }, [activeReviewPly, analysisByPly, boardTimeline, moveHistory, roundResult]);
 
   useEffect(() => {
     pendingDailyAIProgressRef.current = null;
@@ -323,8 +401,27 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }, [dailySeedInfo.backRankCode, dailySeedInfo.seed, playerColor, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode]);
 
   useEffect(() => {
-    if (!roundResult || !isDailyAI) return;
-    fetchLeaderboard(dailySeedInfo.seed, scoreMode).then(setLeaderboard).catch(() => setLeaderboard([]));
+    if (!roundResult || !isDailyAI) {
+      setIsLeaderboardLoading(false);
+      return undefined;
+    }
+
+    let isCancelled = false;
+    setIsLeaderboardLoading(true);
+    fetchLeaderboard(dailySeedInfo.seed, scoreMode)
+      .then((entries) => {
+        if (!isCancelled) setLeaderboard(entries);
+      })
+      .catch(() => {
+        if (!isCancelled) setLeaderboard([]);
+      })
+      .finally(() => {
+        if (!isCancelled) setIsLeaderboardLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [dailySeedInfo.seed, isDailyAI, roundResult, scoreMode, submittedScore]);
 
   useEffect(() => {
@@ -348,8 +445,18 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     const historyList = historyListRef.current;
     if (!historyList) return;
 
-    historyList.scrollTop = historyList.scrollHeight;
-  }, [moveHistory.length]);
+    const animationFrame = window.requestAnimationFrame(() => {
+      if (activeReviewPly && activeReviewPly > 0) {
+        const activeMove = historyList.querySelector<HTMLElement>(`[data-history-ply="${activeReviewPly}"]`);
+        activeMove?.scrollIntoView({ block: 'center', inline: 'nearest' });
+        return;
+      }
+
+      historyList.scrollTop = historyList.scrollHeight;
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [activeReviewPly, moveHistory.length]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -401,9 +508,25 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0));
   }
 
+  function resumeOriginalReview() {
+    pauseHistoryAutoplay();
+    const resumePly = variationStartPly;
+    setVariationStartPly(null);
+    setVariationBoard(null);
+    setVariationTurn(null);
+    setVariationLastMove(null);
+    setSelectedSquare(null);
+    setLegalMoves([]);
+    if (resumePly !== null) {
+      setPreviewPly(resumePly >= latestPly ? null : resumePly);
+      return;
+    }
+    setPreviewPly(null);
+  }
+
   function goToLiveReview() {
     pauseHistoryAutoplay();
-    setPreviewPly(null);
+    resumeOriginalReview();
   }
 
   function goToNextReviewPly() {
@@ -419,8 +542,33 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setPreviewPly(null);
   }
 
+  function beginReviewVariationFromDisplayedPosition(): { board: ChessBoard; turn: Color } | null {
+    if (!roundResult) return null;
+    const branchPly = previewPly ?? latestPly;
+    const branchBoard = boardTimeline[branchPly];
+    if (!branchBoard) return null;
+    const branchTurn = branchPly % 2 === 0 ? 'white' : 'black';
+    const clonedBoard = cloneBoard(branchBoard);
+    pauseHistoryAutoplay();
+    setVariationStartPly(branchPly);
+    setVariationBoard(clonedBoard);
+    setVariationTurn(branchTurn);
+    setVariationLastMove(branchPly > 0 ? moveHistory[branchPly - 1] ?? null : null);
+    setSelectedSquare(null);
+    setLegalMoves([]);
+    setPreviewPly(branchPly >= latestPly ? null : branchPly);
+    setIsResultPanelDismissed(true);
+    return { board: clonedBoard, turn: branchTurn };
+  }
+
   function handleSelectHistoryPly(ply: number) {
     pauseHistoryAutoplay();
+    setVariationStartPly(null);
+    setVariationBoard(null);
+    setVariationTurn(null);
+    setVariationLastMove(null);
+    setSelectedSquare(null);
+    setLegalMoves([]);
     setPreviewPly(ply >= latestPly ? null : ply);
   }
 
@@ -470,6 +618,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     if (isDailyAI) {
       progressionMessage = getDailyProgressionMessage(dailyAIProgress, didPlayerWin);
       pendingDailyAIProgressRef.current = getNextDailyAIProgress(dailyAIProgress, didPlayerWin ? 'win' : 'loss');
+    } else {
+      setBotAdaptationProfile((profile) => saveBotAdaptationProfile(getNextBotAdaptationProfile(profile, didPlayerWin)));
     }
 
     if (winner) {
@@ -477,6 +627,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       setScore(updatedScore);
       if (!isDailyAI && updatedScore[winner] >= config.winsRequired) setMatchWinner(winner);
     }
+    setIsResultPanelDismissed(false);
     setRoundResult({ status: nextStatus, winner, message: getRoundMessage(nextStatus, drawReason), progressionMessage, didPlayerWin, drawReason });
   }, [config.winsRequired, dailyAIProgress, isDailyAI, playerColor, score]);
 
@@ -524,16 +675,21 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setLegalMoves([]);
     setLastMove(null);
     setMoveHistory([]);
+    setAnalysisByPly({});
     setMoveAnnouncement('');
     setSubmittedScore(false);
-    setScoreSubmitMessage(null);
     setShareTaunt('');
     setChallengeUrl('');
     setCreatedChallengeId(null);
     setShareModalOpen(false);
     setRoundResult(null);
+    setIsResultPanelDismissed(false);
     setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, roundAscensionTier));
     setPreviewPly(null);
+    setVariationStartPly(null);
+    setVariationBoard(null);
+    setVariationTurn(null);
+    setVariationLastMove(null);
     setIsHistoryAutoplaying(false);
     setIsFlipped(roundPlayerColor === 'black');
     setIsBoardReady(false);
@@ -564,23 +720,46 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     if (!matchWinner) resetRound(Math.min(roundNumber + 1, config.maxGames));
   }
 
+  function getInteractiveReviewPosition(): { board: ChessBoard; turn: Color } | null {
+    if (!roundResult) return null;
+    if (variationBoard && variationTurn) return { board: variationBoard, turn: variationTurn };
+    return beginReviewVariationFromDisplayedPosition();
+  }
+
   function selectSquare(squareIndex: number): boolean {
-    if (status !== 'active' || turn !== playerColor || isPreviewing) return false;
-    const piece = board[squareIndex]?.piece;
-    if (piece?.color !== turn) return false;
+    const reviewPosition = getInteractiveReviewPosition();
+    const activeBoard = reviewPosition?.board ?? board;
+    const activeTurn = reviewPosition?.turn ?? turn;
+    const canSelect = Boolean(reviewPosition) || (status === 'active' && activeTurn === playerColor && !isPreviewing);
+    if (!canSelect) return false;
+    const piece = activeBoard[squareIndex]?.piece;
+    if (piece?.color !== activeTurn) return false;
     setSelectedSquare(squareIndex);
-    setLegalMoves(getLegalMoves(board, squareIndex));
+    setLegalMoves(getLegalMoves(activeBoard, squareIndex));
     return true;
   }
 
+  function completeVariationMove(move: Move) {
+    if (!variationBoard) return;
+    const nextBoard = applyMove(variationBoard, move);
+    const nextTurn = getOpponent(move.piece.color);
+    setVariationBoard(nextBoard);
+    setVariationTurn(nextTurn);
+    setSelectedSquare(null);
+    setLegalMoves([]);
+    setVariationLastMove({ from: move.from, to: move.to, color: move.piece.color, isCapture: move.isCapture, captureScore: move.capturedPiece ? getCaptureScore(move.capturedPiece.type) : null });
+    setMoveAnnouncement(`Analysis branch: ${move.piece.color === 'white' ? 'White' : 'Black'} ${move.piece.type} moved from ${squareLabel(move.from % 5, Math.floor(move.from / 5))} to ${squareLabel(move.to % 5, Math.floor(move.to / 5))}.`);
+  }
+
   function tryMoveTo(squareIndex: number): boolean {
-    if (status !== 'active' || turn !== playerColor || isPreviewing) return false;
     const selectedMove = legalMoves.find((move) => move.to === squareIndex);
-    if (selectedMove) {
-      completeMove(selectedMove);
-      return true;
-    }
-    return false;
+    if (!selectedMove) return false;
+    const reviewPosition = roundResult ? getInteractiveReviewPosition() : null;
+    const canMove = Boolean(reviewPosition) || (status === 'active' && turn === playerColor && !isPreviewing);
+    if (!canMove) return false;
+    if (reviewPosition) completeVariationMove(selectedMove);
+    else completeMove(selectedMove);
+    return true;
   }
 
   function handleSquareClick(squareIndex: number) {
@@ -591,10 +770,14 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }
 
   function handleDragStart(squareIndex: number): Move[] | null {
-    if (status !== 'active' || turn !== playerColor || isPreviewing) return null;
-    const piece = board[squareIndex]?.piece;
-    if (piece?.color !== turn) return null;
-    const moves = getLegalMoves(board, squareIndex);
+    const reviewPosition = getInteractiveReviewPosition();
+    const activeBoard = reviewPosition?.board ?? board;
+    const activeTurn = reviewPosition?.turn ?? turn;
+    const canDrag = Boolean(reviewPosition) || (status === 'active' && activeTurn === playerColor && !isPreviewing);
+    if (!canDrag) return null;
+    const piece = activeBoard[squareIndex]?.piece;
+    if (piece?.color !== activeTurn) return null;
+    const moves = getLegalMoves(activeBoard, squareIndex);
     setSelectedSquare(squareIndex);
     setLegalMoves(moves);
     return moves;
@@ -602,7 +785,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   function handleDrop(squareIndex: number, draggedMove?: Move) {
     if (draggedMove) {
-      completeMove(draggedMove);
+      if (roundResult) completeVariationMove(draggedMove);
+      else completeMove(draggedMove);
       return;
     }
     if (!tryMoveTo(squareIndex)) {
@@ -646,7 +830,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     const naturalDelay = BOT_MOVE_DELAY_MIN_MS + Math.floor(Math.random() * BOT_MOVE_DELAY_SPREAD_MS);
     botMoveTimerRef.current = window.setTimeout(() => {
       botMoveTimerRef.current = null;
-      const botMove = getBotMoveByLevel(board, botColor, botLevel, { avoidMoveKeys: new Set(recentBotMoveKeysRef.current) });
+      const botMove = getBotMoveByLevel(board, botColor, botLevel, { avoidMoveKeys: new Set(recentBotMoveKeysRef.current), bestMoveChance: getBestMoveChanceForPower(playerPowerTier) });
       if (botMove) {
         recentBotMoveKeysRef.current = [...recentBotMoveKeysRef.current.slice(-11), getMoveIdentity(botMove)];
         completeMove(botMove);
@@ -659,13 +843,13 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         botMoveTimerRef.current = null;
       }
     };
-  }, [board, botColor, botLevel, completeMove, isBoardReady, isPreviewing, moveHistory.length, roundResetId, status, turn]);
+  }, [board, botColor, botLevel, completeMove, isBoardReady, isPreviewing, moveHistory.length, playerPowerTier, roundResetId, status, turn]);
 
   const handleBoardSpawnComplete = useCallback(() => {
     setIsBoardReady(true);
   }, []);
 
-  const activeLegalMoves = isPreviewing || !isBoardReady ? [] : legalMoves;
+  const activeLegalMoves = (roundResult || !isPreviewing) && isBoardReady ? legalMoves : [];
   const headerStatusLabel = roundResult ? 'Game Over' : undefined;
   const headerTurnLabel = roundResult
     ? roundResult.status === 'draw'
@@ -703,6 +887,39 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const canAutoplayHistory = Boolean(roundResult && moveHistory.length > 0);
   const confirmActionClassName = pendingAction ? 'danger-action' : undefined;
   const restartActionLabel = canUseBotGameActions ? 'Restart Match' : 'Rematch';
+
+
+
+  function startPostGameReview() {
+    if (!roundResult || moveHistory.length === 0) return;
+    setIsHistoryAutoplaying(false);
+    setPreviewPly(1);
+    setIsResultPanelDismissed(true);
+  }
+
+  const analysisPanel = roundResult ? (() => {
+    if (isVariationReview) {
+      const suggestedNotation = getMoveNotation(variationAnalysis?.bestMove ?? null);
+      return <div className="analysis-panel analysis-panel-suggested analysis-branch-panel"><strong>Analysis branch</strong><span>{variationTurn === playerColor ? 'Your turn' : 'Bot side'} to move. Best move: {suggestedNotation}</span><span>Play any legal move to test the line, then Resume returns to the original replay.</span></div>;
+    }
+    if (!activeReviewPly || activeReviewPly <= 0 || !currentReviewMove) {
+      return <div className="analysis-panel"><strong>Review</strong><span>Step through the game and see where the computer wanted to move.</span></div>;
+    }
+    const actualNotation = formatMoveNotation(currentReviewMove).text;
+    if (!currentAnalysis) {
+      return <div className="analysis-panel"><strong>Analysis</strong><span>Review preparing…</span></div>;
+    }
+    const sideLabel = currentReviewMove.color === 'white' ? 'White' : 'Black';
+    const actorLabel = currentReviewMove.color === playerColor ? 'You' : 'Bot';
+    const suggestedNotation = getMoveNotation(currentAnalysis.bestMove);
+    return (
+      <div className={currentAnalysis.isBestMove ? 'analysis-panel analysis-panel-best' : 'analysis-panel analysis-panel-suggested'}>
+        <strong>Move {activeReviewPly} / {moveHistory.length}</strong>
+        <span>{sideLabel} played: {actualNotation}</span>
+        <span>{currentAnalysis.isBestMove ? (currentReviewMove.color === playerColor ? 'Nice. You found the best move. ⭐' : 'Bot played the suggested move. ⭐') : `${actorLabel === 'You' ? 'Computer preferred' : 'Suggested for bot'}: ${suggestedNotation}`}</span>
+      </div>
+    );
+  })() : null;
 
   async function ensureChallengeRecord(finalShareText?: string, finalTaunt?: string): Promise<string> {
     if (!roundResult) return effectiveChallengeUrl;
@@ -744,7 +961,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   async function copyChallengeLink() {
     const url = await ensureChallengeRecord();
     if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
-    setScoreSubmitMessage('Challenge link copied.');
   }
 
   function openShareModal() {
@@ -755,7 +971,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   async function handleSubmitScore() {
     if (!roundResult) return;
-    setScoreSubmitMessage('Submitting...');
     try {
       saveDisplayName(displayNameDraft);
       await submitScore({
@@ -768,9 +983,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         moves: scoreBreakdown.fullMoves,
       });
       setSubmittedScore(true);
-      setScoreSubmitMessage('Score submitted to today’s best scores.');
-    } catch {
-      setScoreSubmitMessage('Could not submit online, but your local score is saved.');
+    } catch (error) {
+      console.warn('Could not submit score online, but the local score is saved.', error);
     }
   }
 
@@ -789,7 +1003,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         turn={turn}
         status={status}
         playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
-        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · ${botLevel} bot`}
+        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · Power ${playerPowerLabel} · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · ${botLevel} bot · Power ${playerPowerLabel}`}
         onTitleClick={onHome}
         statusLabelOverride={headerStatusLabel}
         turnLabelOverride={headerTurnLabel}
@@ -810,6 +1024,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           </div>
           <div className="info-stack">
             <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
+            <p><span>🛡️ Your power</span><strong><PowerShieldBadge tier={playerPowerTier} /></strong></p>
             <p><span>{seedInfoLabel}</span><strong>{dailySeedInfo.seed}</strong></p>
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>
             <p><span>Back rank</span><strong>{dailySeedInfo.backRankCode}</strong></p>
@@ -830,12 +1045,13 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             key={`${dailySeedInfo.seed}-${roundNumber}-${roundResetId}-${playerColor}`}
             ariaLabel={`Pocket Shuffle Chess ${dailySeedInfo.backRankCode} board. ${playerColor === 'white' ? 'White' : 'Black'} to play as you.`}
             board={displayBoard}
-            selectedSquare={isPreviewing ? null : selectedSquare}
+            selectedSquare={isPreviewing && !isVariationReview ? null : selectedSquare}
             legalMoves={activeLegalMoves}
             lastMove={displayMove}
             checkedKingIndex={checkedKingIndex}
+            analysis={boardAnalysis}
             isFlipped={isFlipped}
-            isInteractive={!isPreviewing && isBoardReady && status === 'active'}
+            isInteractive={isBoardReady && (Boolean(roundResult) || (!isPreviewing && status === 'active'))}
             scoringSide={playerColor}
             spawnKey={roundResetId}
             onSquareClick={handleSquareClick}
@@ -852,15 +1068,17 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               <p className="eyebrow">Move History</p>
               <h2>Move history</h2>
             </div>
-            <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
+            <p className="panel-note">Click a move to review. Move any piece on the board to explore an alternate line; Live returns to the original replay.</p>
+            {analysisPanel}
           </div>
           <ol ref={historyListRef} className="move-history move-list history-list">
             <MoveHistory
               moves={moveHistory}
               emptyPrimary="No moves yet."
               emptySecondary="Select a piece to see legal moves."
-              activePly={previewPly}
+              activePly={activeReviewPly}
               scoringSide={playerColor}
+              analysisByPly={analysisByPly}
               onSelectPly={handleSelectHistoryPly}
             />
           </ol>
@@ -875,7 +1093,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             <div className={`panel-actions stacked-actions ${roundResult ? 'history-complete-actions' : ''}`}>
               {roundResult ? (
                 <>
-                  <button type="button" className="secondary-action" onClick={toggleHistoryAutoplay} disabled={!canAutoplayHistory}>
+                  <button type="button" className="secondary-action" onClick={toggleHistoryAutoplay} disabled={!canAutoplayHistory || isVariationReview}>
                     {isHistoryAutoplaying ? <Pause size={18} /> : <Play size={18} />}
                     {isHistoryAutoplaying ? 'Pause History' : 'Play History'}
                   </button>
@@ -900,6 +1118,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           title={matchWinner ? 'Match complete' : roundResult.drawReason === 'stalemate' ? 'Stalemate' : roundResult.status === 'draw' ? 'Draw agreed' : roundResult.didPlayerWin ? 'You won' : 'You lost'}
           summary={roundResult.message}
           progressionMessage={roundResult.progressionMessage}
+          dismissed={isResultPanelDismissed}
+          onDismiss={() => setIsResultPanelDismissed(true)}
           homeAction={(
             <button type="button" className="result-home-button" aria-label="Go home" onClick={onHome}>
               <Home size={24} aria-hidden="true" />
@@ -923,8 +1143,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                   <p><span>Side</span><strong>{playerColor === 'white' ? 'White' : 'Black'}</strong></p>
                   <p><span>Setup</span><strong>{dailySeedInfo.backRankCode}</strong></p>
                 </div>
-                <label className="name-capture-form inline-name-form">
-                  <span>Name</span>
+                <label className="name-capture-form inline-name-form power-name-form">
+                  <span>Name <PowerShieldBadge tier={playerPowerTier} /></span>
                   <input value={displayNameDraft} onChange={(event) => setDisplayNameDraft(event.target.value)} onBlur={() => setDisplayNameDraft(saveDisplayName(displayNameDraft))} maxLength={20} />
                 </label>
               </div>
@@ -936,30 +1156,56 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                 </div>
               )}
               <blockquote className="result-taunt">“{currentShareTaunt}”</blockquote>
-              <p className="panel-note">{activeChallengeContext && challengeComparison?.beatPrevious ? 'Now challenge someone else.' : activeChallengeContext ? 'Try again or share your attempt.' : `Share ${displaySeedName} as a beat-my-score challenge.`}</p>
-              {leaderboard.length > 0 && (
-                <div className="leaderboard-mini">
-                  <h3>Today’s Best Scores</h3>
-                  <div className="leaderboard-table">
-                    <div className="leaderboard-row leaderboard-head"><span>Rank</span><span>Name</span><span>Score</span><span>Moves</span><span>Side</span><span>Result</span></div>
-                    {leaderboard.slice(0, 3).map((entry, index) => (
-                      <div className="leaderboard-row" key={entry.id}><span>{index + 1}</span><span>{entry.display_name}</span><span>{entry.score}</span><span>{entry.moves}</span><span>{entry.side}</span><span>{entry.result}</span></div>
+              {isDailyAI && (isLeaderboardLoading || leaderboard.length > 0) && (
+                <div className="leaderboard-mini result-leaderboard-card">
+                  <div className="leaderboard-mini-heading">
+                    <div>
+                      <p className="eyebrow">Leaderboard</p>
+                      <h3>Today’s Best Scores</h3>
+                    </div>
+                    {isLeaderboardLoading && <span className="leaderboard-loading-pill">Loading…</span>}
+                  </div>
+                  <div className={isLeaderboardLoading ? 'leaderboard-table leaderboard-result-list leaderboard-table-loading' : 'leaderboard-table leaderboard-result-list'} aria-busy={isLeaderboardLoading}>
+                    {isLeaderboardLoading ? (
+                      Array.from({ length: 3 }, (_, index) => (
+                        <div className="leaderboard-row leaderboard-result-row leaderboard-skeleton-result-row" key={`leaderboard-skeleton-${index}`}>
+                          <span className="leaderboard-rank-badge" />
+                          <span className="leaderboard-skeleton-name" />
+                          <span className="leaderboard-skeleton-score" />
+                          <span className="leaderboard-skeleton-chip" />
+                        </div>
+                      ))
+                    ) : leaderboard.slice(0, 3).map((entry, index) => (
+                      <div className="leaderboard-row leaderboard-result-row" key={entry.id}>
+                        <span className="leaderboard-rank-badge">{index + 1}</span>
+                        <span className="leaderboard-player-name">{entry.display_name}</span>
+                        <strong>{entry.score}</strong>
+                        <span className="leaderboard-result-meta">{entry.moves} moves · {entry.side}</span>
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
-              {scoreSubmitMessage && <p className="panel-note">{scoreSubmitMessage}</p>}
             </>
           )}
           actions={(
             <>
-              <button type="button" onClick={openShareModal}><Share2 size={17} /> Challenge a Friend</button><ResultScreenshotButton title={roundResult.didPlayerWin ? 'You won' : roundResult.status === 'draw' ? 'Draw' : 'You lost'} summary={roundResult.message} score={scoreBreakdown.totalScore} moves={scoreBreakdown.fullMoves} seed={seedSlug} setup={dailySeedInfo.backRankCode} />
-              <button type="button" className="secondary-action" onClick={() => { void copyChallengeLink(); }}><Copy size={22} /> Copy Link</button>
-              <button type="button" className="secondary-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seedSlug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}><Trophy size={24} /> View Seed Leaderboard</button>
-              <button type="button" onClick={handleSubmitScore} disabled={submittedScore}>{submittedScore ? 'Score Submitted' : 'Save Score'}</button>
-              {!matchWinner && <button type="button" onClick={nextRound}>{roundResult.status === 'draw' ? 'Replay Seed' : 'Replay Seed'}</button>}
-              <button type="button" onClick={() => { window.history.pushState(null, '', `/bot?seed=${encodeURIComponent(seedSlug)}&setup=${encodeURIComponent(dailySeedInfo.backRankCode)}&side=${playerColor === 'white' ? 'black' : 'white'}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Other Side</button>
-              <button type="button" onClick={requestRestart}>Rematch</button>
+              <div className="result-action-row result-action-row-primary">
+                <button type="button" className="result-primary-action result-share-action" onClick={openShareModal}><Share2 size={17} /> Challenge a Friend</button>
+                <button type="button" className="secondary-action result-primary-action result-review-action" onClick={startPostGameReview}><Sparkles size={18} /> Review Game</button>
+              </div>
+              <div className="result-action-row result-action-row-tools">
+                <ResultScreenshotButton title={roundResult.didPlayerWin ? 'You won' : roundResult.status === 'draw' ? 'Draw' : 'You lost'} summary={roundResult.message} score={scoreBreakdown.totalScore} moves={scoreBreakdown.fullMoves} seed={seedSlug} setup={dailySeedInfo.backRankCode} className="result-tool-action result-screenshot-action" />
+                <button type="button" className="secondary-action result-tool-action result-copy-action" onClick={() => { void copyChallengeLink(); }}><Copy size={22} /> Copy Link</button>
+              </div>
+              <div className="result-action-row result-action-row-secondary">
+                <button type="button" className="secondary-action result-leaderboard-action" onClick={() => { window.history.pushState(null, '', `/seed/${encodeURIComponent(seedSlug)}/leaderboard`); window.dispatchEvent(new PopStateEvent('popstate')); }}><Trophy size={24} /> View Seed Leaderboard</button>
+                {!matchWinner && <button type="button" className="result-replay-action" onClick={nextRound}>Replay Seed</button>}
+              </div>
+              <div className="result-action-row result-action-row-rematch">
+                <button type="button" className="result-other-side-action" onClick={() => { window.history.pushState(null, '', `/bot?seed=${encodeURIComponent(seedSlug)}&setup=${encodeURIComponent(dailySeedInfo.backRankCode)}&side=${playerColor === 'white' ? 'black' : 'white'}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Play Other Side</button>
+                <button type="button" className="result-rematch-action" onClick={requestRestart}>Rematch</button>
+              </div>
             </>
           )}
         />
