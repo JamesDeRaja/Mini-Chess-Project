@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Flame, Link as LinkIcon, RefreshCw, Share2, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
-import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
+import { getDailyAIDifficulty, getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput, createSeedFromInput } from '../game/seed.js';
 import { createRandomGameSeed, getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
@@ -14,6 +14,8 @@ import { fetchLeaderboard, fetchScoreboard, type LeaderboardEntry, type Leaderbo
 import { CURATED_SEEDS } from '../game/curatedSeeds.js';
 import { createSeedChallengeUrl } from '../game/challenge.js';
 import { buildSeedShareMessage, getRandomShareTaunt } from '../game/shareTaunts.js';
+import { PowerShieldBadge } from '../components/PowerShieldBadge.js';
+import { getPlayerPowerTier } from '../game/playerPower.js';
 
 type HomePageProps = {
   initialModal?: Exclude<ModalName, null>;
@@ -180,6 +182,7 @@ export function HomePage({
   const customSeedError = customSeedWasSubmitted && customSeedValidation.ok === false ? customSeedValidation.error : null;
   const customBackRankCode = customSeedValidation.ok ? customSeedValidation.backRankCode : null;
   const dailyAIStatusLine = getDailyAIStatusLine(dailyAIProgress);
+  const homePowerTier = getPlayerPowerTier({ dailyDifficulty: shuffleMode === 'daily' ? getDailyAIDifficulty(dailyAIProgress) : null, dailyProgress: shuffleMode === 'daily' ? dailyAIProgress : null, botLevel: shuffleMode === 'daily' ? undefined : 'medium' });
   const shouldConfirmDailyReplay = dailyAIProgress.stars >= 3 || dailyAIProgress.magicStarUnlocked;
   const dailyMasteredSeedSuggestions = CURATED_SEEDS.filter((seed) => ['gotham-chaos', 'boss-battle', 'queen-rush'].includes(seed.slug)).slice(0, 3);
   const activeLeaderboardView = leaderboardViews.find((view) => view.scope === leaderboardScope) ?? leaderboardViews[0];
@@ -599,7 +602,7 @@ export function HomePage({
           <div className="brand-row">
             <span className="brand-icon-tile streak-brand-tile" aria-label={`${playStreak.count} day play streak`}><Flame size={42} aria-hidden="true" /><b>{playStreak.count}</b></span>
             <form className="player-greeting" onSubmit={(event) => { event.preventDefault(); commitDisplayNameDraft(); }}>
-              <span>Hello</span>
+              <span>Hello <PowerShieldBadge tier={homePowerTier} /></span>
               <input
                 aria-label="Player name"
                 value={displayNameDraft}

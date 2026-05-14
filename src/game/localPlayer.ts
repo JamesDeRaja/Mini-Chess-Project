@@ -14,6 +14,11 @@ const friendlyDisplayNames = [
   'Luka', 'Nuri', 'Sami', 'Tari', 'Omaro', 'Enzo', 'Mateo', 'Rico', 'SolMate', 'Wanderxo',
 ] as const;
 
+const streamerChessDisplayNames = [
+  'Hikaru', 'GothamChess', 'BotezLive', 'AnnaCramling', 'EricRosen', 'DanielNaroditsky', 'Chessbrah', 'Agadmator', 'NemoChess', 'ChessNetwork',
+  'HangingPawns', 'JohnBartholomew', 'RosenTrap', 'DanyaSpeedrun', 'LevyRecap', 'BotezGambit', 'HikaruSpeedrun', 'AnnaBlitz', 'ChessbrahArena', 'GothamSub',
+] as const;
+
 const sarcasticChessDisplayNames = [
   'BlunderBaron', 'PawnShopGM', 'ForkedAgain', 'PinnedGenius', 'CastleLater', 'TempoTaxed', 'QueenOops', 'RookPaper', 'KnightmareFuel', 'BishopBother',
   'MateInMaybe', 'StalemateStan', 'CheckMeOut', 'EnPrisePrince', 'HangingHero', 'TheoryDodger', 'GambitGoblin', 'EndgameIntern', 'TacticTourist', 'PuzzlePeasant',
@@ -54,6 +59,7 @@ const angryChessDisplayNames = [
 ] as const;
 
 const defaultDisplayNames = [
+  ...streamerChessDisplayNames,
   ...friendlyDisplayNames,
   ...sarcasticChessDisplayNames,
   ...funChessDisplayNames,
