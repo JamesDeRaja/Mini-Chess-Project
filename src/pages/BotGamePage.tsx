@@ -311,6 +311,11 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [ascensionPopupTier, setAscensionPopupTier] = useState<AscensionPopupTier | null>(() => getPendingAscensionPopupTier(isDailyAI, dailyAscensionTier));
   const pendingDailyAIProgressRef = useRef<DailyAIProgress | null>(null);
   const [previewPly, setPreviewPly] = useState<number | null>(null);
+  const [reviewSelectedSquare, setReviewSelectedSquare] = useState<number | null>(null);
+  const [reviewLegalMoves, setReviewLegalMoves] = useState<Move[]>([]);
+  const [reviewVariationBoard, setReviewVariationBoard] = useState<ChessBoard | null>(null);
+  const [reviewVariationMove, setReviewVariationMove] = useState<Move | null>(null);
+  const [reviewVariationAnalysis, setReviewVariationAnalysis] = useState<MoveAnalysis | null>(null);
   const [isHistoryAutoplaying, setIsHistoryAutoplaying] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [displayNameDraft, setDisplayNameDraft] = useState(() => getDisplayName());
@@ -332,10 +337,14 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const latestPly = boardTimeline.length - 1;
   const activeReviewPly = roundResult ? previewPly ?? latestPly : previewPly;
   const isPreviewing = previewPly !== null && previewPly < latestPly;
-  const displayBoard = isPreviewing ? boardTimeline[previewPly] : board;
-  const displayMove = isPreviewing && previewPly > 0 ? moveHistory[previewPly - 1] : lastMove;
-  const displayTurn = isPreviewing ? (previewPly % 2 === 0 ? 'white' : 'black') : turn;
-  const currentAnalysis = roundResult && activeReviewPly && activeReviewPly > 0 ? analysisByPly[activeReviewPly] ?? null : null;
+  const baseDisplayBoard = isPreviewing ? boardTimeline[previewPly] : board;
+  const baseDisplayMove = isPreviewing && previewPly > 0 ? moveHistory[previewPly - 1] : lastMove;
+  const baseDisplayTurn = isPreviewing ? (previewPly % 2 === 0 ? 'white' : 'black') : turn;
+  const variationTurn = reviewVariationMove ? getOpponent(reviewVariationMove.piece.color) : null;
+  const displayBoard = reviewVariationBoard ?? baseDisplayBoard;
+  const displayMove = reviewVariationMove ? { from: reviewVariationMove.from, to: reviewVariationMove.to, color: reviewVariationMove.piece.color, piece: reviewVariationMove.piece, isCapture: reviewVariationMove.isCapture, captureScore: reviewVariationMove.capturedPiece ? getCaptureScore(reviewVariationMove.capturedPiece.type) : null } : baseDisplayMove;
+  const displayTurn = variationTurn ?? baseDisplayTurn;
+  const currentAnalysis = reviewVariationAnalysis ?? (roundResult && activeReviewPly && activeReviewPly > 0 ? analysisByPly[activeReviewPly] ?? null : null);
   const currentReviewMove = roundResult && activeReviewPly && activeReviewPly > 0 ? moveHistory[activeReviewPly - 1] ?? null : null;
   const checkedKingIndex = useMemo(
     () => (displayBoard.length && isKingInCheck(displayBoard, displayTurn) ? findKingIndex(displayBoard, displayTurn) : null),
@@ -354,6 +363,14 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     const analysis = analyzeMove(boardBeforeMove, actualMove);
     setAnalysisByPly((cachedAnalysis) => ({ ...cachedAnalysis, [activeReviewPly]: analysis }));
   }, [activeReviewPly, analysisByPly, boardTimeline, moveHistory, roundResult]);
+
+  useEffect(() => {
+    setReviewSelectedSquare(null);
+    setReviewLegalMoves([]);
+    setReviewVariationBoard(null);
+    setReviewVariationMove(null);
+    setReviewVariationAnalysis(null);
+  }, [activeReviewPly, roundResult]);
 
   useEffect(() => {
     pendingDailyAIProgressRef.current = null;
@@ -680,7 +697,50 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     return false;
   }
 
+  function clearReviewVariation() {
+    setReviewSelectedSquare(null);
+    setReviewLegalMoves([]);
+    setReviewVariationBoard(null);
+    setReviewVariationMove(null);
+    setReviewVariationAnalysis(null);
+  }
+
+  function handleReviewSquareClick(squareIndex: number) {
+    if (!roundResult || !displayBoard.length) return;
+
+    const selectedVariationMove = reviewLegalMoves.find((move) => move.to === squareIndex);
+    if (selectedVariationMove) {
+      const nextBoard = applyMove(displayBoard, selectedVariationMove);
+      setReviewVariationBoard(nextBoard);
+      setReviewVariationMove(selectedVariationMove);
+      setReviewVariationAnalysis(analyzeMove(displayBoard, {
+        from: selectedVariationMove.from,
+        to: selectedVariationMove.to,
+        promotion: selectedVariationMove.isPromotion ? selectedVariationMove.promotionPiece ?? 'queen' : null,
+        color: selectedVariationMove.piece.color,
+      }));
+      setReviewSelectedSquare(null);
+      setReviewLegalMoves([]);
+      setIsHistoryAutoplaying(false);
+      return;
+    }
+
+    const piece = displayBoard[squareIndex]?.piece;
+    if (piece?.color === displayTurn) {
+      setReviewSelectedSquare(squareIndex);
+      setReviewLegalMoves(getLegalMoves(displayBoard, squareIndex));
+      setIsHistoryAutoplaying(false);
+      return;
+    }
+
+    clearReviewVariation();
+  }
+
   function handleSquareClick(squareIndex: number) {
+    if (roundResult) {
+      handleReviewSquareClick(squareIndex);
+      return;
+    }
     if (tryMoveTo(squareIndex)) return;
     if (selectSquare(squareIndex)) return;
     setSelectedSquare(null);
@@ -762,7 +822,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setIsBoardReady(true);
   }, []);
 
-  const activeLegalMoves = isPreviewing || roundResult || !isBoardReady ? [] : legalMoves;
+  const activeLegalMoves = roundResult ? reviewLegalMoves : isPreviewing || !isBoardReady ? [] : legalMoves;
+  const activeSelectedSquare = roundResult ? reviewSelectedSquare : isPreviewing ? null : selectedSquare;
   const headerStatusLabel = roundResult ? 'Game Over' : undefined;
   const headerTurnLabel = roundResult
     ? roundResult.status === 'draw'
@@ -811,27 +872,28 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }
 
   const analysisPanel = roundResult ? (() => {
-    if (!activeReviewPly || activeReviewPly <= 0 || !currentReviewMove) {
-      return <div className="analysis-panel"><strong>Review</strong><span>Step through the game and see where the computer wanted to move.</span></div>;
+    if (!reviewVariationMove && (!activeReviewPly || activeReviewPly <= 0 || !currentReviewMove)) {
+      return <div className="analysis-panel"><strong>Review</strong><span>Step through the game, or click a piece on the board to try a variation.</span></div>;
     }
-    const actualNotation = formatMoveNotation(currentReviewMove).text;
+    const actualNotation = currentReviewMove ? formatMoveNotation(currentReviewMove).text : '';
     if (!currentAnalysis) {
       return <div className="analysis-panel"><strong>Analysis</strong><span>Review preparing…</span></div>;
     }
-    const sideLabel = currentReviewMove.color === 'white' ? 'White' : 'Black';
-    const actorLabel = currentReviewMove.color === playerColor ? 'You' : 'Bot';
+    const analysisColor = reviewVariationMove?.piece.color ?? currentReviewMove?.color ?? playerColor;
+    const sideLabel = analysisColor === 'white' ? 'White' : 'Black';
+    const actorLabel = analysisColor === playerColor ? 'You' : 'Bot';
     const suggestedNotation = getMoveNotation(currentAnalysis.bestMove);
     const replyNotation = getMoveNotation(currentAnalysis.bestReply ?? null);
     const panelClassName = currentAnalysis.isBlunder ? 'analysis-panel analysis-panel-blunder' : currentAnalysis.isBestMove ? 'analysis-panel analysis-panel-best' : 'analysis-panel analysis-panel-suggested';
     const analysisSummary = currentAnalysis.isBlunder
       ? `${actorLabel === 'You' ? 'Careful' : 'Blunder'}: ${replyNotation} is a strong reply. Preferred: ${suggestedNotation}`
       : currentAnalysis.isBestMove
-        ? (currentReviewMove.color === playerColor ? 'Nice. You found the best move. ⭐' : 'Bot played the suggested move. ⭐')
+        ? (analysisColor === playerColor ? 'Nice. You found the best move. ⭐' : 'Bot played the suggested move. ⭐')
         : `${actorLabel === 'You' ? 'Computer preferred' : 'Suggested for bot'}: ${suggestedNotation}`;
     return (
       <div className={panelClassName}>
-        <strong>Move {activeReviewPly} / {moveHistory.length}</strong>
-        <span>{sideLabel} played: {actualNotation}</span>
+        <strong>{reviewVariationMove ? 'Variation analysis' : `Move ${activeReviewPly} / ${moveHistory.length}`}</strong>
+        <span>{reviewVariationMove ? `${reviewVariationMove.piece.color === 'white' ? 'White' : 'Black'} tries: ${getMoveNotation(reviewVariationMove)}` : `${sideLabel} played: ${actualNotation}`}</span>
         <span>{analysisSummary}</span>
       </div>
     );
@@ -960,13 +1022,13 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             key={`${dailySeedInfo.seed}-${roundNumber}-${roundResetId}-${playerColor}`}
             ariaLabel={`Pocket Shuffle Chess ${dailySeedInfo.backRankCode} board. ${playerColor === 'white' ? 'White' : 'Black'} to play as you.`}
             board={displayBoard}
-            selectedSquare={isPreviewing ? null : selectedSquare}
+            selectedSquare={activeSelectedSquare}
             legalMoves={activeLegalMoves}
             lastMove={displayMove}
             checkedKingIndex={checkedKingIndex}
             analysis={currentAnalysis}
             isFlipped={isFlipped}
-            isInteractive={!isPreviewing && isBoardReady && status === 'active'}
+            isInteractive={isBoardReady && (status === 'active' || Boolean(roundResult))}
             scoringSide={playerColor}
             spawnKey={roundResetId}
             onSquareClick={handleSquareClick}
@@ -983,7 +1045,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               <p className="eyebrow">Move History</p>
               <h2>Move history</h2>
             </div>
-            <p className="panel-note">Click a move to review. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
+            <p className="panel-note">Click a move to review, then click board pieces to test variations. Use ←/→ to step, ↑ for live, ↓ for start, Esc to cancel.</p>
             {analysisPanel}
           </div>
           <ol ref={historyListRef} className="move-history move-list history-list">

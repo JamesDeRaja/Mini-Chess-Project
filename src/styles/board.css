@@ -1002,3 +1002,56 @@
 .move-quality-badge-blunder span:last-child {
   display: none;
 }
+
+/* Stronger play/review visibility for check and the latest moved piece. */
+.king-in-check {
+  z-index: 5;
+  box-shadow: inset 0 0 0 999px rgba(224, 48, 39, 0.34), inset 0 0 0 7px rgba(181, 24, 22, 0.92), 0 0 0 3px rgba(255, 238, 232, 0.86);
+}
+
+.king-in-check::after {
+  position: absolute;
+  inset: 9%;
+  z-index: 3;
+  border: 4px solid rgba(197, 30, 28, 0.86);
+  border-radius: 18px;
+  box-shadow: 0 0 18px rgba(197, 30, 28, 0.38), inset 0 0 18px rgba(197, 30, 28, 0.18);
+  content: '';
+  pointer-events: none;
+}
+
+.last-move-square::before {
+  background: rgba(255, 211, 79, 0.5);
+  box-shadow: inset 0 0 0 4px rgba(255, 248, 233, 0.38), inset 0 0 0 8px rgba(211, 151, 30, 0.22);
+}
+
+.last-move-destination-square::after {
+  position: absolute;
+  inset: 6%;
+  z-index: 3;
+  border: 4px solid rgba(255, 248, 233, 0.9);
+  border-radius: 18px;
+  box-shadow: 0 0 0 3px rgba(242, 165, 48, 0.72), 0 10px 20px rgba(114, 83, 24, 0.18);
+  content: '';
+  pointer-events: none;
+  animation: latest-move-glow 1200ms ease-in-out infinite alternate;
+}
+
+.last-move-destination-square .piece {
+  filter: drop-shadow(0 8px 8px rgba(75, 55, 17, 0.28)) saturate(1.08) brightness(1.04);
+}
+
+@keyframes latest-move-glow {
+  from { opacity: 0.72; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1.02); }
+}
+
+.king-in-check.last-move-destination-square::after,
+.king-in-check.legal-target-square::after {
+  inset: 9%;
+  border: 4px solid rgba(197, 30, 28, 0.9);
+  border-radius: 18px;
+  background: transparent;
+  box-shadow: 0 0 18px rgba(197, 30, 28, 0.42), inset 0 0 18px rgba(197, 30, 28, 0.2);
+  animation: check-pulse 1s ease-in-out infinite alternate;
+}
