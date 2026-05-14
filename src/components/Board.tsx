@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { BOARD_FILES, BOARD_RANKS } from '../game/constants.js';
 import { fileLabel, index } from '../game/coordinates.js';
-import type { Board as ChessBoard, Color, Move, Piece as ChessPiece, PieceType } from '../game/types.js';
+import type { Board as ChessBoard, Color, Move, MoveAnalysis, Piece as ChessPiece, PieceType } from '../game/types.js';
+import { AnalysisOverlay } from './AnalysisOverlay.js';
 import { Piece } from './Piece.js';
 import { Square } from './Square.js';
 
@@ -13,6 +14,7 @@ type BoardProps = {
   selectedSquare: number | null;
   legalMoves: Move[];
   lastMove: LastMove;
+  analysis?: MoveAnalysis | null;
   checkedKingIndex: number | null;
   isFlipped?: boolean;
   isInteractive?: boolean;
@@ -104,6 +106,7 @@ export function Board({
   selectedSquare,
   legalMoves,
   lastMove,
+  analysis = null,
   checkedKingIndex,
   isFlipped = false,
   isInteractive = true,
@@ -358,7 +361,7 @@ export function Board({
         <div className="board-rank-labels" aria-hidden="true">
           {rankLabels.map((rank) => <span key={rank}>{rank}</span>)}
         </div>
-        <div ref={boardElementRef} className={`board ${dragState?.hasMoved ? 'dragging-board' : ''} ${isSpawningPieces ? 'piece-spawn-board' : ''}`} role="grid" aria-label={ariaLabel}>{squares}</div>
+        <div ref={boardElementRef} className={`board ${dragState?.hasMoved ? 'dragging-board' : ''} ${isSpawningPieces ? 'piece-spawn-board' : ''}`} role="grid" aria-label={ariaLabel}>{squares}<AnalysisOverlay analysis={analysis} actualTo={lastMove?.to ?? null} isFlipped={isFlipped} /></div>
         <div className="board-file-labels" aria-hidden="true">
           {fileLabels.map((file) => <span key={file}>{file}</span>)}
         </div>

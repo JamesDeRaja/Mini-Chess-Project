@@ -53,7 +53,7 @@ function moveSan(move: HistoryMove): string {
 }
 
 function movePromotion(move: HistoryMove): PromotionPieceType | null | undefined {
-  return isDeltaMove(move) ? move.promotion : undefined;
+  return isDeltaMove(move) ? move.promotion : move.promotion;
 }
 
 export function formatMoveNotation(move: HistoryMove): FormattedMoveNotation {

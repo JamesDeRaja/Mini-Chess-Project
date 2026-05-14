@@ -4,7 +4,7 @@ import { pieceValues } from './constants.js';
 import { getAllLegalMoves } from './legalMoves.js';
 import type { Board, Color, Move } from './types.js';
 
-export type BotLevel = 'weak' | 'medium' | 'powerful';
+export type BotLevel = 'random' | 'weak' | 'medium' | 'strong' | 'powerful';
 
 type ScoredMove = {
   move: Move;
@@ -14,6 +14,7 @@ type ScoredMove = {
 
 type BotMoveOptions = {
   avoidMoveKeys?: ReadonlySet<string>;
+  bestMoveChance?: number;
 };
 
 function chooseRandom<T>(items: T[]): T | null {
@@ -64,15 +65,27 @@ export function getWeightedBotMove(board: Board, color: Color = 'black', options
 }
 
 export function getBotMoveByLevel(board: Board, color: Color = 'black', level: BotLevel = 'medium', options: BotMoveOptions = {}): Move | null {
-  if (level === 'weak') return getRandomBotMove(board, color, options);
-
   const moves = scoredMoves(board, color);
   if (moves.length === 0) return null;
 
+  const bestMoveChance = options.bestMoveChance === undefined ? null : Math.min(1, Math.max(0, options.bestMoveChance));
+  if (bestMoveChance !== null && Math.random() < bestMoveChance) return moves[0].move;
+  if (level === 'random') return getRandomBotMove(board, color, options);
+
   if (level === 'powerful') {
+    if (bestMoveChance === null) return moves[0].move;
+    return chooseVariedMove(moves.slice(1, 4).map(({ move }) => move), options.avoidMoveKeys) ?? moves[0].move;
+  }
+
+  if (level === 'strong') {
     const bestScore = moves[0].score;
-    const strongMoves = moves.filter(({ score }) => score >= bestScore - 10).slice(0, 6).map(({ move }) => move);
+    const strongMoves = moves.filter(({ score }) => score >= bestScore - 10).slice(0, 5).map(({ move }) => move);
     return chooseVariedMove(strongMoves, options.avoidMoveKeys);
+  }
+
+  if (level === 'weak') {
+    const relaxedPool = moves.slice(0, Math.max(3, Math.ceil(moves.length * 0.65))).map(({ move }) => move);
+    return chooseVariedMove(relaxedPool, options.avoidMoveKeys);
   }
 
   return chooseVariedMove(moves.slice(0, Math.min(5, moves.length)).map(({ move }) => move), options.avoidMoveKeys);
