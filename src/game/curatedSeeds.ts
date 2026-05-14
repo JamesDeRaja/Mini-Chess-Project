@@ -64,6 +64,9 @@ export const CURATED_SEEDS: CuratedSeed[] = [
   { slug: 'wild-mirror', displayName: 'Wild Mirror', description: 'Mirrored fairness with chaotic outcomes.', tags: ['mirror', 'chaos'] },
   { slug: 'opening-zero', displayName: 'Opening Zero', description: 'No memorized opening survives this setup.', tags: ['anti-opening', 'fresh'] },
   { slug: 'final-boss', displayName: 'Final Boss', description: 'A hard-looking seed made for bragging rights.', tags: ['hard', 'challenge'] },
+  { slug: 'fork-frenzy', displayName: 'Fork Frenzy', description: 'Fork threats arrive early and force awkward choices.', tags: ['fork', 'tactics'] },
+  { slug: 'queen-tilt', displayName: 'Queen Tilt', description: 'Queen pressure creates unstable positions from move one.', tags: ['queen', 'attack'] },
+  { slug: 'rook-riot', displayName: 'Rook Riot', description: 'Rooks crash through files in a noisy tactical race.', tags: ['rook', 'chaos'] },
 ];
 
 export function normalizeSeedSlug(input: string): string {

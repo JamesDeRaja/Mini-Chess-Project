@@ -8757,3 +8757,69 @@ body.home-modal-open .home-page {
     width: 100%;
   }
 }
+
+/* Popular seeds page polish: wider four-column cards with bottom-aligned actions. */
+.popular-seeds-page .challenge-card.wide {
+  width: min(100%, 1520px);
+}
+.popular-seeds-page .seed-card-grid {
+  grid-template-columns: repeat(4, minmax(230px, 1fr));
+  gap: clamp(16px, 2vw, 24px);
+  align-items: stretch;
+}
+.popular-seeds-page .seed-card {
+  min-height: 430px;
+  padding: clamp(18px, 2vw, 24px);
+  border-radius: 26px;
+}
+.popular-seeds-page .seed-card h2 {
+  color: #202428;
+  font-size: clamp(1.7rem, 2.4vw, 2.35rem);
+  line-height: 0.94;
+  letter-spacing: -0.055em;
+}
+.popular-seeds-page .seed-card > strong {
+  display: block;
+  margin-top: 3px;
+  color: #25282c;
+  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+  line-height: 1;
+}
+.popular-seeds-page .seed-card p {
+  color: #61726a;
+  font-size: clamp(1rem, 1.35vw, 1.18rem);
+  font-weight: 780;
+  line-height: 1.32;
+}
+.popular-seeds-page .seed-card-description {
+  min-height: 3.9em;
+}
+.popular-seeds-page .seed-card-action-stack {
+  gap: 10px;
+  padding-top: 18px;
+}
+.popular-seeds-page .seed-card-action-row button:not(.seed-icon-action),
+.popular-seeds-page .seed-challenge-action {
+  min-height: 56px;
+  border-radius: 22px;
+  font-size: 1.05rem;
+  font-weight: 950;
+}
+.popular-seeds-page .seed-icon-action {
+  width: 52px;
+  min-width: 52px;
+  height: 52px;
+}
+@media (max-width: 1180px) {
+  .popular-seeds-page .seed-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .popular-seeds-page .seed-card-grid {
+    grid-template-columns: 1fr;
+  }
+  .popular-seeds-page .seed-card {
+    min-height: 0;
+  }
+}

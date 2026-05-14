@@ -62,5 +62,8 @@ Representative popular seed URLs:
 - Queen Corner: https://chess.alphaden.club/seed/queen-corner — Queen placement changes the whole opening fight.
 - Pawn Chaos: https://chess.alphaden.club/seed/pawn-chaos — Pawns create messy tactical openings.
 - Rage Quit: https://chess.alphaden.club/seed/rage-quit — A volatile setup built for dramatic swings and instant rematches.
+- Fork Frenzy: https://chess.alphaden.club/seed/fork-frenzy — Fork threats arrive early and force awkward choices.
+- Queen Tilt: https://chess.alphaden.club/seed/queen-tilt — Queen pressure creates unstable positions from move one.
+- Rook Riot: https://chess.alphaden.club/seed/rook-riot — Rooks crash through files in a noisy tactical race.
 
 Robots policy: public pages are crawlable; private /game/ URLs are disallowed.
