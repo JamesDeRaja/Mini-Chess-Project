@@ -8995,3 +8995,159 @@ body.home-modal-open .home-page {
 .home-hero-shell .today-setup-showcase {
   z-index: 12;
 }
+
+.analysis-panel {
+  display: grid;
+  gap: 3px;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(127, 183, 155, 0.28);
+  border-radius: 16px;
+  background: rgba(255, 251, 239, 0.58);
+  box-shadow: inset 0 -2px rgba(45, 43, 40, 0.03);
+}
+
+.analysis-panel strong {
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.analysis-panel span {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.analysis-panel-best {
+  border-color: rgba(242, 208, 99, 0.56);
+  background: rgba(255, 242, 187, 0.62);
+}
+
+.analysis-panel-suggested {
+  border-color: rgba(127, 183, 155, 0.42);
+  background: rgba(207, 230, 218, 0.5);
+}
+
+.history-analysis-marker {
+  margin-left: auto;
+  font-size: 0.84rem;
+  line-height: 1;
+}
+
+.history-analysis-suggested {
+  color: #4f745d;
+  font-weight: 950;
+}
+
+/* Keep the home menu scrollable at every viewport size, even for tiny overflows. */
+.home-page,
+:root[data-theme='light'] .home-page,
+:root[data-theme='dark'] .home-page {
+  height: 100vh;
+  height: 100svh;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: max(clamp(24px, 3.5vw, 56px), calc(env(safe-area-inset-bottom) + 24px));
+}
+
+body.home-modal-open .home-page {
+  overflow: hidden;
+}
+
+
+/* Result dialogs can be taller than the viewport on compact screens. */
+.winner-overlay {
+  align-items: center;
+  justify-items: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+
+.winner-card {
+  max-height: calc(100dvh - max(28px, env(safe-area-inset-top)) - max(28px, env(safe-area-inset-bottom)));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Result actions: grouped, balanced rows across desktop, tablet, and phone. */
+.winner-card > .panel-actions.centered-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: 10px;
+  width: min(100%, 760px);
+  margin-inline: auto;
+}
+
+.result-action-row {
+  display: grid;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.result-action-row-primary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 640px;
+}
+
+.result-action-row-tools {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 470px;
+}
+
+.result-action-row-secondary {
+  grid-template-columns: minmax(0, 1.45fr) minmax(150px, 0.75fr);
+  max-width: 640px;
+}
+
+.result-action-row-rematch {
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.62fr);
+  max-width: 440px;
+}
+
+.result-action-row button,
+.result-action-row .result-screenshot-menu,
+.result-action-row .result-screenshot-menu > button {
+  width: 100%;
+  min-width: 0;
+}
+
+.result-action-row-primary button {
+  min-height: 54px;
+  font-size: clamp(1rem, 2vw, 1.16rem);
+}
+
+.result-leaderboard-action {
+  justify-self: stretch;
+}
+
+@media (max-width: 720px) {
+  .winner-card > .panel-actions.centered-actions {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .result-action-row,
+  .result-action-row-primary,
+  .result-action-row-tools,
+  .result-action-row-secondary,
+  .result-action-row-rematch {
+    grid-template-columns: 1fr;
+    max-width: min(100%, 420px);
+  }
+
+  .result-action-row button,
+  .result-action-row-primary button {
+    min-height: 46px;
+    font-size: clamp(0.86rem, 4vw, 1rem);
+  }
+}
