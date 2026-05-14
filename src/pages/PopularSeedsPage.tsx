@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Home, Share2, Trophy, Users } from 'lucide-react';
+import { Home, Search, Share2, Trophy, Users } from 'lucide-react';
 import { CURATED_SEEDS } from '../game/curatedSeeds.js';
 import { createSeedFromInput } from '../game/seed.js';
 import { buildSeedShareMessage, getRandomShareTaunt } from '../game/shareTaunts.js';
@@ -28,16 +28,32 @@ function copySeedChallengeLink(seedSlug: string) {
 export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLeaderboard, onHome }: Props) {
   const [stats, setStats] = useState<SeedStatsRecord[]>([]);
   const [sort, setSort] = useState<SortMode>('popular');
+  const [searchQuery, setSearchQuery] = useState('');
   useEffect(() => { fetchPopularSeedStats().then(setStats).catch(() => setStats([])); }, []);
   const statBySeed = useMemo(() => new Map(stats.map((row) => [row.seed_slug, row])), [stats]);
-  const seeds = useMemo(() => [...CURATED_SEEDS].sort((a, b) => {
-    const av = statBySeed.get(a.slug); const bv = statBySeed.get(b.slug);
-    if (sort === 'highest') return (bv?.best_score ?? 0) - (av?.best_score ?? 0);
-    if (sort === 'shared') return (bv?.total_shares ?? 0) - (av?.total_shares ?? 0);
-    if (sort === 'daily') return Number(b.tags.includes('daily')) - Number(a.tags.includes('daily'));
-    if (sort === 'new') return b.slug.localeCompare(a.slug);
-    return (bv?.total_shares ?? 0) - (av?.total_shares ?? 0) || (bv?.total_completed ?? 0) - (av?.total_completed ?? 0) || (bv?.total_plays ?? 0) - (av?.total_plays ?? 0);
-  }), [sort, statBySeed]);
+  const seeds = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return [...CURATED_SEEDS]
+      .filter((seed) => {
+        if (!query) return true;
+        const searchableText = [
+          seed.slug,
+          seed.displayName,
+          seed.description,
+          ...seed.tags,
+          ...(seed.aliases ?? []),
+        ].join(' ').toLowerCase();
+        return searchableText.includes(query);
+      })
+      .sort((a, b) => {
+        const av = statBySeed.get(a.slug); const bv = statBySeed.get(b.slug);
+        if (sort === 'highest') return (bv?.best_score ?? 0) - (av?.best_score ?? 0);
+        if (sort === 'shared') return (bv?.total_shares ?? 0) - (av?.total_shares ?? 0);
+        if (sort === 'daily') return Number(b.tags.includes('daily')) - Number(a.tags.includes('daily'));
+        if (sort === 'new') return b.slug.localeCompare(a.slug);
+        return (bv?.total_shares ?? 0) - (av?.total_shares ?? 0) || (bv?.total_completed ?? 0) - (av?.total_completed ?? 0) || (bv?.total_plays ?? 0) - (av?.total_plays ?? 0);
+      });
+  }, [searchQuery, sort, statBySeed]);
 
   return (
     <main className="challenge-page popular-seeds-page">
@@ -46,6 +62,17 @@ export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLe
         <p className="eyebrow">Popular Seeds</p>
         <h1>Play Popular Seeds</h1>
         <p>Curated shared setups first. Dynamic stats appear when the leaderboard service is available.</p>
+        <label className="popular-seed-search">
+          <Search size={20} aria-hidden="true" />
+          <span className="sr-only">Search popular seeds</span>
+          <input
+            type="search"
+            value={searchQuery}
+            placeholder="Search creators, movies, anime, tags, or seed names…"
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+          <small>{seeds.length} seeds</small>
+        </label>
         <div className="leaderboard-tabs">
           {(['popular', 'new', 'highest', 'shared', 'daily'] as SortMode[]).map((mode) => <button key={mode} className={sort === mode ? 'selected' : ''} type="button" onClick={() => setSort(mode)}>{mode}</button>)}
         </div>
@@ -71,6 +98,7 @@ export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLe
                 <h2>{seed.displayName}</h2>
                 <strong>{seed.slug}</strong>
                 <p className="seed-card-description">{seed.description}</p>
+                <div className="seed-tag-row">{seed.tags.slice(0, 4).map((tag) => <span key={tag}>{tag}</span>)}</div>
                 <p>Setup: <b>{setup}</b></p>
                 <p>Plays: {row?.total_plays ?? 0} · Shares: {row?.total_shares ?? 0}</p>
                 <p>Best Score: {row?.best_score ? `${row.best_score} by ${row.best_score_player_name ?? 'Anonymous Player'}` : '—'}</p>
@@ -85,6 +113,7 @@ export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLe
               </article>
             );
           })}
+          {seeds.length === 0 && <p className="seed-search-empty">No popular seeds found. Try searching for chess, anime, movie, tech, streamer, or a creator name.</p>}
         </div>
         <div className="panel-actions centered-actions"><button type="button" onClick={onHome}><Home size={17} /> Home</button></div>
       </section>
