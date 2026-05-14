@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Copy, Flag, Handshake, Home, RotateCcw, Share2, Shuffle, Trophy } from 'lucide-react';
+import { CalendarDays, Copy, Flag, Handshake, Home, Pause, Play, RotateCcw, Share2, Shuffle, Trophy } from 'lucide-react';
 import { Board } from '../components/Board.js';
 import { CapturedScoreRow } from '../components/CapturedPieces.js';
 import { GameHeader } from '../components/GameHeader.js';
@@ -65,6 +65,10 @@ type RoundResult = {
 };
 
 type PendingAction = 'resign' | 'draw' | 'restart' | null;
+
+const BOT_MOVE_DELAY_MIN_MS = 650;
+const BOT_MOVE_DELAY_SPREAD_MS = 450;
+const HISTORY_AUTOPLAY_INTERVAL_MS = 780;
 
 const ascensionRemovedPieces: PieceType[] = ['knight', 'bishop', 'rook'];
 const ascensionPieceLabels: Record<PieceType, string> = {
@@ -259,6 +263,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [ascensionPopupTier, setAscensionPopupTier] = useState<AscensionPopupTier | null>(() => getPendingAscensionPopupTier(isDailyAI, dailyAscensionTier));
   const pendingDailyAIProgressRef = useRef<DailyAIProgress | null>(null);
   const [previewPly, setPreviewPly] = useState<number | null>(null);
+  const [isHistoryAutoplaying, setIsHistoryAutoplaying] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [displayNameDraft, setDisplayNameDraft] = useState(() => getDisplayName());
   const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(null);
@@ -271,6 +276,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
   const historyListRef = useRef<HTMLOListElement | null>(null);
   const botMoveTimerRef = useRef<number | null>(null);
+  const historyAutoplayTimerRef = useRef<number | null>(null);
   const lastQueuedBotMoveKeyRef = useRef('');
   const recentBotMoveKeysRef = useRef<string[]>([]);
   const config = modeConfig[matchMode];
@@ -279,9 +285,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const isPreviewing = previewPly !== null && previewPly < latestPly;
   const displayBoard = isPreviewing ? boardTimeline[previewPly] : board;
   const displayMove = isPreviewing && previewPly > 0 ? moveHistory[previewPly - 1] : lastMove;
+  const displayTurn = isPreviewing ? (previewPly % 2 === 0 ? 'white' : 'black') : turn;
   const checkedKingIndex = useMemo(
-    () => (!isPreviewing && displayBoard.length && isKingInCheck(displayBoard, turn) ? findKingIndex(displayBoard, turn) : null),
-    [displayBoard, isPreviewing, turn],
+    () => (displayBoard.length && isKingInCheck(displayBoard, displayTurn) ? findKingIndex(displayBoard, displayTurn) : null),
+    [displayBoard, displayTurn],
   );
 
   useEffect(() => {
@@ -291,6 +298,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   useEffect(() => () => {
     if (botMoveTimerRef.current !== null) window.clearTimeout(botMoveTimerRef.current);
+    if (historyAutoplayTimerRef.current !== null) window.clearTimeout(historyAutoplayTimerRef.current);
   }, []);
 
 
@@ -353,10 +361,12 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       }
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
+        setIsHistoryAutoplaying(false);
         setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0));
       }
       if (event.key === 'ArrowRight') {
         event.preventDefault();
+        setIsHistoryAutoplaying(false);
         setPreviewPly((ply) => {
           const nextPly = Math.min((ply ?? latestPly) + 1, latestPly);
           return nextPly >= latestPly ? null : nextPly;
@@ -364,16 +374,93 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       }
       if (event.key === 'ArrowUp') {
         event.preventDefault();
+        setIsHistoryAutoplaying(false);
         setPreviewPly(null);
       }
       if (event.key === 'ArrowDown') {
         event.preventDefault();
+        setIsHistoryAutoplaying(false);
         setPreviewPly(0);
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [latestPly]);
+
+  function pauseHistoryAutoplay() {
+    setIsHistoryAutoplaying(false);
+  }
+
+  function goToStartReview() {
+    pauseHistoryAutoplay();
+    setPreviewPly(0);
+  }
+
+  function goToPreviousReviewPly() {
+    pauseHistoryAutoplay();
+    setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0));
+  }
+
+  function goToLiveReview() {
+    pauseHistoryAutoplay();
+    setPreviewPly(null);
+  }
+
+  function goToNextReviewPly() {
+    pauseHistoryAutoplay();
+    setPreviewPly((ply) => {
+      const nextPly = Math.min((ply ?? latestPly) + 1, latestPly);
+      return nextPly >= latestPly ? null : nextPly;
+    });
+  }
+
+  function goToEndReview() {
+    pauseHistoryAutoplay();
+    setPreviewPly(null);
+  }
+
+  function handleSelectHistoryPly(ply: number) {
+    pauseHistoryAutoplay();
+    setPreviewPly(ply >= latestPly ? null : ply);
+  }
+
+  function toggleHistoryAutoplay() {
+    if (moveHistory.length === 0) return;
+    setIsHistoryAutoplaying((isPlaying) => {
+      if (isPlaying) return false;
+      setPreviewPly((ply) => (ply === null || ply >= latestPly ? 0 : ply));
+      return true;
+    });
+  }
+
+  useEffect(() => {
+    if (historyAutoplayTimerRef.current !== null) {
+      window.clearTimeout(historyAutoplayTimerRef.current);
+      historyAutoplayTimerRef.current = null;
+    }
+
+    if (!isHistoryAutoplaying || moveHistory.length === 0) return undefined;
+
+    historyAutoplayTimerRef.current = window.setTimeout(() => {
+      historyAutoplayTimerRef.current = null;
+      setPreviewPly((ply) => {
+        const currentPly = ply ?? 0;
+        const nextPly = Math.min(currentPly + 1, latestPly);
+        if (nextPly >= latestPly) {
+          setIsHistoryAutoplaying(false);
+          return null;
+        }
+        return nextPly;
+      });
+    }, HISTORY_AUTOPLAY_INTERVAL_MS);
+
+    return () => {
+      if (historyAutoplayTimerRef.current !== null) {
+        window.clearTimeout(historyAutoplayTimerRef.current);
+        historyAutoplayTimerRef.current = null;
+      }
+    };
+  }, [isHistoryAutoplaying, latestPly, moveHistory.length, previewPly]);
 
   const finishRound = useCallback((nextStatus: GameStatus, drawReason?: RoundResult['drawReason']) => {
     const winner = getWinner(nextStatus);
@@ -406,6 +493,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setLastMove({ from: move.from, to: move.to, color: move.piece.color, isCapture: move.isCapture, captureScore: move.capturedPiece ? getCaptureScore(move.capturedPiece.type) : null });
     setMoveAnnouncement(`${move.piece.color === 'white' ? 'White' : 'Black'} ${move.piece.type} moved from ${squareLabel(move.from % 5, Math.floor(move.from / 5))} to ${squareLabel(move.to % 5, Math.floor(move.to / 5))}${move.isCapture ? ' and captured a piece' : ''}.`);
     setMoveHistory((history) => [...history, createMoveRecord(move)]);
+    setIsHistoryAutoplaying(false);
     setPreviewPly(null);
     playMoveSound(move.isCapture);
     if (nextStatus !== 'active') {
@@ -446,6 +534,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setRoundResult(null);
     setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, roundAscensionTier));
     setPreviewPly(null);
+    setIsHistoryAutoplaying(false);
     setIsFlipped(roundPlayerColor === 'black');
     setIsBoardReady(false);
     lastQueuedBotMoveKeyRef.current = '';
@@ -554,6 +643,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     if (lastQueuedBotMoveKeyRef.current === botMoveKey) return undefined;
     lastQueuedBotMoveKeyRef.current = botMoveKey;
 
+    const naturalDelay = BOT_MOVE_DELAY_MIN_MS + Math.floor(Math.random() * BOT_MOVE_DELAY_SPREAD_MS);
     botMoveTimerRef.current = window.setTimeout(() => {
       botMoveTimerRef.current = null;
       const botMove = getBotMoveByLevel(board, botColor, botLevel, { avoidMoveKeys: new Set(recentBotMoveKeysRef.current) });
@@ -561,7 +651,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         recentBotMoveKeysRef.current = [...recentBotMoveKeysRef.current.slice(-11), getMoveIdentity(botMove)];
         completeMove(botMove);
       }
-    }, 300);
+    }, naturalDelay);
 
     return () => {
       if (botMoveTimerRef.current !== null) {
@@ -610,6 +700,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const currentShareTaunt = useMemo(() => shareTaunt || (roundResult ? getRandomShareTaunt(tauntContext) : ''), [roundResult, shareTaunt, tauntContext]);
   const effectiveChallengeUrl = challengeUrl || createSeedChallengeUrl(seedSlug);
   const canUseBotGameActions = status === 'active' && !roundResult;
+  const canAutoplayHistory = Boolean(roundResult && moveHistory.length > 0);
+  const confirmActionClassName = pendingAction ? 'danger-action' : undefined;
   const restartActionLabel = canUseBotGameActions ? 'Restart Match' : 'Rematch';
 
   async function ensureChallengeRecord(finalShareText?: string, finalTaunt?: string): Promise<string> {
@@ -769,20 +861,32 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               emptySecondary="Select a piece to see legal moves."
               activePly={previewPly}
               scoringSide={playerColor}
-              onSelectPly={(ply) => setPreviewPly(ply >= latestPly ? null : ply)}
+              onSelectPly={handleSelectHistoryPly}
             />
           </ol>
           <div className="review-footer history-actions">
             <div className="review-controls">
-              <button type="button" onClick={() => setPreviewPly(0)} disabled={moveHistory.length === 0}>⏮</button>
-              <button type="button" onClick={() => setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0))} disabled={moveHistory.length === 0}>‹</button>
-              <button type="button" onClick={() => setPreviewPly(null)}>Live</button>
-              <button type="button" onClick={() => setPreviewPly((ply) => { const nextPly = Math.min((ply ?? 0) + 1, latestPly); return nextPly >= latestPly ? null : nextPly; })} disabled={moveHistory.length === 0}>›</button>
-              <button type="button" onClick={() => setPreviewPly(null)} disabled={moveHistory.length === 0}>⏭</button>
+              <button type="button" onClick={goToStartReview} disabled={moveHistory.length === 0}>⏮</button>
+              <button type="button" onClick={goToPreviousReviewPly} disabled={moveHistory.length === 0}>‹</button>
+              <button type="button" onClick={goToLiveReview}>Live</button>
+              <button type="button" onClick={goToNextReviewPly} disabled={moveHistory.length === 0}>›</button>
+              <button type="button" onClick={goToEndReview} disabled={moveHistory.length === 0}>⏭</button>
             </div>
-            <div className="panel-actions stacked-actions">
-              <button type="button" className="secondary-action" onClick={() => setPendingAction('draw')} disabled={!canUseBotGameActions}><Handshake size={18} /> Request Draw</button>
-              <button type="button" className="danger-action" onClick={() => setPendingAction('resign')} disabled={!canUseBotGameActions}><Flag size={18} /> Resign</button>
+            <div className={`panel-actions stacked-actions ${roundResult ? 'history-complete-actions' : ''}`}>
+              {roundResult ? (
+                <>
+                  <button type="button" className="secondary-action" onClick={toggleHistoryAutoplay} disabled={!canAutoplayHistory}>
+                    {isHistoryAutoplaying ? <Pause size={18} /> : <Play size={18} />}
+                    {isHistoryAutoplaying ? 'Pause History' : 'Play History'}
+                  </button>
+                  <button type="button" className="secondary-action history-home-action" onClick={onHome} aria-label="Go home"><Home size={18} /><span>Home</span></button>
+                </>
+              ) : (
+                <>
+                  <button type="button" className="secondary-action" onClick={() => setPendingAction('draw')} disabled={!canUseBotGameActions}><Handshake size={18} /> Request Draw</button>
+                  <button type="button" className="danger-action" onClick={() => setPendingAction('resign')} disabled={!canUseBotGameActions}><Flag size={18} /> Resign</button>
+                </>
+              )}
               <button type="button" className="gold-action" onClick={requestRestart}>{restartActionLabel}</button>
             </div>
           </div>
@@ -913,8 +1017,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             <h2>{pendingAction === 'resign' ? 'Resign this game?' : pendingAction === 'draw' ? 'Offer a draw?' : 'Rematch?'}</h2>
             <p>This action can change or reset the current game. Do you want to continue?</p>
             <div className="panel-actions centered-actions">
-              <button type="button" onClick={confirmPendingAction}>Continue</button>
-              <button type="button" onClick={() => setPendingAction(null)}>Back to game</button>
+              <button type="button" className={confirmActionClassName} onClick={confirmPendingAction}>Continue</button>
+              <button type="button" className="success-action" onClick={() => setPendingAction(null)}>Back to game</button>
             </div>
           </div>
         </div>
