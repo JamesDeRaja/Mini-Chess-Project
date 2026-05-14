@@ -8970,19 +8970,22 @@ body.home-modal-open .home-page {
 }
 @media (max-width: 760px) {
   .home-action-ai .action-piece-ai-knight {
-    --ai-piece-left: 58%;
-    --ai-piece-width: 76px;
-    --ai-piece-height: 84px;
+    --ai-piece-left: 62%;
+    --ai-piece-top: 52%;
+    --ai-piece-width: 92px;
+    --ai-piece-height: 102px;
   }
   .home-action-ai .action-piece-ai-pawn {
     --ai-piece-left: 70%;
-    --ai-piece-width: 86px;
-    --ai-piece-height: 98px;
+    --ai-piece-top: 49%;
+    --ai-piece-width: 108px;
+    --ai-piece-height: 122px;
   }
   .home-action-ai .action-piece-ai-bishop {
-    --ai-piece-left: 82%;
-    --ai-piece-width: 74px;
-    --ai-piece-height: 86px;
+    --ai-piece-left: 78%;
+    --ai-piece-top: 52%;
+    --ai-piece-width: 90px;
+    --ai-piece-height: 104px;
   }
   .streak-brand-tile b {
     min-width: 0;
