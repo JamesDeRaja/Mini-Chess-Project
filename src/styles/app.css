@@ -9076,3 +9076,729 @@ body.home-modal-open .home-page {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
+/* Result actions: grouped, balanced rows across desktop, tablet, and phone. */
+.winner-card > .panel-actions.centered-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: 10px;
+  width: min(100%, 760px);
+  margin-inline: auto;
+}
+
+.result-action-row {
+  display: grid;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.result-action-row-primary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 640px;
+}
+
+.result-action-row-tools {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 470px;
+}
+
+.result-action-row-secondary {
+  grid-template-columns: minmax(0, 1.45fr) minmax(150px, 0.75fr);
+  max-width: 640px;
+}
+
+.result-action-row-rematch {
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.62fr);
+  max-width: 440px;
+}
+
+.result-action-row button,
+.result-action-row .result-screenshot-menu,
+.result-action-row .result-screenshot-menu > button {
+  width: 100%;
+  min-width: 0;
+}
+
+.result-action-row-primary button {
+  min-height: 54px;
+  font-size: clamp(1rem, 2vw, 1.16rem);
+}
+
+.result-leaderboard-action {
+  justify-self: stretch;
+}
+
+@media (max-width: 720px) {
+  .winner-card > .panel-actions.centered-actions {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .result-action-row,
+  .result-action-row-primary,
+  .result-action-row-tools,
+  .result-action-row-secondary,
+  .result-action-row-rematch {
+    grid-template-columns: 1fr;
+    max-width: min(100%, 420px);
+  }
+
+  .result-action-row button,
+  .result-action-row-primary button {
+    min-height: 46px;
+    font-size: clamp(0.86rem, 4vw, 1rem);
+  }
+}
+
+/* Result leaderboard: polished score cards with skeleton loading while scores arrive. */
+.winner-card .result-leaderboard-card {
+  width: min(100%, 620px);
+  margin: 12px auto 8px;
+  padding: 14px;
+  border: 1px solid rgba(127, 183, 155, 0.24);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 228, 145, 0.22), transparent 34%),
+    linear-gradient(180deg, rgba(255, 251, 239, 0.86), rgba(246, 241, 226, 0.74));
+  box-shadow: inset 0 -2px rgba(45, 43, 40, 0.03), 0 12px 26px rgba(80, 122, 108, 0.08);
+  text-align: left;
+}
+
+.winner-card .leaderboard-mini-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.winner-card .leaderboard-mini-heading .eyebrow {
+  margin: 0 0 2px;
+  color: #6b766e;
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+}
+
+.winner-card .leaderboard-mini-heading h3 {
+  margin: 0;
+  color: #253029;
+  font-size: clamp(1rem, 2vw, 1.22rem);
+  line-height: 1.05;
+}
+
+.winner-card .leaderboard-loading-pill {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #63756c;
+  background: rgba(207, 230, 218, 0.72);
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.winner-card .leaderboard-result-list {
+  display: grid;
+  gap: 7px;
+}
+
+.winner-card .leaderboard-result-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'rank name score'
+    'rank meta score';
+  gap: 1px 10px;
+  align-items: center;
+  padding: 9px 11px;
+  border: 1px solid rgba(222, 217, 203, 0.62);
+  border-radius: 16px;
+  background: rgba(255, 248, 233, 0.86);
+  box-shadow: 0 4px 0 rgba(45, 43, 40, 0.035);
+}
+
+.winner-card .leaderboard-rank-badge {
+  grid-area: rank;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  color: #4f5f55;
+  background: rgba(207, 230, 218, 0.78);
+  font-size: 0.85rem;
+  font-weight: 950;
+}
+
+.winner-card .leaderboard-player-name {
+  grid-area: name;
+  min-width: 0;
+  color: #222428;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.winner-card .leaderboard-result-row strong {
+  grid-area: score;
+  color: #222428;
+  font-size: 1.12rem;
+}
+
+.winner-card .leaderboard-result-meta {
+  grid-area: meta;
+  color: #647067;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.winner-card .leaderboard-table-loading .leaderboard-skeleton-result-row {
+  min-height: 54px;
+}
+
+.winner-card .leaderboard-skeleton-result-row span,
+.winner-card .leaderboard-skeleton-result-row strong {
+  color: transparent;
+  background: linear-gradient(90deg, rgba(220, 239, 225, 0.72), rgba(255, 251, 239, 0.95), rgba(220, 239, 225, 0.72));
+  background-size: 220% 100%;
+  animation: leaderboard-skeleton-shimmer 1.15s ease-in-out infinite;
+}
+
+.winner-card .leaderboard-skeleton-result-row .leaderboard-rank-badge { width: 30px; height: 30px; }
+.winner-card .leaderboard-skeleton-name { grid-area: name; width: min(72%, 190px); height: 0.95rem; border-radius: 999px; }
+.winner-card .leaderboard-skeleton-score { grid-area: score; justify-self: end; width: 48px; height: 1.1rem; border-radius: 999px; }
+.winner-card .leaderboard-skeleton-chip { grid-area: meta; width: min(52%, 130px); height: 0.72rem; border-radius: 999px; }
+
+@media (max-width: 720px) {
+  .winner-card .result-leaderboard-card {
+    padding: 11px;
+    border-radius: 18px;
+  }
+
+  .winner-card .leaderboard-result-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 8px 9px;
+  }
+}
+
+/* Player power badge: roman shield level with tappable guide. */
+.power-shield-badge {
+  --shield-accent: #789c7f;
+  --shield-glow: rgba(120, 156, 127, 0.28);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  vertical-align: middle;
+  color: #243028;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.power-shield-icon {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  height: 31px;
+  padding: 0 5px 4px;
+  color: #fffdf4;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--shield-accent), #ffffff 18%), var(--shield-accent));
+  clip-path: polygon(50% 0, 92% 14%, 84% 68%, 50% 100%, 16% 68%, 8% 14%);
+  box-shadow: 0 8px 16px var(--shield-glow), inset 0 2px rgba(255, 255, 255, 0.34);
+  font-size: 0.62rem;
+  letter-spacing: -0.03em;
+  text-shadow: 0 1px 1px rgba(45, 43, 40, 0.28);
+}
+
+
+.power-shield-tier-1,
+.power-shield-tier-2,
+.power-shield-tier-3 { --shield-accent: #8aa197; --shield-glow: rgba(138, 161, 151, 0.24); }
+.power-shield-tier-4,
+.power-shield-tier-5,
+.power-shield-tier-6 { --shield-accent: #6f9f75; --shield-glow: rgba(111, 159, 117, 0.26); }
+.power-shield-tier-7,
+.power-shield-tier-8 { --shield-accent: #c89432; --shield-glow: rgba(200, 148, 50, 0.3); }
+.power-shield-tier-9 { --shield-accent: #b66a4a; --shield-glow: rgba(182, 106, 74, 0.34); }
+.power-shield-tier-10 { --shield-accent: #6e5cc9; --shield-glow: rgba(110, 92, 201, 0.36); }
+
+.player-greeting .power-shield-badge,
+.power-name-form .power-shield-badge {
+  margin-left: 6px;
+}
+
+
+.power-name-form > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.history-complete-actions .secondary-action:has(.lucide-sparkles) {
+  border-color: rgba(127, 183, 155, 0.48);
+  background: rgba(230, 244, 236, 0.72);
+}
+
+.analysis-branch-panel {
+  border-color: rgba(127, 183, 155, 0.5);
+  background: linear-gradient(135deg, rgba(230, 244, 236, 0.86), rgba(255, 251, 239, 0.72));
+}
+
+/* Shield guide and compact result actions. */
+.power-shield-badge {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.power-shield-badge:focus-visible .power-shield-icon {
+  outline: 3px solid rgba(97, 146, 255, 0.55);
+  outline-offset: 3px;
+}
+
+.power-shield-badge:hover .power-shield-icon,
+.power-shield-badge:focus-visible .power-shield-icon {
+  transform: translateY(-1px) scale(1.04);
+  filter: saturate(1.08);
+}
+
+.power-shield-icon {
+  transition: transform 160ms ease, filter 160ms ease;
+}
+
+.power-shield-guide-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(25, 24, 22, 0.42);
+  backdrop-filter: blur(8px);
+}
+
+.power-shield-guide {
+  position: relative;
+  width: min(94vw, 520px);
+  max-height: min(86dvh, 720px);
+  overflow-y: auto;
+  padding: clamp(20px, 4vw, 30px);
+  border: 1px solid rgba(222, 217, 203, 0.9);
+  border-radius: 28px;
+  color: #222428;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(250, 204, 21, 0.18), transparent 35%),
+    linear-gradient(180deg, rgba(255, 251, 239, 0.98), rgba(248, 244, 232, 0.96));
+  box-shadow: 0 26px 72px rgba(45, 43, 40, 0.26);
+}
+
+.power-shield-guide-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 1.4rem;
+}
+
+.power-shield-guide h2 {
+  margin: 2px 0 8px;
+  font-size: clamp(1.8rem, 7vw, 2.8rem);
+  line-height: 0.95;
+}
+
+.power-shield-guide p {
+  margin: 0;
+  color: #5f6d64;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.power-shield-guide-current {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid rgba(127, 183, 155, 0.24);
+  border-radius: 18px;
+  background: rgba(255, 251, 239, 0.78);
+}
+
+.power-shield-guide-current > div {
+  display: grid;
+  gap: 2px;
+}
+
+.power-shield-guide-current strong,
+.power-shield-guide-list strong {
+  color: #253029;
+  font-weight: 950;
+}
+
+.power-shield-guide-current span:not(.power-shield-badge):not(.power-shield-icon),
+.power-shield-guide-list span {
+  color: #647067;
+  font-weight: 800;
+}
+
+.power-shield-guide-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.power-shield-guide-list li {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid rgba(222, 217, 203, 0.68);
+  border-radius: 16px;
+  background: rgba(255, 248, 233, 0.76);
+}
+
+.power-shield-guide-note {
+  margin-top: 14px !important;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(120, 144, 128, 0.34);
+}
+
+.power-name-form > span {
+  flex-wrap: wrap;
+}
+
+.winner-card > .panel-actions.centered-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 12;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  width: min(100%, 760px);
+  padding: 10px;
+  border: 1px solid rgba(222, 217, 203, 0.74);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 251, 239, 0.9), rgba(246, 241, 226, 0.96));
+  box-shadow: 0 -10px 28px rgba(80, 122, 108, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.winner-card .result-action-row {
+  display: contents;
+}
+
+.winner-card .result-action-row button,
+.winner-card .result-action-row .result-screenshot-menu,
+.winner-card .result-action-row .result-screenshot-menu > button {
+  width: 100%;
+  min-height: 44px;
+  height: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 16px;
+  font-size: clamp(0.8rem, 1.35vw, 0.98rem);
+  line-height: 1.08;
+}
+
+.winner-card .result-action-row button svg,
+.winner-card .result-action-row .result-screenshot-menu svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 820px) {
+  .winner-overlay {
+    overflow-y: auto;
+  }
+
+  .winner-card {
+    padding-bottom: 0;
+  }
+
+  .winner-card > .panel-actions.centered-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: calc(100% + 32px);
+    margin: 12px -16px 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 18px 18px 0 0;
+    padding: 10px 10px max(10px, env(safe-area-inset-bottom));
+  }
+
+  .winner-card .result-action-row,
+  .winner-card .result-action-row-primary,
+  .winner-card .result-action-row-tools,
+  .winner-card .result-action-row-secondary,
+  .winner-card .result-action-row-rematch {
+    display: contents;
+    max-width: none;
+  }
+
+  .winner-card .result-action-row button,
+  .winner-card .result-action-row .result-screenshot-menu,
+  .winner-card .result-action-row .result-screenshot-menu > button {
+    min-height: 42px;
+    padding: 8px;
+    font-size: clamp(0.75rem, 3.3vw, 0.9rem);
+  }
+}
+
+@media (max-width: 380px) {
+  .winner-card > .panel-actions.centered-actions {
+    gap: 6px;
+  }
+
+  .winner-card .result-action-row button,
+  .winner-card .result-action-row .result-screenshot-menu > button {
+    font-size: 0.72rem;
+  }
+}
+
+/* Final result action layout: three tidy desktop rows, compact two-column mobile rows. */
+.winner-card > .panel-actions.centered-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: min(100%, 700px);
+}
+
+.winner-card .result-action-row button,
+.winner-card .result-action-row .result-screenshot-menu > button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  justify-items: center;
+  column-gap: 7px;
+  min-height: 50px;
+  padding: 8px 10px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.winner-card .result-action-row .result-screenshot-menu {
+  min-width: 0;
+}
+
+.winner-card .result-action-row button svg,
+.winner-card .result-action-row .result-screenshot-menu svg {
+  justify-self: end;
+}
+
+@media (min-width: 821px) {
+  .winner-card .result-action-row button,
+  .winner-card .result-action-row .result-screenshot-menu > button {
+    font-size: clamp(0.82rem, 1.05vw, 0.95rem);
+  }
+}
+
+@media (max-width: 820px) {
+  .winner-card > .panel-actions.centered-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .winner-card .result-action-row button,
+  .winner-card .result-action-row .result-screenshot-menu > button {
+    min-height: 44px;
+    column-gap: 6px;
+    font-size: clamp(0.74rem, 3vw, 0.88rem);
+  }
+}
+
+/* Named result-action layout: fixed rows prevent overlap while keeping actions compact. */
+.winner-card > .panel-actions.centered-actions {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-areas:
+    'share share review review screenshot screenshot'
+    'copy copy leaderboard leaderboard replay replay'
+    '. other other rematch rematch .';
+  width: min(100%, 720px);
+}
+
+.winner-card .result-share-action { grid-area: share; }
+.winner-card .result-review-action { grid-area: review; }
+.winner-card .result-action-row-tools .result-screenshot-menu { grid-area: screenshot; }
+.winner-card .result-copy-action { grid-area: copy; }
+.winner-card .result-leaderboard-action { grid-area: leaderboard; }
+.winner-card .result-replay-action { grid-area: replay; }
+.winner-card .result-other-side-action { grid-area: other; }
+.winner-card .result-rematch-action { grid-area: rematch; }
+
+.winner-card .result-action-row button,
+.winner-card .result-action-row .result-screenshot-menu > button {
+  min-height: 48px;
+  gap: 7px;
+  overflow: hidden;
+}
+
+@media (max-width: 820px) {
+  .winner-card > .panel-actions.centered-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'share review'
+      'screenshot copy'
+      'leaderboard replay'
+      'other rematch';
+    width: calc(100% + 32px);
+  }
+}
+
+/* Final polish for shield modal and result buttons. */
+.power-shield-guide-backdrop {
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  overflow: auto;
+}
+
+.power-shield-guide {
+  box-sizing: border-box;
+  width: min(100%, 500px);
+  max-height: min(88dvh, 680px);
+  padding: clamp(18px, 3vw, 24px);
+  overflow-x: hidden;
+  border-radius: 26px;
+}
+
+.power-shield-guide-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-right: 42px;
+}
+
+.power-shield-guide-hero h2 {
+  margin: 0 0 5px;
+  font-size: clamp(1.9rem, 8vw, 3rem);
+}
+
+.power-shield-guide-hero p:not(.eyebrow) {
+  max-width: 38rem;
+  font-size: 0.94rem;
+  line-height: 1.35;
+}
+
+.power-shield-guide .power-shield-icon {
+  min-width: 42px;
+  height: 48px;
+  font-size: 0.82rem;
+}
+
+.power-shield-guide-list {
+  gap: 7px;
+}
+
+.power-shield-guide-list li {
+  grid-template-columns: 62px minmax(0, 1fr);
+  grid-template-areas:
+    'level title'
+    'level detail';
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.power-shield-guide-list li > span {
+  grid-area: level;
+  display: grid;
+  place-items: center;
+  min-height: 40px;
+  border-radius: 14px;
+  color: #52625a;
+  background: rgba(207, 230, 218, 0.7);
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.power-shield-guide-list li > strong {
+  grid-area: title;
+  font-size: 1rem;
+}
+
+.power-shield-guide-list li > small {
+  grid-area: detail;
+  min-width: 0;
+  color: #647067;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.power-shield-guide-list .current-shield-group {
+  border-color: rgba(200, 148, 50, 0.45);
+  background: rgba(255, 240, 196, 0.62);
+}
+
+.power-shield-guide-note {
+  font-size: 0.86rem;
+  line-height: 1.3;
+}
+
+.winner-card > .panel-actions.centered-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    'share review'
+    'screenshot copy'
+    'leaderboard replay'
+    'other rematch';
+  width: min(100%, 620px);
+  gap: 9px;
+}
+
+.winner-card .result-action-row button,
+.winner-card .result-action-row .result-screenshot-menu > button {
+  display: inline-flex;
+  min-height: 48px;
+  padding: 9px 12px;
+  gap: 8px;
+  border-radius: 18px;
+  font-size: clamp(0.86rem, 1.45vw, 1rem);
+  line-height: 1.1;
+  overflow: visible;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.winner-card .result-action-row button svg,
+.winner-card .result-action-row .result-screenshot-menu svg {
+  justify-self: auto;
+  width: 19px;
+  height: 19px;
+}
+
+@media (max-width: 520px) {
+  .power-shield-guide {
+    border-radius: 22px;
+  }
+
+  .power-shield-guide-hero {
+    grid-template-columns: 1fr;
+    padding-right: 42px;
+  }
+
+  .power-shield-guide-list li {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'level' 'title' 'detail';
+  }
+
+  .winner-card > .panel-actions.centered-actions {
+    gap: 7px;
+  }
+
+  .winner-card .result-action-row button,
+  .winner-card .result-action-row .result-screenshot-menu > button {
+    min-height: 44px;
+    padding: 8px 9px;
+    font-size: clamp(0.78rem, 3.4vw, 0.9rem);
+  }
+}
