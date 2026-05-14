@@ -349,6 +349,7 @@ export function Board({
           isDragSource={Boolean(dragState?.hasMoved && dragState.fromSquare === squareIndex)}
           isDragHoveredLegal={dragHoveredLegalSquare === squareIndex}
           resultMarker={resultMarker?.squareIndex === squareIndex ? resultMarker : null}
+          blunderMarker={Boolean(analysis?.isBlunder && analysis.blunderSquare === squareIndex)}
           coordinateLabel={`${fileLabel(file)}${rank + 1}`}
           onClick={() => handleSquareClick(squareIndex)}
           onPointerDragStart={handlePointerDragStart}

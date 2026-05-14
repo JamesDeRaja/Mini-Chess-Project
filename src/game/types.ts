@@ -42,6 +42,9 @@ export type Move = {
 export type MoveAnalysis = {
   bestMove: Move | null;
   isBestMove: boolean;
+  isBlunder?: boolean;
+  blunderSquare?: number | null;
+  blunderReason?: 'worst_move' | 'piece_hanging' | 'worst_move_and_piece_hanging';
 };
 
 export type MoveRecord = {

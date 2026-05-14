@@ -136,6 +136,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const isFlipped = manualBoardFlip ?? role === 'black';
   const displayBoard = useMemo(() => (isPreviewing ? replayMoves(initialReplayBoard, moveHistory.slice(0, previewPly)) : board), [board, initialReplayBoard, isPreviewing, moveHistory, previewPly]);
   const displayMove = isPreviewing && previewPly !== null && previewPly > 0 ? toDisplayMove(moveHistory[previewPly - 1]) : lastMove;
+  const displayTurn = isPreviewing && previewPly !== null ? (previewPly % 2 === 0 ? 'white' : 'black') : turn;
   const activeLegalMoves = isPreviewing || !isBoardReady ? [] : legalMoves;
   const inviteLink = effectiveGameId ? buildInviteLink(effectiveGameId, matchMode) : null;
   const canNativeShare = typeof navigator !== 'undefined' && 'share' in navigator;
@@ -143,8 +144,8 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     setIsBoardReady(true);
   }, []);
   const checkedKingIndex = useMemo(
-    () => (!isPreviewing && displayBoard.length && isKingInCheck(displayBoard, turn) ? findKingIndex(displayBoard, turn) : null),
-    [displayBoard, isPreviewing, turn],
+    () => (displayBoard.length && isKingInCheck(displayBoard, displayTurn) ? findKingIndex(displayBoard, displayTurn) : null),
+    [displayBoard, displayTurn],
   );
   const hasWhite = Boolean(whitePlayerId);
   const hasBlack = Boolean(blackPlayerId);

@@ -14,6 +14,15 @@ export type BestMoveOptions = {
   difficulty?: string;
 };
 
+type ScoredMove = {
+  move: Move;
+  score: number;
+  immediateScore: number;
+  followUpPenalty: number;
+  allowsMovedPieceCapture: boolean;
+  tieBreaker: number;
+};
+
 const analysisPieceValues: Record<PieceType, number> = {
   king: 0,
   queen: 900,
@@ -44,7 +53,15 @@ function centerBonus(board: Board, move: Move): number {
   return Math.max(0, 10 - distance * 2);
 }
 
-function scoreAnalysisMove(board: Board, move: Move): number {
+function materialScore(board: Board, side: Color): number {
+  return board.reduce((score, square) => {
+    if (!square.piece) return score;
+    const value = analysisPieceValues[square.piece.type];
+    return square.piece.color === side ? score + value : score - value;
+  }, 0);
+}
+
+function scoreAnalysisMoveImmediate(board: Board, move: Move): number {
   const nextBoard = applyMove(board, move);
   const enemyColor = getOpponent(move.piece.color);
   let score = centerBonus(board, move);
@@ -53,6 +70,7 @@ function scoreAnalysisMove(board: Board, move: Move): number {
   if (isKingInCheck(nextBoard, enemyColor)) score += 800;
   if (move.capturedPiece) score += analysisPieceValues[move.capturedPiece.type];
   if (move.isPromotion) score += analysisPieceValues[move.promotionPiece ?? 'queen'];
+  score += materialScore(nextBoard, move.piece.color) - materialScore(board, move.piece.color);
 
   if (isSquareAttacked(nextBoard, move.to, enemyColor)) {
     score -= Math.round(analysisPieceValues[move.piece.type] * 0.65);
@@ -68,13 +86,51 @@ function scoreAnalysisMove(board: Board, move: Move): number {
   return score;
 }
 
+
+function responseCapturesMovedPiece(response: Move, move: Move): boolean {
+  return response.to === move.to && Boolean(response.capturedPiece) && response.capturedPiece?.id === move.piece.id;
+}
+
+function scoreMoveWithFollowUp(board: Board, move: Move): ScoredMove {
+  const nextBoard = applyMove(board, move);
+  const enemyColor = getOpponent(move.piece.color);
+  const immediateScore = scoreAnalysisMoveImmediate(board, move);
+  const enemyMoves = getAllLegalMoves(nextBoard, enemyColor);
+  let bestEnemyScore = 0;
+  let allowsMovedPieceCapture = false;
+
+  for (const enemyMove of enemyMoves) {
+    const enemyScore = scoreAnalysisMoveImmediate(nextBoard, enemyMove);
+    if (responseCapturesMovedPiece(enemyMove, move)) {
+      allowsMovedPieceCapture = true;
+      bestEnemyScore = Math.max(bestEnemyScore, enemyScore + analysisPieceValues[move.piece.type] * 0.35);
+      continue;
+    }
+    bestEnemyScore = Math.max(bestEnemyScore, enemyScore);
+  }
+
+  const followUpPenalty = Math.round(bestEnemyScore * 0.92);
+  const hangingPenalty = allowsMovedPieceCapture ? Math.round(analysisPieceValues[move.piece.type] * 0.75) : 0;
+
+  return {
+    move,
+    score: immediateScore - followUpPenalty - hangingPenalty,
+    immediateScore,
+    followUpPenalty: followUpPenalty + hangingPenalty,
+    allowsMovedPieceCapture,
+    tieBreaker: moveTieBreaker(move),
+  };
+}
+
+function getScoredMoves(board: Board, moves: Move[]): ScoredMove[] {
+  return moves.map((move) => scoreMoveWithFollowUp(board, move)).sort((a, b) => b.score - a.score || a.tieBreaker - b.tieBreaker);
+}
+
 export function getBestMoveForPosition({ board, sideToMove, legalMoves }: BestMoveOptions): Move | null {
   const moves = legalMoves ?? getAllLegalMoves(board, sideToMove);
   if (moves.length === 0) return null;
 
-  return moves
-    .map((move) => ({ move, score: scoreAnalysisMove(board, move), tieBreaker: moveTieBreaker(move) }))
-    .sort((a, b) => b.score - a.score || a.tieBreaker - b.tieBreaker)[0].move;
+  return getScoredMoves(board, moves)[0].move;
 }
 
 function promotionForMove(move: Partial<Pick<Move, 'isPromotion' | 'promotionPiece'>> & { promotion?: PromotionPieceType | null }): PromotionPieceType | null {
@@ -99,9 +155,29 @@ export function getMoveNotation(move: Move | null): string {
 
 export function analyzeMove(boardBeforeMove: Board, actualMove: { from: number; to: number; promotion?: PromotionPieceType | null; color: Color }): MoveAnalysis {
   const legalMoves = getAllLegalMoves(boardBeforeMove, actualMove.color);
-  const bestMove = getBestMoveForPosition({ board: boardBeforeMove, sideToMove: actualMove.color, legalMoves });
+  const scoredMoves = getScoredMoves(boardBeforeMove, legalMoves);
+  const bestScoredMove = scoredMoves[0] ?? null;
+  const worstScoredMove = scoredMoves.at(-1) ?? null;
+  const actualScoredMove = scoredMoves.find(({ move }) => areSameMove(actualMove, move)) ?? null;
+  const bestMove = bestScoredMove?.move ?? null;
+  const isBestMove = areSameMove(actualMove, bestMove);
+  const isWorstMove = Boolean(actualScoredMove && worstScoredMove && areSameMove(actualScoredMove.move, worstScoredMove.move) && scoredMoves.length > 1);
+  const isBigDrop = Boolean(actualScoredMove && bestScoredMove && bestScoredMove.score - actualScoredMove.score >= 260);
+  const isPieceHanging = Boolean(actualScoredMove?.allowsMovedPieceCapture && actualScoredMove.move.piece.type !== 'king');
+  const isBlunder = !isBestMove && (isPieceHanging || isWorstMove || isBigDrop);
+  const blunderReason = isPieceHanging && (isWorstMove || isBigDrop)
+    ? 'worst_move_and_piece_hanging'
+    : isPieceHanging
+      ? 'piece_hanging'
+      : isBlunder
+        ? 'worst_move'
+        : undefined;
+
   return {
     bestMove,
-    isBestMove: areSameMove(actualMove, bestMove),
+    isBestMove,
+    isBlunder,
+    blunderSquare: isBlunder ? actualMove.to : null,
+    blunderReason,
   };
 }
