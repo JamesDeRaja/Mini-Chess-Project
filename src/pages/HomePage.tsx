@@ -13,6 +13,7 @@ import { getShareUrl } from '../app/seo.js';
 import { fetchLeaderboard, fetchScoreboard, type LeaderboardEntry, type LeaderboardScope } from '../multiplayer/scoreApi.js';
 import { CURATED_SEEDS } from '../game/curatedSeeds.js';
 import { createSeedChallengeUrl } from '../game/challenge.js';
+import { buildSeedShareMessage, getRandomShareTaunt } from '../game/shareTaunts.js';
 
 type HomePageProps = {
   initialModal?: Exclude<ModalName, null>;
@@ -25,7 +26,7 @@ type HomePageProps = {
   onCancelFindMatch: (queueId?: string) => Promise<void>;
 };
 
-type ModalName = 'date' | 'custom' | 'rules' | 'matchmaking' | null;
+type ModalName = 'date' | 'custom' | 'rules' | 'matchmaking' | 'dailyMastered' | null;
 type LeaderboardFeedItem = { id: string; displayName: string; score: number; kind: 'rank' | 'new-score'; rank?: number };
 type LeaderboardView = { scope: LeaderboardScope; label: string; title: string; description: string };
 
@@ -36,30 +37,6 @@ type MatchmakingState =
   | { status: 'failed'; message: string };
 
 
-const dailyTauntsWithoutScore = [
-  'Today’s setup looked scary for about six seconds. Your move.',
-  'I solved today’s tiny chess problem. Try not to trip over the 5x6 board.',
-  'The pieces were shuffled. My confidence was not. Beat this daily if you can.',
-  'No opening book, no excuses, just you and whatever plan survives move one.',
-  'I handled today’s chaos. Please bring a better excuse than “weird setup.”',
-];
-
-const dailyTauntsWithScore = [
-  (score: number) => `I posted ${score} today. Surely you can beat that, right? Right?`,
-  (score: number) => `My daily score is ${score}. Consider this a very polite threat.`,
-  (score: number) => `${score} is the number to beat today. The board is small; your excuses should be smaller.`,
-  (score: number) => `I put ${score} on today’s seed. Come ruin my leaderboard mood.`,
-  (score: number) => `Today’s target is ${score}. If you beat it, I will pretend the shuffle was unfair.`,
-];
-
-const randomTaunts = [
-  'I survived this random shuffle. Your turn to discover what “random” did to your dignity.',
-  'This setup is nonsense, which makes losing to it even funnier.',
-  'I found a way through this shuffle. Try not to donate your queen immediately.',
-  'Random setup, very real bragging rights. Come get them.',
-  'No memorized openings here. Unfortunately, that means you have to think.',
-];
-
 const leaderboardViews: LeaderboardView[] = [
   { scope: 'daily', label: 'Today’s Top 10', title: 'Today’s top 10', description: 'Best scores on today’s shared shuffle.' },
   { scope: 'global', label: 'Global', title: 'Global scores', description: 'Best player scores across every saved game.' },
@@ -69,14 +46,6 @@ function leaderboardEntryToFeedItem(entry: LeaderboardEntry, index: number): Lea
   return { id: entry.id, displayName: entry.display_name, score: entry.score, kind: index < 10 ? 'rank' : 'new-score', rank: index + 1 };
 }
 
-function pickTaunt(messages: string[]): string {
-  return messages[Math.floor(Math.random() * messages.length)] ?? messages[0] ?? 'Can you beat it?';
-}
-
-function getDailyShareTaunt(score?: number): string {
-  if (typeof score === 'number') return pickTaunt(dailyTauntsWithScore.map((createMessage) => createMessage(score)));
-  return pickTaunt(dailyTauntsWithoutScore);
-}
 
 function addUtcDays(dateKey: string, days: number): string {
   const date = new Date(`${dateKey}T00:00:00.000Z`);
@@ -185,6 +154,7 @@ export function HomePage({
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
   const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(() => getLocalBestScoreForSeedMode(getDailySeed(todayKey), 'daily'));
   const [leaderboardFeed, setLeaderboardFeed] = useState<LeaderboardFeedItem[]>([]);
+  const [leaderboardFeedLoading, setLeaderboardFeedLoading] = useState(true);
   const [leaderboardFeedIndex, setLeaderboardFeedIndex] = useState(0);
   const [leaderboardChipExpanded, setLeaderboardChipExpanded] = useState(false);
   const [playStreak, setPlayStreak] = useState(() => getPlayStreak());
@@ -192,6 +162,7 @@ export function HomePage({
   const [leaderboardDialogOpen, setLeaderboardDialogOpen] = useState(false);
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('daily');
   const [leaderboardDialogRows, setLeaderboardDialogRows] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardDialogLoading, setLeaderboardDialogLoading] = useState(false);
   const [matchTarget, setMatchTarget] = useState({ seed: getDailySeed(todayKey), backRankCode: dailyBackRankCodeFromSeed(getDailySeed(todayKey)), mode: 'daily' as ShuffleMode });
   const dailySeed = getDailySeed(todayKey);
   const dailyBackRankCode = dailyBackRankCodeFromSeed(dailySeed);
@@ -209,6 +180,8 @@ export function HomePage({
   const customSeedError = customSeedWasSubmitted && customSeedValidation.ok === false ? customSeedValidation.error : null;
   const customBackRankCode = customSeedValidation.ok ? customSeedValidation.backRankCode : null;
   const dailyAIStatusLine = getDailyAIStatusLine(dailyAIProgress);
+  const shouldConfirmDailyReplay = dailyAIProgress.stars >= 3 || dailyAIProgress.magicStarUnlocked;
+  const dailyMasteredSeedSuggestions = CURATED_SEEDS.filter((seed) => ['gotham-chaos', 'boss-battle', 'queen-rush'].includes(seed.slug)).slice(0, 3);
   const activeLeaderboardView = leaderboardViews.find((view) => view.scope === leaderboardScope) ?? leaderboardViews[0];
   const leaderboardFeedSignature = useMemo(() => leaderboardFeed.map((entry) => `${entry.id}:${entry.score}:${entry.rank ?? ''}`).join('|'), [leaderboardFeed]);
   const visibleLeaderboardFeed = leaderboardFeed.length > 0
@@ -263,7 +236,7 @@ export function HomePage({
       const topScores = scores.slice(0, 10);
       setLeaderboardFeed(topScores.map(leaderboardEntryToFeedItem));
       setLeaderboardFeedIndex(0);
-    }).catch(() => setLeaderboardFeed([]));
+    }).catch(() => setLeaderboardFeed([])).finally(() => setLeaderboardFeedLoading(false));
   }, [dailySeed]);
 
   useEffect(() => {
@@ -286,7 +259,7 @@ export function HomePage({
   useEffect(() => {
     if (!leaderboardDialogOpen) return;
     const loadScores = leaderboardScope === 'daily' ? fetchScoreboard('daily', dailySeed, 'daily') : fetchScoreboard(leaderboardScope);
-    loadScores.then((scores) => setLeaderboardDialogRows(scores.slice(0, 25))).catch(() => setLeaderboardDialogRows([]));
+    loadScores.then((scores) => setLeaderboardDialogRows(scores.slice(0, 10))).catch(() => setLeaderboardDialogRows([])).finally(() => setLeaderboardDialogLoading(false));
   }, [dailySeed, leaderboardDialogOpen, leaderboardScope]);
 
   useEffect(() => {
@@ -303,6 +276,20 @@ export function HomePage({
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [leaderboardDialogOpen]);
+
+
+  function openLeaderboardDialog() {
+    setLeaderboardDialogRows([]);
+    setLeaderboardDialogLoading(true);
+    setLeaderboardDialogOpen(true);
+  }
+
+  function chooseLeaderboardScope(scope: LeaderboardScope) {
+    if (scope === leaderboardScope && leaderboardDialogRows.length > 0) return;
+    setLeaderboardDialogRows([]);
+    setLeaderboardDialogLoading(true);
+    setLeaderboardScope(scope);
+  }
 
   function handleDateChange(nextDateKey: string) {
     if (nextDateKey > todayKey) {
@@ -354,30 +341,14 @@ export function HomePage({
 
   async function copyActiveSeed() {
     trackEvent('share_button_click', { type: shuffleMode === 'daily' ? 'daily_seed_copy' : 'random_seed_copy', seed: activeSeedSource.seed });
-    const copyText = shuffleMode === 'daily'
-      ? `I beat today’s Pocket Shuffle Chess setup.
-
-${getDailyShareTaunt(localBestScore?.score)}
-
-Seed: ${dailySeed}
-Back rank: ${dailyBackRankCode}
-${localBestScore ? `Score to beat: ${localBestScore.score}
-` : ''}
-Fast chess without memorized openings.
-Can you beat it?
-
-${getShareUrl('/daily')}`
-      : `I survived this random shuffle setup.
-
-${pickTaunt(randomTaunts)}
-
-Seed: ${activeSeedSource.seed}
-Back rank: ${activeBackRankCode}
-
-Fast chess without memorized openings.
-Can you beat it?
-
-${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
+    const copyText = buildSeedShareMessage({
+      style: shuffleMode === 'daily' ? 'dailySeed' : 'randomSeed',
+      taunt: getRandomShareTaunt(shuffleMode === 'daily' ? 'daily' : 'generic'),
+      seedSlug: activeSeedSource.seed,
+      backRankCode: activeBackRankCode,
+      challengeUrl: shuffleMode === 'daily' ? getShareUrl('/daily') : getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`),
+      score: shuffleMode === 'daily' ? localBestScore?.score : null,
+    });
     try {
       await navigator.clipboard.writeText(copyText);
     } catch {
@@ -413,9 +384,20 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
     await onSeeded(customSeedValidation.normalizedSeed);
   }
 
+  function continueDailyAiReplay() {
+    setModal(null);
+    onStartBot(todayKey);
+  }
+
   function playActiveModeAgainstAi() {
     trackEvent('homepage_cta_click', { cta: 'play_ai', mode: shuffleMode });
-    if (shuffleMode === 'daily') onStartBot(todayKey);
+    if (shuffleMode === 'daily') {
+      if (shouldConfirmDailyReplay) {
+        setModal('dailyMastered');
+        return;
+      }
+      onStartBot(todayKey);
+    }
     else onStartSeededBot(activeSeedSource.seed, activeSeedSource.backRankCode);
   }
 
@@ -436,6 +418,14 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
     window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0 }));
   }
 
+  function openLearnPieces() {
+    trackEvent('homepage_cta_click', { cta: 'learn_pieces_from_rules' });
+    setModal(null);
+    window.history.pushState(null, '', '/learn');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0 }));
+  }
+
   async function challengeHomeSeed(seed: string, backRankCode: string) {
     if (seed.startsWith('daily-')) await onDaily(seed.replace('daily-', ''));
     else await onSeeded(seed, backRankCode);
@@ -448,7 +438,16 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
   }
 
   function shareHomeSeed(seed: string) {
-    void navigator.clipboard?.writeText(createSeedChallengeUrl(seed));
+    const validation = createSeedFromInput(seed);
+    const backRankCode = validation.ok ? validation.backRankCode : activeBackRankCode;
+    const shareText = buildSeedShareMessage({
+      style: seed.startsWith('daily-') ? 'dailySeed' : 'popularSeed',
+      taunt: getRandomShareTaunt(seed.startsWith('daily-') ? 'daily' : 'friendChallenge'),
+      seedSlug: seed,
+      backRankCode,
+      challengeUrl: createSeedChallengeUrl(seed),
+    });
+    void navigator.clipboard?.writeText(shareText);
   }
 
   async function requestMatchFor(seed: string, backRankCode: string, mode: ShuffleMode = modeFromSeed(seed)) {
@@ -542,12 +541,14 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
 
   return (
     <main className="home-page">
-      <button type="button" className={`home-leaderboard-chip ${leaderboardChipExpanded ? 'is-expanded' : 'is-collapsed'}`} onClick={() => setLeaderboardDialogOpen(true)} aria-label="Open leaderboards">
+      <button type="button" className={`home-leaderboard-chip ${leaderboardChipExpanded ? 'is-expanded' : 'is-collapsed'}`} onClick={openLeaderboardDialog} aria-label="Open leaderboards">
         <Trophy size={18} aria-hidden="true" />
         <div>
           <strong>Live scores</strong>
           <ol aria-live="polite">
-            {visibleLeaderboardFeed.length > 0 ? visibleLeaderboardFeed.map((entry, index) => (
+            {leaderboardFeedLoading ? [0, 1, 2].map((item) => (
+              <li key={`leaderboard-feed-skeleton-${item}`} className="leaderboard-skeleton-row" aria-hidden="true"><span /><b /></li>
+            )) : visibleLeaderboardFeed.length > 0 ? visibleLeaderboardFeed.map((entry, index) => (
               <li key={`${entry.id}-${index}`} className={entry.kind === 'new-score' ? 'new-score-pulse' : ''}>
                 <span>{entry.kind === 'new-score' ? `${entry.displayName} got a new score` : `${entry.rank ?? index + 1}. ${entry.displayName}`}</span><b>{entry.score}</b>
               </li>
@@ -567,13 +568,19 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             </div>
             <div className="leaderboard-tabs" role="tablist" aria-label="Choose leaderboard">
               {leaderboardViews.map((view) => (
-                <button key={view.scope} type="button" role="tab" aria-selected={leaderboardScope === view.scope} className={leaderboardScope === view.scope ? 'selected' : ''} onClick={() => setLeaderboardScope(view.scope)}>
+                <button key={view.scope} type="button" role="tab" aria-selected={leaderboardScope === view.scope} className={leaderboardScope === view.scope ? 'selected' : ''} onClick={() => chooseLeaderboardScope(view.scope)}>
                   {view.label}
                 </button>
               ))}
             </div>
-            <ol className="leaderboard-dialog-list">
-              {leaderboardDialogRows.length > 0 ? leaderboardDialogRows.slice(0, 10).map((entry, index) => (
+            <ol className="leaderboard-dialog-list" aria-busy={leaderboardDialogLoading}>
+              {leaderboardDialogLoading ? Array.from({ length: 10 }, (_item, index) => (
+                <li key={`leaderboard-dialog-skeleton-${index}`} className="leaderboard-skeleton-card" aria-hidden="true">
+                  <span className="leaderboard-rank">{index + 1}</span>
+                  <span className="leaderboard-player"><strong /><small /></span>
+                  <b />
+                </li>
+              )) : leaderboardDialogRows.length > 0 ? leaderboardDialogRows.slice(0, 10).map((entry, index) => (
                 <li key={entry.id}>
                   <span className="leaderboard-rank">{index + 1}</span>
                   <span className="leaderboard-player">
@@ -675,7 +682,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
               <span className="action-badge invite-badge"><LinkIcon size={14} aria-hidden="true" /> Link</span>
               <span className="card-sparkle card-sparkle-three" aria-hidden="true" />
               <img className="action-piece action-piece-knight" src="/pieces/white-knight.png" alt="White knight" draggable={false} />
-              <span className="action-card-copy"><strong>Invite Friend</strong><small>{shuffleMode === 'daily' ? 'Share today’s setup' : 'Share one random setup'}</small></span>
+              <span className="action-card-copy"><strong>Challenge Friend</strong><small>{shuffleMode === 'daily' ? 'Share today’s setup' : 'Share one random setup'}</small></span>
               <span className="action-arrow" aria-hidden="true"><ArrowRight size={20} /></span>
             </button>
             <button type="button" className="home-action-card home-action-date" onClick={() => { trackEvent('homepage_cta_click', { cta: 'choose_date' }); setModal('date'); }}>
@@ -770,6 +777,33 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
       </section>
 
 
+      {modal === 'dailyMastered' && (
+        <div className="modal-backdrop" role="presentation" onClick={closeModal}>
+          <div className="confirm-card utility-modal daily-mastered-modal" role="dialog" aria-modal="true" aria-labelledby="daily-mastered-title" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Close daily mastered prompt"><X size={18} /></button>
+            <p className="eyebrow">Daily mastered</p>
+            <h2 id="daily-mastered-title">You already earned all 3 stars today.</h2>
+            <p>You can still replay today’s AI ladder, or try another popular setup for a fresh score chase.</p>
+            <div className="daily-mastered-seeds" aria-label="Popular seed suggestions">
+              {dailyMasteredSeedSuggestions.map((seed) => {
+                const created = createSeedFromInput(seed.slug);
+                const setup = created.ok ? created.backRankCode : activeBackRankCode;
+                return (
+                  <button type="button" key={seed.slug} className="daily-mastered-seed-card" onClick={() => onStartSeededBot(seed.slug, setup)}>
+                    <strong>{seed.displayName}</strong>
+                    <span>{seed.slug}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="panel-actions centered-actions">
+              <button type="button" className="success-action" onClick={continueDailyAiReplay}>Continue daily anyway</button>
+              <button type="button" className="secondary-action" onClick={() => setModal(null)}>Back to menu</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {modal === 'date' && (
         <div className="modal-backdrop" role="presentation" onClick={closeModal}>
           <div className="confirm-card utility-modal" role="dialog" aria-modal="true" aria-labelledby="date-modal-title" onClick={(event) => event.stopPropagation()}>
@@ -833,7 +867,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             <div className="panel-actions centered-actions">
               <button type="button" onClick={() => onStartBot(calendarDateKey)}>Play AI</button>
               <button type="button" onClick={() => requestMatchFor(selectedDailySeed, selectedDailyBackRankCode)}>Find Match</button>
-              <button type="button" onClick={() => onDaily(calendarDateKey)}>Invite Friend</button>
+              <button type="button" onClick={() => onDaily(calendarDateKey)}>Challenge Friend</button>
             </div>
           </div>
         </div>
@@ -876,7 +910,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             <div className="panel-actions centered-actions">
               <button type="button" onClick={playCustomSeedAgainstAi}>Play AI</button>
               <button type="button" onClick={() => { void requestCustomMatch(); }}>Find Match</button>
-              <button type="submit">Invite Friend</button>
+              <button type="submit">Challenge Friend</button>
             </div>
           </form>
         </div>
@@ -900,6 +934,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
                 <li>Pawns auto-promote to queen in V1.</li>
                 <li>Checkmate wins.</li>
               </ul>
+              <p className="rules-learn-pieces">Want to learn more about how each piece moves? <button type="button" onClick={openLearnPieces}>Click here for the piece lessons.</button></p>
             </section>
             <section className="rules-section">
               <h3>AI Challenge</h3>
@@ -924,7 +959,7 @@ ${getShareUrl(`/seed/${encodeURIComponent(activeSeedSource.seed)}`)}`;
             {matchmaking.status === 'timeout' && <p>No one matched within about a minute. You can keep waiting or send an invite link.</p>}
             <div className="panel-actions centered-actions">
               {matchmaking.status === 'timeout' && <button type="button" onClick={() => requestMatchFor(matchTarget.seed, matchTarget.backRankCode)}><Users size={18} /> Keep Waiting</button>}
-              <button type="button" onClick={() => { void switchFromMatchmaking(inviteMatchTarget); }}><LinkIcon size={18} /> Invite Friend Instead</button>
+              <button type="button" onClick={() => { void switchFromMatchmaking(inviteMatchTarget); }}><LinkIcon size={18} /> Challenge Friend Instead</button>
               <button type="button" onClick={() => { void switchFromMatchmaking(() => playAiForSeed(matchTarget.seed, matchTarget.backRankCode)); }}><Bot size={18} /> Play AI While Waiting</button>
               <button type="button" onClick={cancelMatch}>Cancel</button>
             </div>

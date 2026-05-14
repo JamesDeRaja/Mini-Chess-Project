@@ -1,17 +1,66 @@
-Pocket Shuffle Chess is a browser-playable 5x6 shuffle chess variant.
+Pocket Shuffle Chess — AI crawler brief
 
-Positioning: Fast chess without memorized openings.
+Name: Pocket Shuffle Chess
+URL: https://chess.alphaden.club/
+Category: free browser game; chess variant; tactical strategy; puzzle chess; mobile chess game
+Tagline: Fast chess without memorized openings.
 
-Core description: A fast 5x6 chess variant with randomized mirrored setups, daily tactical seeds, instant friend challenges, and no opening memorization.
+Description: Pocket Shuffle Chess is a free 5x6 shuffle chess variant. It creates deterministic mirrored back-rank setups from seeds, offers a daily tactical seed, lets players play against AI, share friend challenge links, and chase high scores on seed leaderboards.
 
-Important concepts:
-- Daily tactical chess: every UTC date maps to a deterministic daily seed.
-- 5x6 mirrored setup: both players get balanced mirrored back ranks.
-- Shuffle chess variant: the back-rank order changes, so opening memorization matters less.
-- Mobile-friendly browser chess game: designed for fast casual matches in a web browser.
+Why it is different:
+1. Compact 5x6 board makes games fast.
+2. Randomized mirrored seeds reduce opening memorization.
+3. Daily AI ladder gives a repeatable tactical challenge.
+4. Friend challenges and leaderboards make every seed shareable.
+5. Works in modern mobile and desktop browsers.
 
-Useful public URLs:
+Important URLs:
 - https://chess.alphaden.club/
 - https://chess.alphaden.club/daily
+- https://chess.alphaden.club/bot
+- https://chess.alphaden.club/seeds
 - https://chess.alphaden.club/how-it-works
-- https://chess.alphaden.club/seed/QBKNR
+- https://chess.alphaden.club/sitemap.xml
+- https://chess.alphaden.club/llms.txt
+
+Representative popular seed URLs:
+- Gotham Chaos: https://chess.alphaden.club/seed/gotham-chaos — A dark tactical setup with early queen pressure.
+- Boss Battle: https://chess.alphaden.club/seed/boss-battle — A direct challenge seed for competitive rematches.
+- Rook Rage: https://chess.alphaden.club/seed/rook-rage — Rooks hit open lanes early and punish slow development.
+- Queen Panic: https://chess.alphaden.club/seed/queen-panic — Queen pressure starts loud and forces immediate defensive choices.
+- Rook Trap: https://chess.alphaden.club/seed/rook-trap — Rooks become tempting targets early.
+- Queen Rush: https://chess.alphaden.club/seed/queen-rush — Queen activity appears early, but greed can backfire.
+- Knight Panic: https://chess.alphaden.club/seed/knight-panic — Knight jumps create instant tactical threats.
+- Bishop Storm: https://chess.alphaden.club/seed/bishop-storm — Diagonal pressure builds quickly.
+- Pawn Wall: https://chess.alphaden.club/seed/pawn-wall — A cramped setup that rewards pawn timing.
+- No Mercy: https://chess.alphaden.club/seed/no-mercy — A ruthless seed where loose pieces disappear quickly.
+- Tiny War: https://chess.alphaden.club/seed/tiny-war — A compact battlefield with no slow opening phase.
+- Bishop Trap: https://chess.alphaden.club/seed/bishop-trap — Diagonal bait sets up quick tactical punishment.
+- Knightmare: https://chess.alphaden.club/seed/knightmare — Knight jumps turn the tiny board into a tactical nightmare.
+- Mirror Madness: https://chess.alphaden.club/seed/mirror-madness — Same material, strange symmetry, sharp tactics.
+- Crown Hunt: https://chess.alphaden.club/seed/crown-hunt — The king becomes vulnerable faster than expected.
+- Blitz Cave: https://chess.alphaden.club/seed/blitz-cave — A fast seed built for short tactical games.
+- Trap Door: https://chess.alphaden.club/seed/trap-door — One careless capture opens the board.
+- Fork Factory: https://chess.alphaden.club/seed/fork-factory — Knight and queen forks appear often.
+- Check Rush: https://chess.alphaden.club/seed/check-rush — Early checks can snowball into mate threats.
+- Checkmate Me: https://chess.alphaden.club/seed/checkmate-me — A daring seed for players who want immediate mate threats.
+- Queen Bait: https://chess.alphaden.club/seed/queen-bait — The queen looks powerful, but can become a target.
+- Rook Rumble: https://chess.alphaden.club/seed/rook-rumble — Rooks fight for open files quickly.
+- Bishop Bite: https://chess.alphaden.club/seed/bishop-bite — Diagonal captures decide the pace.
+- Knight Cage: https://chess.alphaden.club/seed/knight-cage — Knight mobility is the key puzzle.
+- Pawn Break: https://chess.alphaden.club/seed/pawn-break — Pawn captures open dangerous lanes.
+- Royal Mess: https://chess.alphaden.club/seed/royal-mess — The king starts safe, but not for long.
+- Mini Mayhem: https://chess.alphaden.club/seed/mini-mayhem — A chaotic tiny-board fight.
+- Sharp Corners: https://chess.alphaden.club/seed/sharp-corners — Edge squares matter more than they seem.
+- Center Crush: https://chess.alphaden.club/seed/center-crush — Control the center or get squeezed.
+- Side Swipe: https://chess.alphaden.club/seed/side-swipe — Side attacks arrive faster on the 5x6 board.
+- Backrank Brawl: https://chess.alphaden.club/seed/backrank-brawl — Back-rank piece order creates immediate tension.
+- Chaos Crown: https://chess.alphaden.club/seed/chaos-crown — A messy setup where king safety decides everything.
+- Silent Fork: https://chess.alphaden.club/seed/silent-fork — Quiet moves create brutal forks.
+- Fast Mate: https://chess.alphaden.club/seed/fast-mate — Built for players hunting quick checkmates.
+- Narrow Board: https://chess.alphaden.club/seed/narrow-board — The small width creates forced confrontations.
+- Queen Corner: https://chess.alphaden.club/seed/queen-corner — Queen placement changes the whole opening fight.
+- Pawn Chaos: https://chess.alphaden.club/seed/pawn-chaos — Pawns create messy tactical openings.
+- Rage Quit: https://chess.alphaden.club/seed/rage-quit — A volatile setup built for dramatic swings and instant rematches.
+
+Robots policy: public pages are crawlable; private /game/ URLs are disallowed.
