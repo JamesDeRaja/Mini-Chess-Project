@@ -631,7 +631,15 @@ export function HomePage({
               </button>
               <span className="copy-status" aria-live="polite">{copyStatus === 'copied' ? 'Copied.' : ''}</span>
             </div>
-            {localBestScore && <span className="today-high-score-chip">High Score: {localBestScore.score}</span>}
+            {localBestScore && (
+              <span className="today-high-score-chip" aria-label={`High score ${localBestScore.score}`}>
+                <Trophy size={18} aria-hidden="true" />
+                <span>
+                  <small>High score</small>
+                  <strong>{localBestScore.score}</strong>
+                </span>
+              </span>
+            )}
             <div className="shuffle-mode-toggle" role="group" aria-label="Choose global shuffle mode">
               <button
                 type="button"
