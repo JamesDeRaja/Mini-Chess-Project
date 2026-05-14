@@ -47,13 +47,12 @@ export function BestMoveArrow({ move, orientation }: BestMoveArrowProps) {
   const arrowPath = `M ${start.x} ${start.y} Q ${curveX} ${curveY} ${end.x} ${end.y}`;
   const haloInset = Math.min(to.width, to.height) * 0.08;
   const arrowHeadSize = Math.max(20, Math.min(30, Math.min(to.width, to.height) * 0.28));
-  const arrowHeadTip = arrowHeadSize * 0.88;
   const arrowHeadMid = arrowHeadSize / 2;
 
   return (
     <svg ref={svgRef} className="best-move-arrow" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true">
       <defs>
-        <marker id={markerId} markerWidth={arrowHeadSize} markerHeight={arrowHeadSize} refX={arrowHeadTip} refY={arrowHeadMid} orient="auto" markerUnits="userSpaceOnUse">
+        <marker id={markerId} markerWidth={arrowHeadSize} markerHeight={arrowHeadSize} refX={arrowHeadMid} refY={arrowHeadMid} orient="auto" markerUnits="userSpaceOnUse">
           <path d={`M0,0 L${arrowHeadSize},${arrowHeadMid} L0,${arrowHeadSize} Z`} />
         </marker>
       </defs>
