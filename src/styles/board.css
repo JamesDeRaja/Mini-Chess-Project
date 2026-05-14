@@ -980,3 +980,54 @@
 @media (max-width: 799px) {
   .move-quality-badge span:last-child { display: none; }
 }
+
+/* Result marker shown briefly on the board before the end screen opens. */
+.result-marker-square {
+  z-index: 5;
+  overflow: visible;
+}
+
+.board-result-marker {
+  position: absolute;
+  right: -8px;
+  top: -10px;
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 128px;
+  padding: 7px 10px;
+  border: 2px solid rgba(255, 251, 239, 0.9);
+  border-radius: 999px;
+  color: #222428;
+  background: rgba(255, 251, 239, 0.96);
+  box-shadow: 0 10px 22px rgba(45, 43, 40, 0.18), 0 0 0 4px rgba(255, 251, 239, 0.28);
+  font-size: clamp(0.72rem, 1.45vw, 0.92rem);
+  font-weight: 950;
+  line-height: 1;
+  pointer-events: none;
+  animation: board-result-marker-pop 820ms cubic-bezier(.2, 1.45, .35, 1) both;
+}
+
+.board-result-marker > span {
+  display: grid;
+  place-items: center;
+  width: 1.45em;
+  height: 1.45em;
+  border-radius: 999px;
+  background: rgba(207, 230, 218, 0.88);
+}
+
+.board-result-marker strong {
+  white-space: nowrap;
+}
+
+.board-result-marker-win > span { background: rgba(250, 204, 21, 0.5); }
+.board-result-marker-loss > span { background: rgba(255, 169, 149, 0.58); }
+.board-result-marker-draw > span { background: rgba(207, 230, 218, 0.9); }
+
+@keyframes board-result-marker-pop {
+  0% { opacity: 0; transform: translateY(8px) scale(0.78); }
+  62% { opacity: 1; transform: translateY(-3px) scale(1.06); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}

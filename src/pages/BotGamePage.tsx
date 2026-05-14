@@ -109,6 +109,7 @@ function getNextBotAdaptationProfile(profile: BotAdaptationProfile, didPlayerWin
 const BOT_MOVE_DELAY_MIN_MS = 650;
 const BOT_MOVE_DELAY_SPREAD_MS = 450;
 const HISTORY_AUTOPLAY_INTERVAL_MS = 780;
+const RESULT_REVEAL_DELAY_MS = 1250;
 
 const ascensionRemovedPieces: PieceType[] = ['knight', 'bishop', 'rook'];
 const ascensionPieceLabels: Record<PieceType, string> = {
@@ -306,6 +307,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [roundNumber, setRoundNumber] = useState(1);
   const [roundResetId, setRoundResetId] = useState(0);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
+  const [isResultPanelReady, setIsResultPanelReady] = useState(false);
   const [isResultPanelDismissed, setIsResultPanelDismissed] = useState(false);
   const [matchWinner, setMatchWinner] = useState<Color | null>(null);
   const [isFlipped, setIsFlipped] = useState(() => playerColor === 'black');
@@ -331,6 +333,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const historyListRef = useRef<HTMLOListElement | null>(null);
   const botMoveTimerRef = useRef<number | null>(null);
   const historyAutoplayTimerRef = useRef<number | null>(null);
+  const resultRevealTimerRef = useRef<number | null>(null);
   const lastQueuedBotMoveKeyRef = useRef('');
   const recentBotMoveKeysRef = useRef<string[]>([]);
   const config = modeConfig[matchMode];
@@ -377,6 +380,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   useEffect(() => () => {
     if (botMoveTimerRef.current !== null) window.clearTimeout(botMoveTimerRef.current);
     if (historyAutoplayTimerRef.current !== null) window.clearTimeout(historyAutoplayTimerRef.current);
+    if (resultRevealTimerRef.current !== null) window.clearTimeout(resultRevealTimerRef.current);
   }, []);
 
 
@@ -498,25 +502,35 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setIsHistoryAutoplaying(false);
   }
 
+  function clearReviewSelection() {
+    setSelectedSquare(null);
+    setLegalMoves([]);
+  }
+
+  function clearReviewVariation() {
+    setVariationStartPly(null);
+    setVariationBoard(null);
+    setVariationTurn(null);
+    setVariationLastMove(null);
+    clearReviewSelection();
+  }
+
   function goToStartReview() {
     pauseHistoryAutoplay();
+    clearReviewVariation();
     setPreviewPly(0);
   }
 
   function goToPreviousReviewPly() {
     pauseHistoryAutoplay();
+    clearReviewVariation();
     setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0));
   }
 
   function resumeOriginalReview() {
     pauseHistoryAutoplay();
     const resumePly = variationStartPly;
-    setVariationStartPly(null);
-    setVariationBoard(null);
-    setVariationTurn(null);
-    setVariationLastMove(null);
-    setSelectedSquare(null);
-    setLegalMoves([]);
+    clearReviewVariation();
     if (resumePly !== null) {
       setPreviewPly(resumePly >= latestPly ? null : resumePly);
       return;
@@ -531,6 +545,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   function goToNextReviewPly() {
     pauseHistoryAutoplay();
+    clearReviewVariation();
     setPreviewPly((ply) => {
       const nextPly = Math.min((ply ?? latestPly) + 1, latestPly);
       return nextPly >= latestPly ? null : nextPly;
@@ -539,6 +554,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   function goToEndReview() {
     pauseHistoryAutoplay();
+    clearReviewVariation();
     setPreviewPly(null);
   }
 
@@ -554,8 +570,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setVariationBoard(clonedBoard);
     setVariationTurn(branchTurn);
     setVariationLastMove(branchPly > 0 ? moveHistory[branchPly - 1] ?? null : null);
-    setSelectedSquare(null);
-    setLegalMoves([]);
+    clearReviewSelection();
     setPreviewPly(branchPly >= latestPly ? null : branchPly);
     setIsResultPanelDismissed(true);
     return { board: clonedBoard, turn: branchTurn };
@@ -563,12 +578,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   function handleSelectHistoryPly(ply: number) {
     pauseHistoryAutoplay();
-    setVariationStartPly(null);
-    setVariationBoard(null);
-    setVariationTurn(null);
-    setVariationLastMove(null);
-    setSelectedSquare(null);
-    setLegalMoves([]);
+    clearReviewVariation();
     setPreviewPly(ply >= latestPly ? null : ply);
   }
 
@@ -576,6 +586,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     if (moveHistory.length === 0) return;
     setIsHistoryAutoplaying((isPlaying) => {
       if (isPlaying) return false;
+      clearReviewVariation();
       setPreviewPly((ply) => (ply === null || ply >= latestPly ? 0 : ply));
       return true;
     });
@@ -628,6 +639,12 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       if (!isDailyAI && updatedScore[winner] >= config.winsRequired) setMatchWinner(winner);
     }
     setIsResultPanelDismissed(false);
+    setIsResultPanelReady(false);
+    if (resultRevealTimerRef.current !== null) window.clearTimeout(resultRevealTimerRef.current);
+    resultRevealTimerRef.current = window.setTimeout(() => {
+      resultRevealTimerRef.current = null;
+      setIsResultPanelReady(true);
+    }, RESULT_REVEAL_DELAY_MS);
     setRoundResult({ status: nextStatus, winner, message: getRoundMessage(nextStatus, drawReason), progressionMessage, didPlayerWin, drawReason });
   }, [config.winsRequired, dailyAIProgress, isDailyAI, playerColor, score]);
 
@@ -683,6 +700,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setCreatedChallengeId(null);
     setShareModalOpen(false);
     setRoundResult(null);
+    setIsResultPanelReady(false);
     setIsResultPanelDismissed(false);
     setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, roundAscensionTier));
     setPreviewPly(null);
@@ -697,6 +715,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     if (botMoveTimerRef.current !== null) {
       window.clearTimeout(botMoveTimerRef.current);
       botMoveTimerRef.current = null;
+    }
+    if (resultRevealTimerRef.current !== null) {
+      window.clearTimeout(resultRevealTimerRef.current);
+      resultRevealTimerRef.current = null;
     }
     setRoundResetId((resetId) => resetId + 1);
     setRoundNumber(nextRoundNumber);
@@ -720,14 +742,23 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     if (!matchWinner) resetRound(Math.min(roundNumber + 1, config.maxGames));
   }
 
-  function getInteractiveReviewPosition(): { board: ChessBoard; turn: Color } | null {
+  function getDisplayedReviewPosition(): { board: ChessBoard; turn: Color } | null {
+    if (!roundResult) return null;
+    if (variationBoard && variationTurn) return { board: variationBoard, turn: variationTurn };
+    const reviewPly = previewPly ?? latestPly;
+    const reviewBoard = boardTimeline[reviewPly];
+    if (!reviewBoard) return null;
+    return { board: reviewBoard, turn: reviewPly % 2 === 0 ? 'white' : 'black' };
+  }
+
+  function getOrCreateReviewVariation(): { board: ChessBoard; turn: Color } | null {
     if (!roundResult) return null;
     if (variationBoard && variationTurn) return { board: variationBoard, turn: variationTurn };
     return beginReviewVariationFromDisplayedPosition();
   }
 
   function selectSquare(squareIndex: number): boolean {
-    const reviewPosition = getInteractiveReviewPosition();
+    const reviewPosition = getDisplayedReviewPosition();
     const activeBoard = reviewPosition?.board ?? board;
     const activeTurn = reviewPosition?.turn ?? turn;
     const canSelect = Boolean(reviewPosition) || (status === 'active' && activeTurn === playerColor && !isPreviewing);
@@ -739,9 +770,9 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     return true;
   }
 
-  function completeVariationMove(move: Move) {
-    if (!variationBoard) return;
-    const nextBoard = applyMove(variationBoard, move);
+  function completeVariationMove(move: Move, sourceBoard = variationBoard) {
+    if (!sourceBoard) return;
+    const nextBoard = applyMove(sourceBoard, move);
     const nextTurn = getOpponent(move.piece.color);
     setVariationBoard(nextBoard);
     setVariationTurn(nextTurn);
@@ -754,10 +785,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   function tryMoveTo(squareIndex: number): boolean {
     const selectedMove = legalMoves.find((move) => move.to === squareIndex);
     if (!selectedMove) return false;
-    const reviewPosition = roundResult ? getInteractiveReviewPosition() : null;
+    const reviewPosition = roundResult ? getOrCreateReviewVariation() : null;
     const canMove = Boolean(reviewPosition) || (status === 'active' && turn === playerColor && !isPreviewing);
     if (!canMove) return false;
-    if (reviewPosition) completeVariationMove(selectedMove);
+    if (reviewPosition) completeVariationMove(selectedMove, reviewPosition.board);
     else completeMove(selectedMove);
     return true;
   }
@@ -770,7 +801,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }
 
   function handleDragStart(squareIndex: number): Move[] | null {
-    const reviewPosition = getInteractiveReviewPosition();
+    const reviewPosition = getDisplayedReviewPosition();
     const activeBoard = reviewPosition?.board ?? board;
     const activeTurn = reviewPosition?.turn ?? turn;
     const canDrag = Boolean(reviewPosition) || (status === 'active' && activeTurn === playerColor && !isPreviewing);
@@ -785,8 +816,12 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   function handleDrop(squareIndex: number, draggedMove?: Move) {
     if (draggedMove) {
-      if (roundResult) completeVariationMove(draggedMove);
-      else completeMove(draggedMove);
+      if (roundResult) {
+        const reviewPosition = getOrCreateReviewVariation();
+        if (reviewPosition) completeVariationMove(draggedMove, reviewPosition.board);
+      } else {
+        completeMove(draggedMove);
+      }
       return;
     }
     if (!tryMoveTo(squareIndex)) {
@@ -858,6 +893,17 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         ? 'You won'
         : 'You lost'
     : undefined;
+  const resultMarker = useMemo(() => {
+    if (!roundResult || isResultPanelReady) return null;
+    const markerTone: 'win' | 'loss' | 'draw' = roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss';
+    const markerColor = roundResult.winner ? getOpponent(roundResult.winner) : playerColor;
+    return {
+      squareIndex: findKingIndex(displayBoard, markerColor),
+      icon: markerTone === 'win' ? '🏆' : markerTone === 'loss' ? '💥' : '½',
+      label: markerTone === 'win' ? 'You won' : markerTone === 'loss' ? 'You lost' : 'Draw',
+      tone: markerTone,
+    };
+  }, [displayBoard, isResultPanelReady, playerColor, roundResult]);
 
 
   const seedSlug = normalizeSeedSlug(dailySeedInfo.seed);
@@ -1049,6 +1095,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             legalMoves={activeLegalMoves}
             lastMove={displayMove}
             checkedKingIndex={checkedKingIndex}
+            resultMarker={resultMarker}
             analysis={boardAnalysis}
             isFlipped={isFlipped}
             isInteractive={isBoardReady && (Boolean(roundResult) || (!isPreviewing && status === 'active'))}
@@ -1110,7 +1157,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           </div>
         </aside>
       </div>
-      {roundResult && (
+      {roundResult && isResultPanelReady && (
         <GameResultPanel
           result={roundResult.status === 'draw' && roundResult.drawReason === 'stalemate' ? 'stalemate' : roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'}
           winner={roundResult.winner}

@@ -8,6 +8,8 @@ import { Square } from './Square.js';
 
 type LastMove = (Pick<Move, 'from' | 'to'> & { color?: Color; piece?: Move['piece'] | PieceType; isCapture?: boolean; captureScore?: number | null }) | null;
 
+type BoardResultMarker = { squareIndex: number | null; icon: string; label: string; tone: 'win' | 'loss' | 'draw' };
+
 type BoardProps = {
   board: ChessBoard;
   ariaLabel?: string;
@@ -16,6 +18,7 @@ type BoardProps = {
   lastMove: LastMove;
   analysis?: MoveAnalysis | null;
   checkedKingIndex: number | null;
+  resultMarker?: BoardResultMarker | null;
   isFlipped?: boolean;
   isInteractive?: boolean;
   scoringSide?: Color;
@@ -108,6 +111,7 @@ export function Board({
   lastMove,
   analysis = null,
   checkedKingIndex,
+  resultMarker = null,
   isFlipped = false,
   isInteractive = true,
   scoringSide,
@@ -344,6 +348,7 @@ export function Board({
           isBoardSelected={selectedSquare === squareIndex}
           isDragSource={Boolean(dragState?.hasMoved && dragState.fromSquare === squareIndex)}
           isDragHoveredLegal={dragHoveredLegalSquare === squareIndex}
+          resultMarker={resultMarker?.squareIndex === squareIndex ? resultMarker : null}
           coordinateLabel={`${fileLabel(file)}${rank + 1}`}
           onClick={() => handleSquareClick(squareIndex)}
           onPointerDragStart={handlePointerDragStart}
