@@ -350,12 +350,14 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const displayedAnalysisPly = isVariationReview ? null : activeReviewPly && activeReviewPly > 0 ? activeReviewPly : !isPreviewing && latestPly > 0 ? latestPly : null;
   const isReviewAnalysisVisible = Boolean(roundResult && isResultPanelDismissed);
   const currentAnalysis = isReviewAnalysisVisible && displayedAnalysisPly ? analysisByPly[displayedAnalysisPly] ?? null : null;
+  const displayStatus = useMemo(() => (displayBoard.length ? getStatusForTurn(displayBoard, displayTurn) : 'active'), [displayBoard, displayTurn]);
+  const isDisplayingFinishedPosition = Boolean(roundResult && displayStatus !== 'active');
   const currentReviewMove = roundResult && activeReviewPly && activeReviewPly > 0 ? moveHistory[activeReviewPly - 1] ?? null : null;
   const variationAnalysis = useMemo<MoveAnalysis | null>(() => {
     if (!variationBoard || !variationTurn) return null;
     return { bestMove: getBestMoveForPosition({ board: variationBoard, sideToMove: variationTurn }), isBestMove: false };
   }, [variationBoard, variationTurn]);
-  const boardAnalysis = isReviewAnalysisVisible ? variationAnalysis ?? currentAnalysis : null;
+  const boardAnalysis = isReviewAnalysisVisible && !isDisplayingFinishedPosition ? variationAnalysis ?? currentAnalysis : null;
   const checkedKingIndex = useMemo(
     () => (displayBoard.length && isKingInCheck(displayBoard, displayTurn) ? findKingIndex(displayBoard, displayTurn) : null),
     [displayBoard, displayTurn],
@@ -902,11 +904,12 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         : 'You lost'
     : undefined;
   const resultMarker = useMemo(() => {
-    if (!roundResult) return null;
-    if (roundResult.winner) {
-      const loser = getOpponent(roundResult.winner);
+    if (!roundResult || displayStatus === 'active') return null;
+    if (displayStatus === 'white_won' || displayStatus === 'black_won') {
+      const winner = displayStatus === 'white_won' ? 'white' : 'black';
+      const loser = getOpponent(winner);
       return [
-        { squareIndex: findKingIndex(displayBoard, roundResult.winner), icon: '🏆', label: 'Win', tone: 'win' as const },
+        { squareIndex: findKingIndex(displayBoard, winner), icon: '🏆', label: 'Win', tone: 'win' as const },
         { squareIndex: findKingIndex(displayBoard, loser), icon: '💥', label: 'Lost', tone: 'loss' as const },
       ];
     }
@@ -914,7 +917,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       { squareIndex: findKingIndex(displayBoard, 'white'), icon: '½', label: 'Draw', tone: 'draw' as const },
       { squareIndex: findKingIndex(displayBoard, 'black'), icon: '½', label: 'Draw', tone: 'draw' as const },
     ];
-  }, [displayBoard, roundResult]);
+  }, [displayBoard, displayStatus, roundResult]);
 
 
   const seedSlug = normalizeSeedSlug(dailySeedInfo.seed);
