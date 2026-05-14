@@ -875,3 +875,88 @@
   background: rgba(255, 241, 236, 0.96);
   box-shadow: 0 10px 20px rgba(181, 79, 70, 0.18);
 }
+
+/* Post-game move review analysis overlays. */
+.board-frame .board {
+  position: relative;
+}
+
+.analysis-overlay {
+  position: absolute;
+  inset: 18px;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.best-move-arrow {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.best-move-arrow marker path {
+  fill: rgba(79, 116, 93, 0.94);
+}
+
+.best-move-arrow-path-shadow,
+.best-move-arrow-path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.best-move-arrow-path-shadow {
+  stroke: rgba(255, 248, 233, 0.9);
+  stroke-width: 4.8;
+}
+
+.best-move-arrow-path {
+  stroke: rgba(79, 116, 93, 0.94);
+  stroke-width: 2.6;
+  filter: drop-shadow(0 3px 3px rgba(45, 43, 40, 0.22));
+}
+
+.best-move-arrow-label {
+  fill: #453d36;
+  paint-order: stroke;
+  stroke: rgba(255, 248, 233, 0.95);
+  stroke-width: 0.9;
+  font-size: 4px;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+}
+
+.move-quality-badge {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 7px;
+  border: 1px solid rgba(140, 104, 25, 0.18);
+  border-radius: 999px;
+  color: #4b3b0c;
+  background: rgba(255, 226, 116, 0.96);
+  box-shadow: 0 7px 14px rgba(78, 72, 50, 0.2), 0 0 0 5px rgba(255, 226, 116, 0.18);
+  font-size: clamp(0.62rem, 1.35vw, 0.82rem);
+  font-weight: 950;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translate(6%, -86%);
+  animation: review-badge-pop 360ms cubic-bezier(.2, 1.45, .34, 1);
+}
+
+.move-quality-star {
+  color: #fff8d3;
+  filter: drop-shadow(0 1px 0 rgba(116, 82, 4, 0.45));
+}
+
+@keyframes review-badge-pop {
+  from { opacity: 0; transform: translate(6%, -70%) scale(0.78) rotate(-4deg); }
+  to { opacity: 1; transform: translate(6%, -86%) scale(1) rotate(0); }
+}
+
+@media (max-width: 799px) {
+  .analysis-overlay { inset: 13px; }
+  .best-move-arrow-label { display: none; }
+  .move-quality-badge span:last-child { display: none; }
+}
