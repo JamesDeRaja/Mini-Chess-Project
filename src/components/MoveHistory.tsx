@@ -1,6 +1,6 @@
 import { formatMoveNotation, groupMoveHistory, moveDestination, pieceNames, type HistoryMove } from '../game/moveNotation.js';
 import { getCapturePenaltyScore, getMoveCaptureRecord } from '../game/scoring.js';
-import type { Color } from '../game/types.js';
+import type { Color, MoveAnalysis } from '../game/types.js';
 
 type MoveHistoryProps = {
   moves: HistoryMove[];
@@ -9,6 +9,7 @@ type MoveHistoryProps = {
   activePly?: number | null;
   onSelectPly?: (ply: number) => void;
   scoringSide?: Color;
+  analysisByPly?: Record<number, MoveAnalysis | undefined>;
 };
 
 function moveA11yLabel(move: HistoryMove, notation: ReturnType<typeof formatMoveNotation>) {
@@ -24,12 +25,14 @@ function MoveCell({
   activePly,
   onSelectPly,
   scoringSide,
+  analysis,
 }: {
   move: HistoryMove | null;
   ply: number | null;
   activePly?: number | null;
   onSelectPly?: (ply: number) => void;
   scoringSide?: Color;
+  analysis?: MoveAnalysis;
 }) {
   if (!move || ply === null) {
     return <span className="history-move history-move-placeholder" aria-label="Move pending">…</span>;
@@ -46,12 +49,13 @@ function MoveCell({
     <>
       <img className="history-piece-icon" src={notation.pieceIcon} alt="" aria-hidden="true" draggable="false" />
       <span className="history-notation-text">{notation.text}{captureScoreLabel && <span className={isPenaltyCapture ? 'history-capture-score history-capture-score-penalty' : 'history-capture-score'}> {captureScoreLabel}</span>}</span>
+      {analysis && <span className={analysis.isBestMove ? 'history-analysis-marker history-analysis-best' : 'history-analysis-marker history-analysis-suggested'} title={analysis.isBestMove ? 'Best move found' : 'Computer suggested a different move'}>{analysis.isBestMove ? '⭐' : '↗'}</span>}
     </>
   );
 
   if (!onSelectPly) {
     return (
-      <span className={className} role="text" aria-label={label} title={label}>
+      <span className={className} role="text" aria-label={label} title={label} data-history-ply={ply}>
         {content}
       </span>
     );
@@ -65,13 +69,14 @@ function MoveCell({
       aria-label={label}
       title={label}
       onClick={() => onSelectPly(ply)}
+      data-history-ply={ply}
     >
       {content}
     </button>
   );
 }
 
-export function MoveHistory({ moves, emptyPrimary, emptySecondary, activePly, onSelectPly, scoringSide }: MoveHistoryProps) {
+export function MoveHistory({ moves, emptyPrimary, emptySecondary, activePly, onSelectPly, scoringSide, analysisByPly = {} }: MoveHistoryProps) {
   const groupedMoves = groupMoveHistory(moves);
   const newestMoveNumber = groupedMoves.at(-1)?.moveNumber;
 
@@ -87,8 +92,8 @@ export function MoveHistory({ moves, emptyPrimary, emptySecondary, activePly, on
   return groupedMoves.map((group) => (
     <li key={`move-row-${group.moveNumber}`} className={group.moveNumber === newestMoveNumber ? 'move-history-row latest-history-row' : 'move-history-row'}>
       <span className="history-move-number">{group.moveNumber}.</span>
-      <MoveCell move={group.white} ply={group.whitePly} activePly={activePly} onSelectPly={onSelectPly} scoringSide={scoringSide} />
-      <MoveCell move={group.black} ply={group.blackPly} activePly={activePly} onSelectPly={onSelectPly} scoringSide={scoringSide} />
+      <MoveCell move={group.white} ply={group.whitePly} activePly={activePly} onSelectPly={onSelectPly} scoringSide={scoringSide} analysis={group.whitePly ? analysisByPly[group.whitePly] : undefined} />
+      <MoveCell move={group.black} ply={group.blackPly} activePly={activePly} onSelectPly={onSelectPly} scoringSide={scoringSide} analysis={group.blackPly ? analysisByPly[group.blackPly] : undefined} />
     </li>
   ));
 }

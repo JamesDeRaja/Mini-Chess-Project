@@ -39,6 +39,11 @@ export type Move = {
   captureScore?: number | null;
 };
 
+export type MoveAnalysis = {
+  bestMove: Move | null;
+  isBestMove: boolean;
+};
+
 export type MoveRecord = {
   from: number;
   to: number;
@@ -48,6 +53,8 @@ export type MoveRecord = {
   capturedColor?: Color;
   capturingSide?: Color;
   captureScore?: number;
+  promotion?: PromotionPieceType | null;
+  analysis?: MoveAnalysis;
   timestamp: number;
   clientMoveId?: string;
   playerId?: string;

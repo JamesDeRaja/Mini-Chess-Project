@@ -3,6 +3,8 @@ import type { PieceType, Square as ChessSquare } from '../game/types.js';
 import { Piece } from './Piece.js';
 import { MoveHint } from './MoveHint.js';
 
+type SquareResultMarker = { icon: string; label: string; tone: 'win' | 'loss' | 'draw' };
+
 type SquareProps = {
   square: ChessSquare;
   squareIndex: number;
@@ -20,6 +22,7 @@ type SquareProps = {
   isBoardSelected: boolean;
   isDragSource: boolean;
   isDragHoveredLegal: boolean;
+  resultMarker?: SquareResultMarker | null;
   coordinateLabel: string;
   onClick: () => void;
   onPointerDragStart?: (event: PointerEvent<HTMLButtonElement>, squareIndex: number) => void;
@@ -42,6 +45,7 @@ export function Square({
   isBoardSelected,
   isDragSource,
   isDragHoveredLegal,
+  resultMarker = null,
   coordinateLabel,
   onClick,
   onPointerDragStart,
@@ -62,6 +66,7 @@ export function Square({
     isKingInCheck ? 'king-in-check' : '',
     isDragSource ? 'drag-source-square' : '',
     isDragHoveredLegal ? 'drag-hover-square' : '',
+    resultMarker ? `result-marker-square result-marker-${resultMarker.tone}` : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -103,6 +108,12 @@ export function Square({
           {captureScoreFeedback > 0 ? `+${captureScoreFeedback}` : captureScoreFeedback}
         </span>
       ) : null}
+      {resultMarker && (
+        <span className={`board-result-marker board-result-marker-${resultMarker.tone}`} aria-label={resultMarker.label}>
+          <span aria-hidden="true">{resultMarker.icon}</span>
+          <strong>{resultMarker.label}</strong>
+        </span>
+      )}
       {isLegalMove && <MoveHint isCapture={isCapture} />}
     </button>
   );

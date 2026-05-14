@@ -34,6 +34,8 @@ export function createMoveRecord(move: Move, metadata: MoveRecordMetadata = {}):
     capturedColor: move.capturedPiece?.color ?? (move.capturedPiece ? getOpponent(move.piece.color) : undefined),
     capturingSide: move.capturedPiece ? move.piece.color : undefined,
     captureScore: move.capturedPiece ? getCaptureScore(move.capturedPiece.type) : undefined,
+    promotion: move.isPromotion ? move.promotionPiece ?? 'queen' : undefined,
+    analysis: undefined,
     timestamp: Date.now(),
     clientMoveId: metadata.clientMoveId,
     playerId: metadata.playerId,
