@@ -55,7 +55,7 @@ function MoveCell({
 
   if (!onSelectPly) {
     return (
-      <span className={className} role="text" aria-label={label} title={label}>
+      <span className={className} role="text" aria-label={label} title={label} data-history-ply={ply}>
         {content}
       </span>
     );
@@ -69,6 +69,7 @@ function MoveCell({
       aria-label={label}
       title={label}
       onClick={() => onSelectPly(ply)}
+      data-history-ply={ply}
     >
       {content}
     </button>

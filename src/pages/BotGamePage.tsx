@@ -368,8 +368,18 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     const historyList = historyListRef.current;
     if (!historyList) return;
 
-    historyList.scrollTop = historyList.scrollHeight;
-  }, [moveHistory.length]);
+    const animationFrame = window.requestAnimationFrame(() => {
+      if (activeReviewPly && activeReviewPly > 0) {
+        const activeMove = historyList.querySelector<HTMLElement>(`[data-history-ply="${activeReviewPly}"]`);
+        activeMove?.scrollIntoView({ block: 'center', inline: 'nearest' });
+        return;
+      }
+
+      historyList.scrollTop = historyList.scrollHeight;
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [activeReviewPly, moveHistory.length]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
