@@ -23,6 +23,7 @@ type SquareProps = {
   isDragSource: boolean;
   isDragHoveredLegal: boolean;
   resultMarker?: SquareResultMarker | null;
+  blunderMarker?: boolean;
   coordinateLabel: string;
   onClick: () => void;
   onPointerDragStart?: (event: PointerEvent<HTMLButtonElement>, squareIndex: number) => void;
@@ -46,6 +47,7 @@ export function Square({
   isDragSource,
   isDragHoveredLegal,
   resultMarker = null,
+  blunderMarker = false,
   coordinateLabel,
   onClick,
   onPointerDragStart,
@@ -67,6 +69,7 @@ export function Square({
     isDragSource ? 'drag-source-square' : '',
     isDragHoveredLegal ? 'drag-hover-square' : '',
     resultMarker ? `result-marker-square result-marker-${resultMarker.tone}` : '',
+    blunderMarker ? 'blunder-marker-square' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -108,6 +111,11 @@ export function Square({
           {captureScoreFeedback > 0 ? `+${captureScoreFeedback}` : captureScoreFeedback}
         </span>
       ) : null}
+      {blunderMarker && (
+        <span className="blunder-marker" aria-label="Blunder: this move can lose material">
+          <span aria-hidden="true">!</span>
+        </span>
+      )}
       {resultMarker && (
         <span className={`board-result-marker board-result-marker-${resultMarker.tone}`} aria-label={resultMarker.label}>
           <span aria-hidden="true">{resultMarker.icon}</span>

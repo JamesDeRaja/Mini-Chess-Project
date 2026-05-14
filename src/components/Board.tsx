@@ -18,7 +18,7 @@ type BoardProps = {
   lastMove: LastMove;
   analysis?: MoveAnalysis | null;
   checkedKingIndex: number | null;
-  resultMarker?: BoardResultMarker | null;
+  resultMarker?: BoardResultMarker | BoardResultMarker[] | null;
   isFlipped?: boolean;
   isInteractive?: boolean;
   scoringSide?: Color;
@@ -312,6 +312,7 @@ export function Board({
     onSquareClick(squareIndex);
   }
 
+  const visibleResultMarkers = Array.isArray(resultMarker) ? resultMarker : resultMarker ? [resultMarker] : [];
   const visibleLegalMoves = dragState?.hasMoved ? dragState.legalMoves : legalMoves;
   const dragHoveredSquare = dragState?.hasMoved ? dragState.hoveredSquare : null;
   const dragHoveredLegalSquare = dragHoveredSquare !== null && visibleLegalMoves.some((move) => move.to === dragHoveredSquare) ? dragHoveredSquare : null;
@@ -348,7 +349,8 @@ export function Board({
           isBoardSelected={selectedSquare === squareIndex}
           isDragSource={Boolean(dragState?.hasMoved && dragState.fromSquare === squareIndex)}
           isDragHoveredLegal={dragHoveredLegalSquare === squareIndex}
-          resultMarker={resultMarker?.squareIndex === squareIndex ? resultMarker : null}
+          resultMarker={visibleResultMarkers.find((marker) => marker.squareIndex === squareIndex) ?? null}
+          blunderMarker={Boolean(analysis?.isBlunder && analysis.blunderSquare === squareIndex)}
           coordinateLabel={`${fileLabel(file)}${rank + 1}`}
           onClick={() => handleSquareClick(squareIndex)}
           onPointerDragStart={handlePointerDragStart}
