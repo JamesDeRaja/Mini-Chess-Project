@@ -338,6 +338,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const config = modeConfig[matchMode];
   const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber, botAdaptationProfile);
   const playerPowerTier = getPlayerPowerTier({ botLevel, dailyDifficulty: dailyAIDifficulty, dailyProgress: isDailyAI ? dailyAIProgress : null });
+  const shieldWinStreak = isDailyAI ? dailyAIProgress.winStreak : botAdaptationProfile.winStreak;
+  const shieldLossStreak = isDailyAI ? dailyAIProgress.lossStreak : botAdaptationProfile.lossStreak;
   const playerPowerLabel = getPowerRomanNumeral(playerPowerTier);
   const latestPly = boardTimeline.length - 1;
   const activeReviewPly = roundResult ? previewPly ?? latestPly : previewPly;
@@ -1128,7 +1130,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           </div>
           <div className="info-stack">
             <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
-            <p><span>🛡️ Your power</span><strong><PowerShieldBadge tier={playerPowerTier} /></strong></p>
+            <p><span>🛡️ Your power</span><strong><PowerShieldBadge tier={playerPowerTier} winStreak={shieldWinStreak} lossStreak={shieldLossStreak} /></strong></p>
             <p><span>{seedInfoLabel}</span><strong>{dailySeedInfo.seed}</strong></p>
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>
             <p><span>Back rank</span><strong>{dailySeedInfo.backRankCode}</strong></p>
@@ -1249,7 +1251,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                   <p><span>Setup</span><strong>{dailySeedInfo.backRankCode}</strong></p>
                 </div>
                 <label className="name-capture-form inline-name-form power-name-form">
-                  <span>Name <PowerShieldBadge tier={playerPowerTier} /></span>
+                  <span>Name <PowerShieldBadge tier={playerPowerTier} winStreak={shieldWinStreak} lossStreak={shieldLossStreak} /></span>
                   <input value={displayNameDraft} onChange={(event) => setDisplayNameDraft(event.target.value)} onBlur={() => setDisplayNameDraft(saveDisplayName(displayNameDraft))} maxLength={20} />
                 </label>
               </div>

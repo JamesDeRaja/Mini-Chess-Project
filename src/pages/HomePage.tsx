@@ -602,7 +602,7 @@ export function HomePage({
           <div className="brand-row">
             <span className="brand-icon-tile streak-brand-tile" aria-label={`${playStreak.count} day play streak`}><Flame size={42} aria-hidden="true" /><b>{playStreak.count}</b></span>
             <form className="player-greeting" onSubmit={(event) => { event.preventDefault(); commitDisplayNameDraft(); }}>
-              <span>Hello <PowerShieldBadge tier={homePowerTier} /></span>
+              <span>Hello <PowerShieldBadge tier={homePowerTier} winStreak={shuffleMode === 'daily' ? dailyAIProgress.winStreak : undefined} lossStreak={shuffleMode === 'daily' ? dailyAIProgress.lossStreak : undefined} /></span>
               <input
                 aria-label="Player name"
                 value={displayNameDraft}
