@@ -292,9 +292,9 @@
 
 
 @keyframes piece-spawn-pop {
-  0% { opacity: 0; transform: translateY(18px) scale(0.64); filter: blur(1px); }
+  0% { opacity: 1; transform: translateY(18px) scale(0.64); filter: blur(1px); }
   52% { opacity: 1; transform: translateY(-5px) scale(1.08, 0.94); filter: blur(0); }
-  76% { transform: translateY(2px) scale(0.96, 1.06); }
+  76% { opacity: 1; transform: translateY(2px) scale(0.96, 1.06); }
   100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
 @keyframes piece-ready-squish {
@@ -312,48 +312,48 @@
   50% { opacity: 0.72; transform: scale(1.02); }
 }
 @keyframes piece-squash-land {
-  0% { opacity: 0.52; transform: translateY(-20px) scale(0.88, 1.08); }
+  0% { opacity: 1; transform: translateY(-20px) scale(0.88, 1.08); }
   58% { opacity: 1; transform: translateY(3px) scale(1.12, 0.82); }
   78% { transform: translateY(-3px) scale(0.96, 1.05); }
   100% { transform: translateY(0) scale(1); }
 }
 @keyframes knight-hop-land {
-  0% { opacity: 0.55; transform: translate(-18px, -34px) rotate(-10deg) scale(0.9); }
+  0% { opacity: 1; transform: translate(-18px, -34px) rotate(-10deg) scale(0.9); }
   54% { opacity: 1; transform: translate(4px, 3px) rotate(6deg) scale(1.1, 0.86); }
   76% { transform: translate(0, -5px) rotate(-3deg) scale(0.98, 1.06); }
   100% { transform: translate(0) rotate(0) scale(1); }
 }
 @keyframes rook-thump-land {
-  0% { opacity: 0.55; transform: translateX(-24px) scale(0.94); }
+  0% { opacity: 1; transform: translateX(-24px) scale(0.94); }
   62% { opacity: 1; transform: translateX(2px) scale(1.14, 0.84); }
   82% { transform: translateX(-1px) scale(0.98, 1.04); }
   100% { transform: translateX(0) scale(1); }
 }
 @keyframes bishop-glide-land {
-  0% { opacity: 0.5; transform: translate(-18px, -18px) rotate(-8deg) scale(0.9); }
+  0% { opacity: 1; transform: translate(-18px, -18px) rotate(-8deg) scale(0.9); }
   60% { opacity: 1; transform: translate(2px, 2px) rotate(4deg) scale(1.08, 0.9); }
   100% { transform: translate(0) rotate(0) scale(1); }
 }
 @keyframes queen-float-land {
-  0% { opacity: 0.55; transform: translateY(-26px) rotate(4deg) scale(0.86); }
+  0% { opacity: 1; transform: translateY(-26px) rotate(4deg) scale(0.86); }
   48% { opacity: 1; transform: translateY(-5px) rotate(-3deg) scale(1.08); }
   76% { transform: translateY(2px) rotate(1deg) scale(1.03, 0.94); }
   100% { transform: translateY(0) rotate(0) scale(1); }
 }
 @keyframes king-royal-land {
-  0% { opacity: 0.55; transform: translateY(-24px) scale(0.92); }
+  0% { opacity: 1; transform: translateY(-24px) scale(0.92); }
   45% { opacity: 1; transform: translateY(0) scale(1.12, 0.88); }
   68% { transform: translateY(-4px) scale(0.98, 1.08); }
   100% { transform: translateY(0) scale(1); }
 }
 @keyframes pawn-pop-land {
-  0% { opacity: 0.52; transform: translateY(-12px) scale(0.82); }
+  0% { opacity: 1; transform: translateY(-12px) scale(0.82); }
   55% { opacity: 1; transform: translateY(2px) scale(1.16, 0.82); }
   78% { transform: translateY(-2px) scale(0.94, 1.08); }
   100% { transform: translateY(0) scale(1); }
 }
 @keyframes capture-smash-land {
-  0% { opacity: 0.54; transform: translateY(-18px) rotate(-8deg) scale(0.9); filter: brightness(1.08); }
+  0% { opacity: 1; transform: translateY(-18px) rotate(-8deg) scale(0.9); filter: brightness(1.08); }
   48% { opacity: 1; transform: translateY(4px) rotate(4deg) scale(1.2, 0.72); filter: brightness(1.16); }
   70% { transform: translateY(-4px) rotate(-2deg) scale(0.94, 1.12); }
   100% { transform: translateY(0) rotate(0) scale(1); filter: brightness(1); }
@@ -378,11 +378,11 @@
 }
 
 @keyframes piece-land {
-  from { opacity: 0.4; transform: scale(0.86); }
+  from { opacity: 1; transform: scale(0.86); }
   to { opacity: 1; transform: scale(1); }
 }
 @keyframes piece-slide-land {
-  from { opacity: 0.45; transform: translateY(-16px) scale(0.9) rotate(-4deg); }
+  from { opacity: 1; transform: translateY(-16px) scale(0.9) rotate(-4deg); }
   to { opacity: 1; transform: translateY(0) scale(1) rotate(0); }
 }
 @keyframes check-pulse {

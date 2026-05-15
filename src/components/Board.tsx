@@ -95,7 +95,7 @@ function getMoveKeyframes(pieceType: PieceType, deltaX: number, deltaY: number, 
   const midX = deltaX * 0.48;
   const midY = deltaY * 0.48 - arc;
   return [
-    { transform: `translate(${deltaX}px, ${deltaY}px) scale(0.96, 1.04) rotate(${rotation}deg)`, opacity: 0.92, offset: 0 },
+    { transform: `translate(${deltaX}px, ${deltaY}px) scale(0.96, 1.04) rotate(${rotation}deg)`, opacity: 1, offset: 0 },
     { transform: `translate(${midX}px, ${midY}px) scale(1.05) rotate(${rotation * -0.35}deg)`, opacity: 1, offset: 0.46 },
     { transform: isCapture ? 'translateY(5px) scale(1.18, 0.76) rotate(3deg)' : 'translateY(3px) scale(1.12, 0.82)', opacity: 1, offset: 0.74 },
     { transform: 'translateY(-3px) scale(0.97, 1.07)', opacity: 1, offset: 0.88 },
