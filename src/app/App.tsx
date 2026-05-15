@@ -149,10 +149,10 @@ export function App() {
     navigate(`/bot?seed=${encodeURIComponent(seed)}${setupQuery}`);
   }
 
-  function startAiAsPlayer(opponentName: string, seed: string, backRankCode?: string) {
-    trackEvent('seed_challenge_start', { seed, opponentName });
+  function startAiAsPlayer(opponentName: string, seed: string, backRankCode: string | undefined, playerSide: 'white' | 'black') {
+    trackEvent('seed_challenge_start', { seed, opponentName, playerSide });
     const setupQuery = backRankCode ? `&setup=${encodeURIComponent(backRankCode)}` : '';
-    navigate(`/bot?seed=${encodeURIComponent(seed)}${setupQuery}&opponent=${encodeURIComponent(opponentName)}&matched=1`);
+    navigate(`/bot?seed=${encodeURIComponent(seed)}${setupQuery}&side=${playerSide}&opponent=${encodeURIComponent(opponentName)}&matched=1`);
   }
 
   function openCustomSeed() {

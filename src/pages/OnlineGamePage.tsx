@@ -125,7 +125,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [submittedScore, setSubmittedScore] = useState(false);
   const [scoreSubmitMessage, setScoreSubmitMessage] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [shieldProgression, setShieldProgression] = useState(readShieldProgression);
+  const [, setShieldProgression] = useState(readShieldProgression);
   const [copied, setCopied] = useState(false);
   const [pendingClientMoveIds, setPendingClientMoveIds] = useState<Set<string>>(() => new Set());
   const historyListRef = useRef<HTMLOListElement | null>(null);

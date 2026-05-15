@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/preserve-manual-memoization */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, Copy, Flag, Handshake, Home, Pause, Play, RotateCcw, Share2, Shuffle, Sparkles, Trophy } from 'lucide-react';
 import { Board } from '../components/Board.js';
@@ -121,6 +121,7 @@ function getMatchedPlayerDelay(): number {
 }
 const HISTORY_AUTOPLAY_INTERVAL_MS = 780;
 const RESULT_REVEAL_DELAY_MS = 1250;
+const TURN_TIMER_SECONDS = 20;
 
 const ascensionRemovedPieces: PieceType[] = ['knight', 'bishop', 'rook'];
 const ascensionPieceLabels: Record<PieceType, string> = {
@@ -315,6 +316,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [boardTimeline, setBoardTimeline] = useState<ChessBoard[]>(() => [cloneBoard(initialBoardForMount)]);
   const [turn, setTurn] = useState<Color>('white');
   const [status, setStatus] = useState<GameStatus>('active');
+  const [turnTimeLeft, setTurnTimeLeft] = useState(TURN_TIMER_SECONDS);
   const [selectedSquare, setSelectedSquare] = useState<number | null>(null);
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<(Pick<Move, 'from' | 'to'> & { color?: Color; isCapture?: boolean; captureScore?: number | null }) | null>(null);
@@ -692,7 +694,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     };
   }, [isHistoryAutoplaying, latestPly, moveHistory.length, previewPly]);
 
-  const finishRound = useCallback((nextStatus: GameStatus, drawReason?: RoundResult['drawReason']) => {
+  const finishRound = useCallback((nextStatus: GameStatus, drawReason?: RoundResult['drawReason'], messageOverride?: string) => {
     const winner = getWinner(nextStatus);
     const didPlayerWin = winner === playerColor;
     let progressionMessage: string | undefined;
@@ -720,8 +722,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       resultRevealTimerRef.current = null;
       setIsResultPanelReady(true);
     }, RESULT_REVEAL_DELAY_MS);
-    setRoundResult({ status: nextStatus, winner, message: getRoundMessage(nextStatus, drawReason), progressionMessage, didPlayerWin, drawReason });
-  }, [config.winsRequired, dailyAIProgress, isDailyAI, playerColor, score]);
+    setRoundResult({ status: nextStatus, winner, message: messageOverride ?? getRoundMessage(nextStatus, drawReason), progressionMessage, didPlayerWin, drawReason });
+  }, [config.winsRequired, dailyAIProgress, isDailyAI, isMatchedGame, playerColor, score]);
 
   const completeMove = useCallback((move: Move) => {
     const nextBoard = applyMove(board, move);
@@ -730,6 +732,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setBoard(nextBoard);
     setBoardTimeline((timeline) => [...timeline, cloneBoard(nextBoard)]);
     setTurn(nextTurn);
+    setTurnTimeLeft(TURN_TIMER_SECONDS);
     setStatus(nextStatus);
     setSelectedSquare(null);
     setLegalMoves([]);
@@ -767,6 +770,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setBoard(initialBoard);
     setBoardTimeline([cloneBoard(initialBoard)]);
     setTurn('white');
+    setTurnTimeLeft(TURN_TIMER_SECONDS);
     setStatus('active');
     setSelectedSquare(null);
     setLegalMoves([]);
@@ -933,6 +937,32 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }
 
   useEffect(() => {
+    if (status === 'active' && !roundResult) setTurnTimeLeft(TURN_TIMER_SECONDS);
+  }, [roundResetId, roundResult, status, turn]);
+
+  useEffect(() => {
+    if (status !== 'active' || roundResult || isPreviewing || isVariationReview || !isBoardReady) return undefined;
+
+    if (turnTimeLeft <= 0) {
+      const winner = getOpponent(turn);
+      const timeoutStatus: GameStatus = winner === 'white' ? 'white_won' : 'black_won';
+      const timedOutPlayer = turn === playerColor ? 'You ran' : `${opponentDisplayName} ran`;
+      setStatus(timeoutStatus);
+      setSelectedSquare(null);
+      setLegalMoves([]);
+      playResultSound(winner === playerColor);
+      finishRound(timeoutStatus, undefined, `${timedOutPlayer} out of time. ${winner === playerColor ? 'You win!' : 'You lose.'}`);
+      return undefined;
+    }
+
+    const timerId = window.setTimeout(() => {
+      setTurnTimeLeft((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timerId);
+  }, [finishRound, isBoardReady, isPreviewing, isVariationReview, opponentDisplayName, playerColor, roundResult, status, turn, turnTimeLeft]);
+
+  useEffect(() => {
     if (botMoveTimerRef.current !== null) {
       window.clearTimeout(botMoveTimerRef.current);
       botMoveTimerRef.current = null;
@@ -960,7 +990,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         botMoveTimerRef.current = null;
       }
     };
-  }, [board, botColor, botLevel, completeMove, isBoardReady, isPreviewing, moveHistory.length, playerPowerTier, roundResetId, status, turn]);
+  }, [board, botColor, botLevel, completeMove, isBoardReady, isMatchedGame, isPreviewing, moveHistory.length, playerPowerTier, roundResetId, status, turn]);
 
   const handleBoardSpawnComplete = useCallback(() => {
     setIsBoardReady(true);
@@ -1148,6 +1178,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         statusLabelOverride={headerStatusLabel}
         turnLabelOverride={headerTurnLabel}
         scoreLabel={headerScoreLabel}
+        timerLabel={status === 'active' && !roundResult ? `Timer ${turnTimeLeft}s` : undefined}
       />
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel">

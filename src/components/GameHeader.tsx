@@ -10,6 +10,7 @@ type GameHeaderProps = {
   statusLabelOverride?: string;
   turnLabelOverride?: string;
   scoreLabel?: string;
+  timerLabel?: string;
 };
 
 function roleColor(playerRole?: string): Color | null {
@@ -36,7 +37,7 @@ function getStatusAvatarColor(status: GameStatus, turn: Color, playerColor: Colo
   return turn;
 }
 
-export function GameHeader({ title, turn, status, playerRole, details, onTitleClick, statusLabelOverride, turnLabelOverride, scoreLabel }: GameHeaderProps) {
+export function GameHeader({ title, turn, status, playerRole, details, onTitleClick, statusLabelOverride, turnLabelOverride, scoreLabel, timerLabel }: GameHeaderProps) {
   const playerColor = roleColor(playerRole);
   const isOwnTurn = status === 'active' && playerColor === turn;
   const dotState = isGameOver(status) || !playerColor ? 'neutral' : isOwnTurn ? 'active' : 'waiting';
@@ -68,12 +69,20 @@ export function GameHeader({ title, turn, status, playerRole, details, onTitleCl
           </span>
           <span className="turn-line">{turnLabelOverride ?? `${turn === 'white' ? 'White' : 'Black'} to move`}</span>
         </div>
-        {scoreLabel && (
-          <div className="status-score-section" aria-label={scoreLabel}>
-            <span className="status-score-pill-label">Score</span>
-            <span className="status-score-pill-value">{scoreLabel.replace(/^Score\s*/, '')}</span>
-          </div>
-        )}
+        <div className="status-metric-stack">
+          {timerLabel && (
+            <div className="status-timer-section" aria-label={timerLabel}>
+              <span className="status-score-pill-label">Timer</span>
+              <span className="status-score-pill-value">{timerLabel.replace(/^Timer\s*/, '')}</span>
+            </div>
+          )}
+          {scoreLabel && (
+            <div className="status-score-section" aria-label={scoreLabel}>
+              <span className="status-score-pill-label">Score</span>
+              <span className="status-score-pill-value">{scoreLabel.replace(/^Score\s*/, '')}</span>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
