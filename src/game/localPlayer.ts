@@ -112,3 +112,19 @@ export function saveDisplayName(name: string): string {
 export function hasCustomDisplayName(): boolean {
   return typeof localStorage !== 'undefined' && Boolean(localStorage.getItem(displayNameKey));
 }
+
+export const humanMatchPlayerNames = [
+  'Alex', 'Jordan42', 'Priya_K', 'Lucas', 'MeiChen', 'Carlos_R', 'Aisha', 'TobiasW',
+  'Nina', 'Ravi_P', 'EmmaT', 'Diego', 'Yuna', 'MarcusG', 'Zoe', 'Arjun',
+  'SofiaV', 'Oliver', 'LingZ', 'Andre', 'Chloe_B', 'Kenji', 'Layla', 'EthanC',
+  'Mia', 'Noah_S', 'Aiko', 'FelixW', 'Amara', 'Liam_P', 'Sara', 'RyoM',
+  'Isabel', 'Kai', 'Maya', 'Tom', 'Nadia_Z', 'Ben', 'Yuki', 'Leo',
+  'Hana', 'Sam', 'Ada', 'Max', 'ZaraW', 'Jin', 'Elle', 'Soren',
+  'Tara', 'ChrisV', 'Moana', 'Raj', 'Mika', 'Vera', 'Hugo',
+  'Preet', 'Anya', 'Luca', 'Emi', 'Kira', 'Omar', 'Luna', 'Eli',
+  'RosaK', 'Tyler', 'Nao', 'Dana', 'Nico', 'Faye', 'Bo', 'Sana',
+] as const;
+
+export function getRandomHumanOpponentName(): string {
+  return humanMatchPlayerNames[Math.floor(Math.random() * humanMatchPlayerNames.length)] ?? 'Alex';
+}

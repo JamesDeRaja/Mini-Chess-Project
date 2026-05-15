@@ -32,7 +32,7 @@ type Route =
   | { name: 'popular-seeds' }
   | { name: 'how-it-works' }
   | { name: 'learn'; piece?: PieceType }
-  | { name: 'bot'; dateKey?: string; seed?: string; backRankCode?: string; side?: 'white' | 'black' }
+  | { name: 'bot'; dateKey?: string; seed?: string; backRankCode?: string; side?: 'white' | 'black'; opponentName?: string; isMatchmakingGame?: boolean }
   | { name: 'online'; gameId: string; matchMode: MatchMode }
   | { name: 'not-found' };
 
@@ -74,6 +74,8 @@ function routeFromLocation(): Route {
       seed: search.get('seed') ?? undefined,
       backRankCode: setup && isValidBackRankCode(setup) ? setup.toUpperCase() : undefined,
       side: search.get('side') === 'black' ? 'black' : search.get('side') === 'white' ? 'white' : undefined,
+      opponentName: search.get('opponent') ?? undefined,
+      isMatchmakingGame: search.get('matchmaking') === '1',
     };
   }
   if (window.location.pathname === '/') return { name: 'home' };
@@ -147,6 +149,11 @@ export function App() {
     navigate(`/bot?seed=${encodeURIComponent(seed)}${setupQuery}`);
   }
 
+  function startMatchmakingBot(seed: string, backRankCode: string, opponentName: string) {
+    trackEvent('matchmaking_ai_start', { seed });
+    navigate(`/bot?seed=${encodeURIComponent(seed)}&setup=${encodeURIComponent(backRankCode)}&opponent=${encodeURIComponent(opponentName)}&matchmaking=1`);
+  }
+
   function openCustomSeed() {
     navigate('/?modal=custom');
   }
@@ -217,7 +224,7 @@ export function App() {
     const challengeParam = new URLSearchParams(window.location.search).get('challenge');
     let activeChallengeContext: ActiveChallengeContext | undefined;
     try { activeChallengeContext = challengeParam ? JSON.parse(challengeParam) as ActiveChallengeContext : undefined; } catch { activeChallengeContext = undefined; }
-    return <><BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}-${route.backRankCode ?? ''}-${route.side ?? ''}-${activeChallengeContext?.challengeId ?? ''}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} customBackRankCode={route.backRankCode} playerSide={route.side} activeChallengeContext={activeChallengeContext} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
+    return <><BotGamePage key={`single-${route.seed ?? route.dateKey ?? 'today'}-${route.backRankCode ?? ''}-${route.side ?? ''}-${activeChallengeContext?.challengeId ?? ''}`} matchMode="single" dateKey={route.dateKey} customSeed={route.seed} customBackRankCode={route.backRankCode} playerSide={route.side} activeChallengeContext={activeChallengeContext} opponentName={route.opponentName} isMatchmakingGame={route.isMatchmakingGame} onHome={() => navigate('/')} onCustomSeed={openCustomSeed} onDaily={() => navigate('/daily')} onRandomSetup={playRandomSetup} />{nameGateOpen && <NameGateModal open={nameGateOpen} onComplete={() => setNameGateOpen(false)} />}</>;
   }
   if (route.name === 'not-found') {
     return <NotFoundPage onHome={() => navigate('/')} onBot={() => navigate('/bot')} onDaily={() => navigate('/daily')} />;
@@ -242,6 +249,7 @@ export function App() {
         initialModal={route.name === 'how-it-works' ? 'rules' : new URLSearchParams(window.location.search).get('modal') === 'custom' ? 'custom' : undefined}
         onStartBot={startBot}
         onStartSeededBot={startSeededBot}
+        onStartMatchmakingBot={startMatchmakingBot}
         onInvite={handleInvite}
         onDaily={handleDaily}
         onSeeded={handleSeeded}
