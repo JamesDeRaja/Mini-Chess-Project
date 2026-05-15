@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Flame, Link as LinkIcon, RefreshCw, Share2, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
+import { pickRandomPlayerName, pickRandomPlayerNames } from '../game/humanPlayers.js';
 import { getDailyAIDifficulty, getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput, createSeedFromInput } from '../game/seed.js';
 import { createRandomGameSeed, getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
@@ -27,6 +28,7 @@ type HomePageProps = {
   onSeeded: (seed: string, backRankCode?: string) => void;
   onFindMatch: (seed: string, backRankCode: string) => Promise<MatchmakingResponse>;
   onCancelFindMatch: (queueId?: string) => Promise<void>;
+  onStartAiAsPlayer: (opponentName: string, seed: string, backRankCode?: string) => void;
 };
 
 type ModalName = 'date' | 'custom' | 'rules' | 'matchmaking' | 'dailyMastered' | 'streak' | null;
@@ -36,6 +38,7 @@ type LeaderboardView = { scope: LeaderboardScope; label: string; title: string; 
 type MatchmakingState =
   | { status: 'idle' }
   | { status: 'finding'; queueId?: string }
+  | { status: 'found-ai'; opponentName: string; queueId?: string }
   | { status: 'timeout'; queueId?: string }
   | { status: 'failed'; message: string };
 
@@ -138,6 +141,7 @@ export function HomePage({
   onSeeded,
   onFindMatch,
   onCancelFindMatch,
+  onStartAiAsPlayer,
 }: HomePageProps) {
   const seedInputId = 'custom-seed-input';
   const seedErrorId = 'custom-seed-error';
@@ -152,6 +156,8 @@ export function HomePage({
   const [displayNameDraft, setDisplayNameDraft] = useState(() => getDisplayName());
   const [modal, setModal] = useState<ModalName>(initialModal ?? null);
   const [matchmaking, setMatchmaking] = useState<MatchmakingState>({ status: 'idle' });
+  const [searchingNames, setSearchingNames] = useState<string[]>([]);
+  const [searchNameGeneration, setSearchNameGeneration] = useState(0);
   const [shuffleMode, setShuffleModeState] = useState<ShuffleMode>(() => getCurrentShuffleMode());
   const [randomSetup, setRandomSetup] = useState(() => resolveSeedSourceForMode('random', { randomSeed: getPageSessionRandomGameSeed() }));
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(todayKey));
@@ -473,7 +479,7 @@ export function HomePage({
   }
 
   const cancelMatch = useCallback(async () => {
-    if (matchmaking.status === 'finding' || matchmaking.status === 'timeout') await onCancelFindMatch(matchmaking.queueId);
+    if (matchmaking.status === 'finding' || matchmaking.status === 'timeout' || matchmaking.status === 'found-ai') await onCancelFindMatch(matchmaking.queueId);
     setMatchmaking({ status: 'idle' });
     setModal(null);
   }, [matchmaking, onCancelFindMatch]);
@@ -529,20 +535,57 @@ export function HomePage({
             setMatchTarget({ seed: result.seed, backRankCode: result.backRankCode, mode: modeFromSeed(result.seed) });
             setMatchmaking((current) => (current.status === 'finding' ? { ...current, queueId: result.queueId } : current));
           }
-          if (result.status === 'unavailable') setMatchmaking({ status: 'failed', message: result.message });
+          if (result.status === 'unavailable') setMatchmaking((current) => (current.status === 'finding' ? { status: 'failed', message: result.message } : current));
         })
-        .catch((error: Error) => setMatchmaking({ status: 'failed', message: error.message }));
+        .catch((error: Error) => setMatchmaking((current) => (current.status === 'finding' ? { status: 'failed', message: error.message } : current)));
     }, 5000);
+
+    // AI fallback: if no real match in 10-15 seconds, connect to a human-named AI
+    const aiFallbackDelay = 10000 + Math.floor(Math.random() * 5000);
+    const aiFallbackId = window.setTimeout(() => {
+      const opponentName = pickRandomPlayerName();
+      setMatchmaking((current) => (current.status === 'finding' ? { status: 'found-ai', opponentName, queueId: current.queueId } : current));
+    }, aiFallbackDelay);
 
     const timeoutId = window.setTimeout(() => {
       setMatchmaking((current) => (current.status === 'finding' ? { status: 'timeout', queueId: current.queueId } : current));
-    }, 55000);
+    }, 60000);
 
     return () => {
       window.clearInterval(pollId);
       window.clearTimeout(timeoutId);
+      window.clearTimeout(aiFallbackId);
     };
   }, [matchTarget.backRankCode, matchTarget.seed, matchmaking.status, onFindMatch]);
+
+  // When AI match is found, cancel server queue and navigate to bot game after brief delay
+  useEffect(() => {
+    if (matchmaking.status !== 'found-ai') return;
+    const { opponentName, queueId } = matchmaking;
+    const navigateId = window.setTimeout(() => {
+      void onCancelFindMatch(queueId);
+      setMatchmaking({ status: 'idle' });
+      setModal(null);
+      onStartAiAsPlayer(opponentName, matchTarget.seed, matchTarget.backRankCode);
+    }, 2000);
+    return () => window.clearTimeout(navigateId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchmaking.status]);
+
+  // Cycle through random names while searching
+  useEffect(() => {
+    if (matchmaking.status !== 'finding') {
+      setSearchingNames([]);
+      return undefined;
+    }
+    const refresh = () => {
+      setSearchingNames(pickRandomPlayerNames(3));
+      setSearchNameGeneration((g) => g + 1);
+    };
+    refresh();
+    const refreshId = window.setInterval(refresh, 2800);
+    return () => window.clearInterval(refreshId);
+  }, [matchmaking.status]);
 
   return (
     <main className="home-page">
@@ -980,22 +1023,68 @@ export function HomePage({
       )}
 
       {modal === 'matchmaking' && (
-        <div className="modal-backdrop" role="presentation" onClick={closeModal}>
+        <div className="modal-backdrop" role="presentation" onClick={matchmaking.status === 'found-ai' ? undefined : closeModal}>
           <div className="confirm-card utility-modal matchmaking-modal" role="dialog" aria-modal="true" aria-labelledby="matchmaking-modal-title" onClick={(event) => event.stopPropagation()}>
-            <button type="button" className="modal-close" onClick={cancelMatch} aria-label="Cancel matchmaking"><X size={18} /></button>
+            {matchmaking.status !== 'found-ai' && (
+              <button type="button" className="modal-close" onClick={cancelMatch} aria-label="Cancel matchmaking"><X size={18} /></button>
+            )}
             <p className="eyebrow">Find Match</p>
-            <h2 id="matchmaking-modal-title">{matchmaking.status === 'timeout' ? 'No opponent found yet.' : matchmaking.status === 'failed' ? 'Matchmaking unavailable' : 'Finding opponent...'}</h2>
-            <p>Queued seed: <strong>{matchTarget.seed}</strong></p>
-            <p>Back rank: {matchTarget.backRankCode}</p>
-            <p className="panel-note">Your setup stays open online. The next player who taps Find Match joins this board, and colors are picked at random.</p>
+            <h2 id="matchmaking-modal-title">
+              {matchmaking.status === 'found-ai'
+                ? 'Match found!'
+                : matchmaking.status === 'timeout'
+                  ? 'No opponent found yet.'
+                  : matchmaking.status === 'failed'
+                    ? 'Matchmaking unavailable'
+                    : 'Scanning for players...'}
+            </h2>
+
+            {matchmaking.status === 'finding' && (
+              <div className="matchmaking-search-animation" aria-live="polite">
+                <div className="matchmaking-radar" aria-hidden="true">
+                  <span className="matchmaking-radar-ring matchmaking-radar-ring-1" />
+                  <span className="matchmaking-radar-ring matchmaking-radar-ring-2" />
+                  <span className="matchmaking-radar-dot" />
+                </div>
+                <div className="matchmaking-names-list" aria-label="Scanning potential players">
+                  {searchingNames.map((name, index) => (
+                    <span key={`${searchNameGeneration}-${index}`} className="matchmaking-scanning-name">
+                      <span className="scanning-name-dot" aria-hidden="true" />
+                      {name}
+                    </span>
+                  ))}
+                </div>
+                <p className="matchmaking-status-text">Looking for real players nearby...</p>
+              </div>
+            )}
+
+            {matchmaking.status === 'found-ai' && (
+              <div className="matchmaking-found-container" aria-live="assertive">
+                <div className="matchmaking-found-check" aria-hidden="true">✓</div>
+                <span className="matchmaking-found-name">{matchmaking.opponentName}</span>
+                <p className="matchmaking-found-status">Connecting to your match...</p>
+              </div>
+            )}
+
+            {matchmaking.status !== 'finding' && matchmaking.status !== 'found-ai' && (
+              <>
+                <p>Queued seed: <strong>{matchTarget.seed}</strong></p>
+                <p>Back rank: {matchTarget.backRankCode}</p>
+                <p className="panel-note">Your setup stays open online. The next player who taps Find Match joins this board, and colors are picked at random.</p>
+              </>
+            )}
+
             {matchmaking.status === 'failed' && <p className="error-message inline-message">{matchmaking.message}</p>}
-            {matchmaking.status === 'timeout' && <p>No one matched within about a minute. You can keep waiting or send an invite link.</p>}
-            <div className="panel-actions centered-actions">
-              {matchmaking.status === 'timeout' && <button type="button" onClick={() => requestMatchFor(matchTarget.seed, matchTarget.backRankCode)}><Users size={18} /> Keep Waiting</button>}
-              <button type="button" onClick={() => { void switchFromMatchmaking(inviteMatchTarget); }}><LinkIcon size={18} /> Challenge Friend Instead</button>
-              <button type="button" onClick={() => { void switchFromMatchmaking(() => playAiForSeed(matchTarget.seed, matchTarget.backRankCode)); }}><Bot size={18} /> Play AI While Waiting</button>
-              <button type="button" onClick={cancelMatch}>Cancel</button>
-            </div>
+            {matchmaking.status === 'timeout' && <p>No one matched within a minute. You can keep waiting or send an invite link.</p>}
+
+            {matchmaking.status !== 'found-ai' && (
+              <div className="panel-actions centered-actions">
+                {matchmaking.status === 'timeout' && <button type="button" onClick={() => requestMatchFor(matchTarget.seed, matchTarget.backRankCode)}><Users size={18} /> Keep Waiting</button>}
+                <button type="button" onClick={() => { void switchFromMatchmaking(inviteMatchTarget); }}><LinkIcon size={18} /> Challenge Friend Instead</button>
+                <button type="button" onClick={() => { void switchFromMatchmaking(() => playAiForSeed(matchTarget.seed, matchTarget.backRankCode)); }}><Bot size={18} /> Play AI While Waiting</button>
+                <button type="button" onClick={cancelMatch}>Cancel</button>
+              </div>
+            )}
           </div>
         </div>
       )}

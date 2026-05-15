@@ -21,6 +21,7 @@ import { recordPlayStreak } from '../game/playStreak.js';
 import { calculateGameScore, getMoveCaptureRecord } from '../game/scoring.js';
 import { playCheckSound, playMoveSound } from '../game/sound.js';
 import { applyMoveDelta, isMoveDelta, moveDeltaToMove, rebuildBoardFromHistory, replayMoves } from '../game/moveDelta.js';
+import { applyShieldLoss, applyShieldWin, readShieldProgression, saveShieldProgression } from '../game/shieldProgression.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveDelta, MoveRecord } from '../game/types.js';
 import { createOnlineGame, createSeededGame, joinOnlineGame, submitOnlineGameAction, submitOnlineMove } from '../multiplayer/gameApi.js';
 import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
@@ -123,6 +124,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [submittedScore, setSubmittedScore] = useState(false);
   const [scoreSubmitMessage, setScoreSubmitMessage] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [shieldProgression, setShieldProgression] = useState(readShieldProgression);
   const [copied, setCopied] = useState(false);
   const [pendingClientMoveIds, setPendingClientMoveIds] = useState<Set<string>>(() => new Set());
   const historyListRef = useRef<HTMLOListElement | null>(null);
@@ -230,7 +232,9 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     });
     setLocalBestScore(getLocalBestScore(seedLabel, scoreMode, scoreSide) ?? entry);
     recordPlayStreak();
-  }, [backRankCode, isCompleted, isLifecycleTerminal, role, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode, scoreSide, seedLabel, status]);
+    const didPlayerWin = winner === role;
+    setShieldProgression((current) => saveShieldProgression(didPlayerWin ? applyShieldWin(current) : applyShieldLoss(current)));
+  }, [backRankCode, isCompleted, isLifecycleTerminal, role, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode, scoreSide, seedLabel, status, winner]);
 
   useEffect(() => {
     if (!isCompleted || !isDailySeed) return;
