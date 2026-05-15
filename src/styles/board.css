@@ -1122,8 +1122,10 @@
 .board-turn-timer {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   min-width: 116px;
+  max-width: min(calc(100vw - 32px), 116px);
   padding: 11px 18px;
   border: 3px solid #fffbef;
   border-radius: 999px;
@@ -1132,7 +1134,12 @@
   box-shadow: 0 14px 0 rgba(17, 19, 21, 0.18), 0 20px 42px rgba(0, 0, 0, 0.28);
   font-weight: 1000;
   line-height: 1;
+  overflow: hidden;
   pointer-events: auto;
+  transition: max-width 220ms ease, padding 220ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+.board-turn-timer-expanded {
+  max-width: min(calc(100vw - 32px), 520px);
 }
 .board-turn-timer strong {
   min-width: 42px;
@@ -1150,18 +1157,15 @@
   font-size: clamp(1.8rem, 4vw, 2.65rem);
 }
 .board-timer-help {
-  width: min(280px, 76vw);
-  margin: 8px 0 0;
-  padding: 10px 12px;
-  border: 2px solid rgba(17, 19, 21, 0.16);
-  border-radius: 16px;
-  color: #111315;
-  background: rgba(255, 251, 239, 0.98);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
-  font-size: 0.92rem;
+  max-width: min(320px, 56vw);
+  padding-left: 12px;
+  border-left: 2px solid rgba(255, 251, 239, 0.36);
+  color: #fffbef;
+  font-size: clamp(0.78rem, 1.2vw, 0.92rem);
   font-weight: 850;
-  line-height: 1.25;
-  pointer-events: auto;
+  line-height: 1.18;
+  text-align: left;
+  white-space: normal;
 }
 @keyframes board-timer-danger-shake {
   0%, 100% { transform: translateX(0) scale(1.08); }
@@ -1182,9 +1186,15 @@
   }
   .board-turn-timer {
     min-width: 104px;
+    max-width: min(calc(100vw - 24px), 104px);
     padding: 10px 15px;
   }
+  .board-turn-timer-expanded {
+    max-width: min(calc(100vw - 24px), 430px);
+  }
   .board-timer-help {
-    width: min(260px, 74vw);
+    max-width: min(230px, 58vw);
+    padding-left: 10px;
+    font-size: 0.78rem;
   }
 }

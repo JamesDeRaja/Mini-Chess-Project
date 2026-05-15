@@ -201,20 +201,26 @@ export function Board({
     }
   }
 
+  function closeTimerHelpAfterDelay(delay = 3000) {
+    clearTimerHelpAutoClose();
+    timerHelpTimeoutRef.current = window.setTimeout(() => {
+      timerHelpTimeoutRef.current = null;
+      setIsTimerHelpOpen(false);
+    }, delay);
+  }
+
   function showTimerHelp(autoClose = false) {
     clearTimerHelpAutoClose();
     setIsTimerHelpOpen(true);
-    if (autoClose) {
-      timerHelpTimeoutRef.current = window.setTimeout(() => {
-        timerHelpTimeoutRef.current = null;
-        setIsTimerHelpOpen(false);
-      }, 4200);
-    }
+    if (autoClose) closeTimerHelpAfterDelay();
   }
 
   function hideTimerHelp() {
-    clearTimerHelpAutoClose();
-    setIsTimerHelpOpen(false);
+    closeTimerHelpAfterDelay();
+  }
+
+  function handleTimerClick() {
+    showTimerHelp(typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches);
   }
 
   function squareIndexFromPoint(clientX: number, clientY: number): number | null {
@@ -417,23 +423,23 @@ export function Board({
         <div className="board-timer-anchor">
           <button
             type="button"
-            className={`board-turn-timer ${timer.isDanger ? 'board-turn-timer-danger' : ''}`}
+            className={`board-turn-timer ${isTimerHelpOpen ? 'board-turn-timer-expanded' : ''} ${timer.isDanger ? 'board-turn-timer-danger' : ''}`}
             aria-label={`${timerLabel}. Tap for timer rules.`}
             aria-expanded={isTimerHelpOpen}
             onMouseEnter={() => showTimerHelp()}
             onMouseLeave={hideTimerHelp}
             onFocus={() => showTimerHelp()}
             onBlur={hideTimerHelp}
-            onClick={() => showTimerHelp(true)}
+            onClick={handleTimerClick}
           >
             <Timer size={24} aria-hidden="true" />
             <strong>{timer.seconds}s</strong>
+            {isTimerHelpOpen && (
+              <span className="board-timer-help" role="tooltip">
+                {timerExplanation}
+              </span>
+            )}
           </button>
-          {isTimerHelpOpen && (
-            <p className="board-timer-help" role="tooltip">
-              {timerExplanation}
-            </p>
-          )}
         </div>
       )}
       <div className="board-stage">
