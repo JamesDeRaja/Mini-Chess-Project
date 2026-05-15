@@ -53,6 +53,8 @@ type BotGamePageProps = {
   customBackRankCode?: string;
   playerSide?: Color;
   activeChallengeContext?: ActiveChallengeContext;
+  opponentName?: string;
+  isMatchmakingGame?: boolean;
   onHome: () => void;
   onCustomSeed: () => void;
   onDaily: () => void;
@@ -109,6 +111,8 @@ function getNextBotAdaptationProfile(profile: BotAdaptationProfile, didPlayerWin
 
 const BOT_MOVE_DELAY_MIN_MS = 650;
 const BOT_MOVE_DELAY_SPREAD_MS = 450;
+const MATCHMAKING_BOT_DELAY_MIN_MS = 1200;
+const MATCHMAKING_BOT_DELAY_SPREAD_MS = 2300;
 const HISTORY_AUTOPLAY_INTERVAL_MS = 780;
 const RESULT_REVEAL_DELAY_MS = 1250;
 
@@ -268,10 +272,10 @@ function InvalidSeedPanel({ customSeed, error, onHome, onCustomSeed, onDaily, on
 export function BotGamePage(props: BotGamePageProps) {
   const seedValidation = props.customSeed ? validateSeedInput(props.customSeed) : null;
   if (seedValidation && seedValidation.ok === false) return <InvalidSeedPanel {...props} error={seedValidation.error} />;
-  return <BotGameContent {...props} seedValidation={seedValidation} />;
+  return <BotGameContent {...props} seedValidation={seedValidation ?? null} />;
 }
 
-function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, customBackRankCode, playerSide, activeChallengeContext, onHome, seedValidation }: BotGameContentProps) {
+function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, customBackRankCode, playerSide, activeChallengeContext, opponentName, isMatchmakingGame, onHome, seedValidation }: BotGameContentProps) {
   const dailySeedInfo = useMemo(() => {
     if (seedValidation?.ok) {
       const safeBackRankCode = customBackRankCode && isValidBackRankCode(customBackRankCode) ? customBackRankCode.toUpperCase() : seedValidation.backRankCode;
@@ -339,7 +343,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const lastQueuedBotMoveKeyRef = useRef('');
   const recentBotMoveKeysRef = useRef<string[]>([]);
   const config = modeConfig[matchMode];
-  const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber, botAdaptationProfile);
+  const botLevel = isMatchmakingGame ? 'strong' : (dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber, botAdaptationProfile));
   const playerPowerTier = getPlayerPowerTier({ botLevel, dailyDifficulty: dailyAIDifficulty, dailyProgress: isDailyAI ? dailyAIProgress : null });
   const playerPowerLabel = getPowerRomanNumeral(shieldProgression.tier);
   const latestPly = boardTimeline.length - 1;
@@ -927,7 +931,9 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     if (lastQueuedBotMoveKeyRef.current === botMoveKey) return undefined;
     lastQueuedBotMoveKeyRef.current = botMoveKey;
 
-    const naturalDelay = BOT_MOVE_DELAY_MIN_MS + Math.floor(Math.random() * BOT_MOVE_DELAY_SPREAD_MS);
+    const delayMin = isMatchmakingGame ? MATCHMAKING_BOT_DELAY_MIN_MS : BOT_MOVE_DELAY_MIN_MS;
+    const delaySpread = isMatchmakingGame ? MATCHMAKING_BOT_DELAY_SPREAD_MS : BOT_MOVE_DELAY_SPREAD_MS;
+    const naturalDelay = delayMin + Math.floor(Math.random() * delaySpread);
     botMoveTimerRef.current = window.setTimeout(() => {
       botMoveTimerRef.current = null;
       const botMove = getBotMoveByLevel(board, botColor, botLevel, { avoidMoveKeys: new Set(recentBotMoveKeysRef.current), bestMoveChance: getBestMoveChanceForPower(playerPowerTier) });
@@ -943,7 +949,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         botMoveTimerRef.current = null;
       }
     };
-  }, [board, botColor, botLevel, completeMove, isBoardReady, isPreviewing, moveHistory.length, playerPowerTier, roundResetId, status, turn]);
+  }, [board, botColor, botLevel, completeMove, isBoardReady, isMatchmakingGame, isPreviewing, moveHistory.length, playerPowerTier, roundResetId, status, turn]);
 
   const handleBoardSpawnComplete = useCallback(() => {
     setIsBoardReady(true);
@@ -1114,7 +1120,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   return (
     <main className="game-page">
       <GameHeader
-        title="Play Against Bot"
+        title={isMatchmakingGame && opponentName ? `vs ${opponentName}` : 'Play Against Bot'}
         turn={turn}
         status={status}
         playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
@@ -1129,16 +1135,19 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           <div className="panel-title-row">
             <div>
               <p className="eyebrow">Match</p>
-              <h2>{config.label}</h2>
+              <h2>{isMatchmakingGame ? 'Online Match' : config.label}</h2>
             </div>
-            <span className="mode-badge">{isDailyAI ? 'Daily' : '1v1'}</span>
+            <span className="mode-badge">{isMatchmakingGame ? 'Online' : isDailyAI ? 'Daily' : '1v1'}</span>
           </div>
           <div className="score-stack">
             <CapturedScoreRow side="white" moves={moveHistory} scoringSide={playerColor} isActive={turn === 'white' && status === 'active'} />
             <CapturedScoreRow side="black" moves={moveHistory} scoringSide={playerColor} isActive={turn === 'black' && status === 'active'} />
           </div>
           <div className="info-stack">
-            <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
+            {isMatchmakingGame && opponentName && (
+              <p><span>⚔️ Opponent</span><strong className="matchmaking-opponent-name">{opponentName}</strong></p>
+            )}
+            {!isMatchmakingGame && <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>}
             <p><span>🛡️ Your power</span><strong><PowerShieldBadge tier={shieldProgression.tier} pips={shieldProgression.pips} /></strong></p>
             <p><span>{seedInfoLabel}</span><strong>{dailySeedInfo.seed}</strong></p>
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>

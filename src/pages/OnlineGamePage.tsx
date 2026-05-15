@@ -21,6 +21,7 @@ import { recordPlayStreak } from '../game/playStreak.js';
 import { calculateGameScore, getMoveCaptureRecord } from '../game/scoring.js';
 import { playCheckSound, playMoveSound } from '../game/sound.js';
 import { applyMoveDelta, isMoveDelta, moveDeltaToMove, rebuildBoardFromHistory, replayMoves } from '../game/moveDelta.js';
+import { applyShieldLoss, applyShieldWin, readShieldProgression, saveShieldProgression } from '../game/shieldProgression.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveDelta, MoveRecord } from '../game/types.js';
 import { createOnlineGame, createSeededGame, joinOnlineGame, submitOnlineGameAction, submitOnlineMove } from '../multiplayer/gameApi.js';
 import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
@@ -125,6 +126,8 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [copied, setCopied] = useState(false);
   const [pendingClientMoveIds, setPendingClientMoveIds] = useState<Set<string>>(() => new Set());
+  const [shieldProgression, setShieldProgression] = useState(readShieldProgression);
+  const shieldAppliedRef = useRef(false);
   const historyListRef = useRef<HTMLOListElement | null>(null);
   const confirmedGameRef = useRef<OnlineGameRecord | null>(null);
   const pendingClientMoveIdsRef = useRef(pendingClientMoveIds);
@@ -256,6 +259,13 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   // handleSubmitScore reads the latest completed score state and is intentionally triggered once per result.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCompleted, role, submittedScore]);
+
+  useEffect(() => {
+    if (!isFinishedGame || role === 'spectator' || shieldAppliedRef.current) return;
+    shieldAppliedRef.current = true;
+    const didWin = winner === role;
+    setShieldProgression((current) => saveShieldProgression(didWin ? applyShieldWin(current) : applyShieldLoss(current)));
+  }, [isFinishedGame, role, winner]);
 
   function setPendingIds(updater: (ids: Set<string>) => Set<string>) {
     setPendingClientMoveIds((currentIds) => {

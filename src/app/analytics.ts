@@ -4,7 +4,8 @@ type AnalyticsEventName =
   | 'ai_mode_start'
   | 'invite_creation_start'
   | 'share_button_click'
-  | 'seed_challenge_start';
+  | 'seed_challenge_start'
+  | 'matchmaking_ai_start';
 
 type AnalyticsPayload = Record<string, string | number | boolean | undefined>;
 
