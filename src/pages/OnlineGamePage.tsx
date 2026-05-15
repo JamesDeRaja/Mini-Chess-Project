@@ -708,7 +708,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
 
   return (
     <main className="game-page">
-      <GameHeader title="Online Game" turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} statusLabelOverride={headerStatusLabel} turnLabelOverride={headerTurnLabel} scoreLabel={headerScoreLabel} />
+      <GameHeader title={opponentName ? `vs ${opponentName}` : 'Online Game'} turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} statusLabelOverride={headerStatusLabel} turnLabelOverride={headerTurnLabel} scoreLabel={headerScoreLabel} />
       {toast && <p className="sync-toast" role="status">{toast}</p>}
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel online-match-panel">
