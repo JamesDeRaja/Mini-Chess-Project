@@ -58,6 +58,17 @@ export function PowerShieldBadge({ tier, label = 'Player power', winStreak, loss
               />
             ))}
           </div>
+          <div className="power-shield-charge-row">
+            <span className="power-shield-charge-label">{(lossStreak ?? 0) > 0 ? 'Loss streak' : 'Win streak'}</span>
+            <span className="power-shield-charge-pips">
+              {[1, 2].map((step) => (
+                <span
+                  key={step}
+                  className={`power-shield-charge-pip${(winStreak ?? 0) >= step ? ' win' : (lossStreak ?? 0) >= step ? ' loss' : ''}`}
+                />
+              ))}
+            </span>
+          </div>
           <p className="power-shield-progress-message">{getProgressMessage(tier, winStreak ?? 0, lossStreak ?? 0)}</p>
         </div>
         <ul className="power-shield-guide-list">

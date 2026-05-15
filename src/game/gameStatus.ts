@@ -14,7 +14,13 @@ export function isStalemate(board: Board, color: Color): boolean {
   return !isKingInCheck(board, color) && getAllLegalMoves(board, color).length === 0;
 }
 
+export function isInsufficientMaterial(board: Board): boolean {
+  const pieces = board.flatMap((sq) => (sq.piece ? [sq.piece] : []));
+  return pieces.length === 2 && pieces.every((p) => p.type === 'king');
+}
+
 export function getStatusForTurn(board: Board, turn: Color): GameStatus {
+  if (isInsufficientMaterial(board)) return 'draw';
   if (isCheckmate(board, turn)) {
     return turn === 'white' ? 'black_won' : 'white_won';
   }

@@ -26,7 +26,7 @@ import {
 import { findKingIndex, isKingInCheck } from '../game/check.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
 import { squareLabel } from '../game/coordinates.js';
-import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
+import { getOpponent, getStatusForTurn, isInsufficientMaterial } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, validateSeedInput } from '../game/seed.js';
 import { getSeedDisplayName, normalizeSeedSlug } from '../game/curatedSeeds.js';
@@ -65,7 +65,7 @@ type RoundResult = {
   message: string;
   progressionMessage?: string;
   didPlayerWin: boolean;
-  drawReason?: 'agreed' | 'stalemate';
+  drawReason?: 'agreed' | 'stalemate' | 'bare-kings';
 };
 
 type PendingAction = 'resign' | 'draw' | 'restart' | null;
@@ -194,6 +194,7 @@ function getRoundMessage(status: GameStatus, drawReason?: RoundResult['drawReaso
   if (status === 'white_won') return 'Checkmate - White wins this game!';
   if (status === 'black_won') return 'Checkmate - Black wins this game!';
   if (status === 'draw' && drawReason === 'stalemate') return 'Stalemate - no legal moves, so the game is drawn.';
+  if (status === 'draw' && drawReason === 'bare-kings') return 'Only kings remain — the game is a draw.';
   if (status === 'draw') return 'Draw agreed for this game.';
   return '';
 }
@@ -720,7 +721,11 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     playMoveSound(move.isCapture);
     if (nextStatus !== 'active') {
       playResultSound(getWinner(nextStatus) === playerColor);
-      finishRound(nextStatus, nextStatus === 'draw' ? 'stalemate' : undefined);
+      let drawReason: RoundResult['drawReason'];
+      if (nextStatus === 'draw') {
+        drawReason = isInsufficientMaterial(nextBoard) ? 'bare-kings' : 'stalemate';
+      }
+      finishRound(nextStatus, drawReason);
     } else if (isKingInCheck(nextBoard, nextTurn)) {
       playCheckSound();
     }

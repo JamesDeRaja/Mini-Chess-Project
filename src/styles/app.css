@@ -9914,6 +9914,48 @@ body.home-modal-open .home-page {
   box-shadow: 0 2px 8px var(--shield-glow);
 }
 
+.power-shield-charge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.power-shield-charge-label {
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #8a9d90;
+  white-space: nowrap;
+}
+
+.power-shield-charge-pips {
+  display: flex;
+  gap: 5px;
+}
+
+.power-shield-charge-pip {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(200, 215, 208, 0.45);
+  border: 2px solid rgba(180, 200, 190, 0.5);
+  transition: background 220ms ease, border-color 220ms ease, transform 220ms ease;
+}
+
+.power-shield-charge-pip.win {
+  background: #5caa6f;
+  border-color: #4a8f5b;
+  transform: scale(1.08);
+}
+
+.power-shield-charge-pip.loss {
+  background: #c96050;
+  border-color: #a84d3e;
+  transform: scale(1.08);
+}
+
 .power-shield-guide .power-shield-progress-message {
   font-size: 0.88rem;
   font-weight: 850;
