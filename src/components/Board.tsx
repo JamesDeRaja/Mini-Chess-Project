@@ -76,6 +76,13 @@ function getMotionPreference(): boolean {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function formatTimerSeconds(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.ceil(seconds));
+  const minutes = Math.floor(safeSeconds / 60).toString().padStart(2, '0');
+  const remainingSeconds = (safeSeconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${remainingSeconds}`;
+}
+
 function getMoveKeyframes(pieceType: PieceType, deltaX: number, deltaY: number, isCapture: boolean, inputKind: MoveInputKind): Keyframe[] {
   if (inputKind === 'drag') {
     return isCapture
@@ -127,26 +134,26 @@ export function Board({
   onSpawnComplete,
 }: BoardProps) {
   const boardElementRef = useRef<HTMLDivElement | null>(null);
-  const timerHelpTimeoutRef = useRef<number | null>(null);
+  const timerExpandTimeoutRef = useRef<number | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
   const suppressNextClickRef = useRef(false);
   const pendingMoveInputRef = useRef<MoveInputKind>('click');
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [isSpawningPieces, setIsSpawningPieces] = useState(true);
-  const [isTimerHelpOpen, setIsTimerHelpOpen] = useState(false);
+  const [isTimerExpanded, setIsTimerExpanded] = useState(false);
   const squares = [];
   const ranks = Array.from({ length: BOARD_RANKS }, (_, rank) => rank);
   const files = Array.from({ length: BOARD_FILES }, (_, file) => file);
   const visualRanks = isFlipped ? ranks : [...ranks].reverse();
   const visualFiles = isFlipped ? [...files].reverse() : files;
   useEffect(() => () => {
-    if (timerHelpTimeoutRef.current !== null) window.clearTimeout(timerHelpTimeoutRef.current);
+    if (timerExpandTimeoutRef.current !== null) window.clearTimeout(timerExpandTimeoutRef.current);
   }, []);
 
   useEffect(() => {
     if (timer) return undefined;
-    const closeTimerHelpId = window.setTimeout(() => setIsTimerHelpOpen(false), 0);
-    return () => window.clearTimeout(closeTimerHelpId);
+    const closeTimerId = window.setTimeout(() => setIsTimerExpanded(false), 0);
+    return () => window.clearTimeout(closeTimerId);
   }, [timer]);
 
   useEffect(() => {
@@ -194,27 +201,27 @@ export function Board({
     setDragState(nextDragState);
   }
 
-  function clearTimerHelpAutoClose() {
-    if (timerHelpTimeoutRef.current !== null) {
-      window.clearTimeout(timerHelpTimeoutRef.current);
-      timerHelpTimeoutRef.current = null;
+  function clearTimerExpandAutoClose() {
+    if (timerExpandTimeoutRef.current !== null) {
+      window.clearTimeout(timerExpandTimeoutRef.current);
+      timerExpandTimeoutRef.current = null;
     }
   }
 
-  function showTimerHelp(autoClose = false) {
-    clearTimerHelpAutoClose();
-    setIsTimerHelpOpen(true);
+  function expandTimer(autoClose = false) {
+    clearTimerExpandAutoClose();
+    setIsTimerExpanded(true);
     if (autoClose) {
-      timerHelpTimeoutRef.current = window.setTimeout(() => {
-        timerHelpTimeoutRef.current = null;
-        setIsTimerHelpOpen(false);
-      }, 4200);
+      timerExpandTimeoutRef.current = window.setTimeout(() => {
+        timerExpandTimeoutRef.current = null;
+        setIsTimerExpanded(false);
+      }, 3600);
     }
   }
 
-  function hideTimerHelp() {
-    clearTimerHelpAutoClose();
-    setIsTimerHelpOpen(false);
+  function collapseTimer() {
+    clearTimerExpandAutoClose();
+    setIsTimerExpanded(false);
   }
 
   function squareIndexFromPoint(clientX: number, clientY: number): number | null {
@@ -352,8 +359,9 @@ export function Board({
   }
 
   const visibleResultMarkers = Array.isArray(resultMarker) ? resultMarker : resultMarker ? [resultMarker] : [];
-  const timerLabel = timer?.label ?? (timer ? `${timer.seconds} seconds left this move` : '');
-  const timerExplanation = timer?.explanation ?? 'Each move has 20 seconds. If the timer reaches zero, the player to move loses on time.';
+  const formattedTimer = timer ? formatTimerSeconds(timer.seconds) : '';
+  const timerLabel = timer?.label ?? (timer ? `${formattedTimer} left this move` : '');
+  const timerExplanation = timer?.explanation ?? 'Move before the time runs out.';
   const boardClassName = [
     'board',
     dragState?.hasMoved ? 'dragging-board' : '',
@@ -417,23 +425,19 @@ export function Board({
         <div className="board-timer-anchor">
           <button
             type="button"
-            className={`board-turn-timer ${timer.isDanger ? 'board-turn-timer-danger' : ''}`}
-            aria-label={`${timerLabel}. Tap for timer rules.`}
-            aria-expanded={isTimerHelpOpen}
-            onMouseEnter={() => showTimerHelp()}
-            onMouseLeave={hideTimerHelp}
-            onFocus={() => showTimerHelp()}
-            onBlur={hideTimerHelp}
-            onClick={() => showTimerHelp(true)}
+            className={`board-turn-timer ${timer.isDanger ? 'board-turn-timer-danger' : ''} ${isTimerExpanded ? 'board-turn-timer-expanded' : ''}`}
+            aria-label={`${timerLabel}. ${timerExplanation}`}
+            aria-expanded={isTimerExpanded}
+            onMouseEnter={() => expandTimer()}
+            onMouseLeave={collapseTimer}
+            onFocus={() => expandTimer()}
+            onBlur={collapseTimer}
+            onClick={() => expandTimer(true)}
           >
             <Timer size={24} aria-hidden="true" />
-            <strong>{timer.seconds}s</strong>
+            <strong>{formattedTimer}</strong>
+            <span className="board-turn-timer-copy" aria-hidden={!isTimerExpanded}>{timerExplanation}</span>
           </button>
-          {isTimerHelpOpen && (
-            <p className="board-timer-help" role="tooltip">
-              {timerExplanation}
-            </p>
-          )}
         </div>
       )}
       <div className="board-stage">

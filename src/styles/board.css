@@ -1104,25 +1104,29 @@
   position: relative;
 }
 .board-frame-with-timer {
-  display: grid;
-  row-gap: clamp(10px, 1.8vw, 18px);
-  margin-top: clamp(8px, 1.4vw, 16px);
+  margin-top: 0;
 }
 .board-timer-anchor {
-  position: relative;
+  position: absolute;
+  top: clamp(-72px, -6vw, -52px);
+  left: 50%;
   z-index: 12;
   display: grid;
   box-sizing: border-box;
   width: 100%;
   padding-left: var(--rank-label-size, 0px);
   justify-items: center;
+  transform: translateX(-50%);
   pointer-events: none;
 }
 .board-turn-timer {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  min-width: 116px;
+  max-width: min(86vw, 420px);
+  min-width: 124px;
+  min-height: 54px;
   padding: 11px 18px;
   border: 3px solid #fffbef;
   border-radius: 999px;
@@ -1131,12 +1135,36 @@
   box-shadow: 0 14px 0 rgba(17, 19, 21, 0.18), 0 20px 42px rgba(0, 0, 0, 0.28);
   font-weight: 1000;
   line-height: 1;
+  white-space: nowrap;
   pointer-events: auto;
+  transition: max-width 220ms ease, min-width 220ms ease, padding 220ms ease, transform 180ms ease, background 180ms ease;
 }
 .board-turn-timer strong {
-  min-width: 42px;
-  font-size: clamp(1.35rem, 3vw, 2rem);
+  min-width: 70px;
+  font-size: clamp(1.28rem, 2.55vw, 1.85rem);
   font-variant-numeric: tabular-nums;
+}
+.board-turn-timer-copy {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  color: inherit;
+  font-size: clamp(0.8rem, 1.15vw, 0.95rem);
+  font-weight: 950;
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+  text-align: left;
+  transition: max-width 220ms ease, opacity 180ms ease;
+}
+.board-turn-timer-expanded {
+  max-width: min(92vw, 470px);
+  min-width: min(92vw, 360px);
+  padding-inline: 20px;
+}
+.board-turn-timer-expanded .board-turn-timer-copy {
+  max-width: 240px;
+  opacity: 1;
 }
 .board-turn-timer-danger {
   color: #fff7f2;
@@ -1146,22 +1174,9 @@
   animation: board-timer-danger-shake 360ms linear infinite;
 }
 .board-turn-timer-danger strong {
-  font-size: clamp(1.8rem, 4vw, 2.65rem);
+  font-size: clamp(1.65rem, 3.4vw, 2.35rem);
 }
-.board-timer-help {
-  width: min(280px, 76vw);
-  margin: 8px 0 0;
-  padding: 10px 12px;
-  border: 2px solid rgba(17, 19, 21, 0.16);
-  border-radius: 16px;
-  color: #111315;
-  background: rgba(255, 251, 239, 0.98);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
-  font-size: 0.92rem;
-  font-weight: 850;
-  line-height: 1.25;
-  pointer-events: auto;
-}
+
 @keyframes board-timer-danger-shake {
   0%, 100% { transform: translateX(0) scale(1.08); }
   25% { transform: translateX(-2px) scale(1.13) rotate(-1deg); }
@@ -1170,15 +1185,21 @@
 }
 
 @media (max-width: 699px) {
-  .board-frame-with-timer {
-    row-gap: 12px;
-    margin-top: 18px;
+  .board-timer-anchor {
+    top: -58px;
   }
   .board-turn-timer {
-    min-width: 104px;
-    padding: 10px 15px;
+    min-width: 112px;
+    min-height: 48px;
+    padding: 9px 14px;
   }
-  .board-timer-help {
-    width: min(260px, 74vw);
+  .board-turn-timer strong {
+    min-width: 62px;
+  }
+  .board-turn-timer-expanded {
+    min-width: min(92vw, 330px);
+  }
+  .board-turn-timer-expanded .board-turn-timer-copy {
+    max-width: 190px;
   }
 }
