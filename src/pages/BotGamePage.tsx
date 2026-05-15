@@ -14,6 +14,7 @@ import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { analyzeMove, getBestMoveForPosition, getMoveNotation } from '../game/analysis.js';
 import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
 import { type BotLevel, getBotMoveByLevel, getMoveIdentity } from '../game/bot.js';
+import { pickRandomPlayerName } from '../game/humanPlayers.js';
 import {
   type DailyAIDifficulty,
   type DailyAIProgress,
@@ -299,6 +300,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   const [botAdaptationProfile, setBotAdaptationProfile] = useState(readBotAdaptationProfile);
   const [shieldProgression, setShieldProgression] = useState(readShieldProgression);
+  const [botOpponentName] = useState(() => pickRandomPlayerName());
+  const opponentDisplayName = (isMatchedGame && pseudoOpponentName) ? pseudoOpponentName : botOpponentName;
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
   const dailyAscensionTier = getAscensionTierForDailyDifficulty(dailyAIDifficulty);
   const ascensionMissingNote = isDailyAI ? getAscensionMissingNote(dailyAscensionTier) : null;
@@ -971,7 +974,9 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       : roundResult.didPlayerWin
         ? 'You won'
         : 'You lost'
-    : undefined;
+    : status === 'active'
+      ? turn === playerColor ? 'Your turn' : `${opponentDisplayName}'s turn`
+      : undefined;
   const resultMarker = useMemo(() => {
     if (!roundResult || displayStatus === 'active') return null;
     if (displayStatus === 'white_won' || displayStatus === 'black_won') {
@@ -1128,16 +1133,16 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   return (
     <main className="game-page">
       <GameHeader
-        title={isMatchedGame && pseudoOpponentName ? `vs ${pseudoOpponentName}` : 'Play Against Bot'}
+        title={`vs ${opponentDisplayName}`}
         turn={turn}
         status={status}
         playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
         details={
-          isMatchedGame && pseudoOpponentName
-            ? `Matched game · vs ${pseudoOpponentName} · Power ${playerPowerLabel}`
+          isMatchedGame
+            ? `Matched game · vs ${opponentDisplayName} · Power ${playerPowerLabel}`
             : dailyAIDifficulty
-              ? `Daily ladder · ${dailyAIDifficulty} bot · Power ${playerPowerLabel} · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars`
-              : `${config.label} · ${botLevel} bot · Power ${playerPowerLabel}`
+              ? `Daily challenge · vs ${opponentDisplayName} · Power ${playerPowerLabel} · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars`
+              : `${config.label} · vs ${opponentDisplayName} · Power ${playerPowerLabel}`
         }
         onTitleClick={onHome}
         statusLabelOverride={headerStatusLabel}
@@ -1148,8 +1153,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         <aside className="side-panel match-panel">
           <div className="panel-title-row">
             <div>
-              <p className="eyebrow">{isMatchedGame ? 'Online Match' : 'Match'}</p>
-              <h2>{isMatchedGame && pseudoOpponentName ? `vs ${pseudoOpponentName}` : config.label}</h2>
+              <p className="eyebrow">{isMatchedGame ? 'Online Match' : isDailyAI ? 'Daily' : 'Match'}</p>
+              <h2>vs {opponentDisplayName}</h2>
             </div>
             <span className="mode-badge">{isMatchedGame ? 'Matched' : isDailyAI ? 'Daily' : '1v1'}</span>
           </div>
@@ -1158,10 +1163,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             <CapturedScoreRow side="black" moves={moveHistory} scoringSide={playerColor} isActive={turn === 'black' && status === 'active'} />
           </div>
           <div className="info-stack">
-            {isMatchedGame && pseudoOpponentName
-              ? <p><span>Opponent</span><strong>{pseudoOpponentName}</strong></p>
-              : <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
-            }
+            <p><span>Opponent</span><strong>{opponentDisplayName}</strong></p>
             <p><span>🛡️ Your power</span><strong><PowerShieldBadge tier={shieldProgression.tier} pips={shieldProgression.pips} /></strong></p>
             <p><span>{seedInfoLabel}</span><strong>{dailySeedInfo.seed}</strong></p>
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>
