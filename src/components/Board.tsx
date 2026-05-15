@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { Timer } from 'lucide-react';
 import { BOARD_FILES, BOARD_RANKS } from '../game/constants.js';
 import { fileLabel, index } from '../game/coordinates.js';
 import type { Board as ChessBoard, Color, Move, MoveAnalysis, Piece as ChessPiece, PieceType } from '../game/types.js';
@@ -9,6 +10,7 @@ import { Square } from './Square.js';
 type LastMove = (Pick<Move, 'from' | 'to'> & { color?: Color; piece?: Move['piece'] | PieceType; isCapture?: boolean; captureScore?: number | null }) | null;
 
 type BoardResultMarker = { squareIndex: number | null; icon: string; label: string; tone: 'win' | 'loss' | 'draw' };
+type BoardTimer = { seconds: number; isDanger?: boolean; label?: string; explanation?: string };
 
 type BoardProps = {
   board: ChessBoard;
@@ -23,6 +25,7 @@ type BoardProps = {
   isInteractive?: boolean;
   scoringSide?: Color;
   spawnKey?: string | number;
+  timer?: BoardTimer | null;
   onSquareClick: (squareIndex: number) => void;
   onDragStart?: (squareIndex: number) => Move[] | null;
   onDrop?: (squareIndex: number, move: Move) => void;
@@ -95,7 +98,7 @@ function getMoveKeyframes(pieceType: PieceType, deltaX: number, deltaY: number, 
   const midX = deltaX * 0.48;
   const midY = deltaY * 0.48 - arc;
   return [
-    { transform: `translate(${deltaX}px, ${deltaY}px) scale(0.96, 1.04) rotate(${rotation}deg)`, opacity: 0.92, offset: 0 },
+    { transform: `translate(${deltaX}px, ${deltaY}px) scale(0.96, 1.04) rotate(${rotation}deg)`, opacity: 1, offset: 0 },
     { transform: `translate(${midX}px, ${midY}px) scale(1.05) rotate(${rotation * -0.35}deg)`, opacity: 1, offset: 0.46 },
     { transform: isCapture ? 'translateY(5px) scale(1.18, 0.76) rotate(3deg)' : 'translateY(3px) scale(1.12, 0.82)', opacity: 1, offset: 0.74 },
     { transform: 'translateY(-3px) scale(0.97, 1.07)', opacity: 1, offset: 0.88 },
@@ -116,6 +119,7 @@ export function Board({
   isInteractive = true,
   scoringSide,
   spawnKey,
+  timer = null,
   onSquareClick,
   onDragStart,
   onDrop,
@@ -123,16 +127,28 @@ export function Board({
   onSpawnComplete,
 }: BoardProps) {
   const boardElementRef = useRef<HTMLDivElement | null>(null);
+  const timerHelpTimeoutRef = useRef<number | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
   const suppressNextClickRef = useRef(false);
   const pendingMoveInputRef = useRef<MoveInputKind>('click');
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [isSpawningPieces, setIsSpawningPieces] = useState(true);
+  const [isTimerHelpOpen, setIsTimerHelpOpen] = useState(false);
   const squares = [];
   const ranks = Array.from({ length: BOARD_RANKS }, (_, rank) => rank);
   const files = Array.from({ length: BOARD_FILES }, (_, file) => file);
   const visualRanks = isFlipped ? ranks : [...ranks].reverse();
   const visualFiles = isFlipped ? [...files].reverse() : files;
+  useEffect(() => () => {
+    if (timerHelpTimeoutRef.current !== null) window.clearTimeout(timerHelpTimeoutRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (timer) return undefined;
+    const closeTimerHelpId = window.setTimeout(() => setIsTimerHelpOpen(false), 0);
+    return () => window.clearTimeout(closeTimerHelpId);
+  }, [timer]);
+
   useEffect(() => {
     const spawnTimer = window.setTimeout(() => {
       setIsSpawningPieces(false);
@@ -176,6 +192,29 @@ export function Board({
   function updateDragState(nextDragState: DragState | null) {
     dragStateRef.current = nextDragState;
     setDragState(nextDragState);
+  }
+
+  function clearTimerHelpAutoClose() {
+    if (timerHelpTimeoutRef.current !== null) {
+      window.clearTimeout(timerHelpTimeoutRef.current);
+      timerHelpTimeoutRef.current = null;
+    }
+  }
+
+  function showTimerHelp(autoClose = false) {
+    clearTimerHelpAutoClose();
+    setIsTimerHelpOpen(true);
+    if (autoClose) {
+      timerHelpTimeoutRef.current = window.setTimeout(() => {
+        timerHelpTimeoutRef.current = null;
+        setIsTimerHelpOpen(false);
+      }, 4200);
+    }
+  }
+
+  function hideTimerHelp() {
+    clearTimerHelpAutoClose();
+    setIsTimerHelpOpen(false);
   }
 
   function squareIndexFromPoint(clientX: number, clientY: number): number | null {
@@ -313,6 +352,16 @@ export function Board({
   }
 
   const visibleResultMarkers = Array.isArray(resultMarker) ? resultMarker : resultMarker ? [resultMarker] : [];
+  const timerLabel = timer?.label ?? (timer ? `${timer.seconds} seconds left this move` : '');
+  const timerExplanation = timer?.explanation ?? 'Each move has 20 seconds. If the timer reaches zero, the player to move loses on time.';
+  const boardClassName = [
+    'board',
+    dragState?.hasMoved ? 'dragging-board' : '',
+    isSpawningPieces ? 'piece-spawn-board' : '',
+    visibleResultMarkers.length > 0 ? 'board-result-active' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
   const visibleLegalMoves = dragState?.hasMoved ? dragState.legalMoves : legalMoves;
   const dragHoveredSquare = dragState?.hasMoved ? dragState.hoveredSquare : null;
   const dragHoveredLegalSquare = dragHoveredSquare !== null && visibleLegalMoves.some((move) => move.to === dragHoveredSquare) ? dragHoveredSquare : null;
@@ -363,12 +412,35 @@ export function Board({
   const fileLabels = visualFiles.map((file) => fileLabel(file));
 
   return (
-    <div className="board-frame board-shell">
+    <div className={`board-frame board-shell ${timer ? 'board-frame-with-timer' : ''}`}>
+      {timer && (
+        <div className="board-timer-anchor">
+          <button
+            type="button"
+            className={`board-turn-timer ${timer.isDanger ? 'board-turn-timer-danger' : ''}`}
+            aria-label={`${timerLabel}. Tap for timer rules.`}
+            aria-expanded={isTimerHelpOpen}
+            onMouseEnter={() => showTimerHelp()}
+            onMouseLeave={hideTimerHelp}
+            onFocus={() => showTimerHelp()}
+            onBlur={hideTimerHelp}
+            onClick={() => showTimerHelp(true)}
+          >
+            <Timer size={24} aria-hidden="true" />
+            <strong>{timer.seconds}s</strong>
+          </button>
+          {isTimerHelpOpen && (
+            <p className="board-timer-help" role="tooltip">
+              {timerExplanation}
+            </p>
+          )}
+        </div>
+      )}
       <div className="board-stage">
         <div className="board-rank-labels" aria-hidden="true">
           {rankLabels.map((rank) => <span key={rank}>{rank}</span>)}
         </div>
-        <div ref={boardElementRef} className={`board ${dragState?.hasMoved ? 'dragging-board' : ''} ${isSpawningPieces ? 'piece-spawn-board' : ''}`} role="grid" aria-label={ariaLabel}>{squares}<AnalysisOverlay analysis={analysis} actualTo={lastMove?.to ?? null} isFlipped={isFlipped} /></div>
+        <div ref={boardElementRef} className={boardClassName} role="grid" aria-label={ariaLabel}>{squares}<AnalysisOverlay analysis={analysis} actualTo={lastMove?.to ?? null} isFlipped={isFlipped} /></div>
         <div className="board-file-labels" aria-hidden="true">
           {fileLabels.map((file) => <span key={file}>{file}</span>)}
         </div>

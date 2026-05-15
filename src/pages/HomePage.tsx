@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { ArrowRight, BookOpen, Bot, CalendarDays, ChevronLeft, ChevronRight, Copy, Flame, Link as LinkIcon, RefreshCw, Share2, Shuffle, Trophy, Users, X, Zap } from 'lucide-react';
 import { pickRandomPlayerName, pickRandomPlayerNames } from '../game/humanPlayers.js';
-import { getDailyAIDifficulty, getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
+import { getDailyAIProgress, getDailyAIStatusLine, resetDailyAIProgressIfNeeded, type DailyAIProgress } from '../game/dailyAIProgress.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, validateSeedInput, createSeedFromInput } from '../game/seed.js';
 import { createRandomGameSeed, getCurrentShuffleMode, getPageSessionRandomGameSeed, resolveSeedSourceForMode, setCurrentShuffleMode, type ShuffleMode } from '../game/shuffleMode.js';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
@@ -16,7 +16,6 @@ import { CURATED_SEEDS } from '../game/curatedSeeds.js';
 import { createSeedChallengeUrl } from '../game/challenge.js';
 import { buildSeedShareMessage, getRandomShareTaunt } from '../game/shareTaunts.js';
 import { PowerShieldBadge } from '../components/PowerShieldBadge.js';
-import { getPlayerPowerTier } from '../game/playerPower.js';
 import { readShieldProgression } from '../game/shieldProgression.js';
 
 type HomePageProps = {
@@ -28,7 +27,7 @@ type HomePageProps = {
   onSeeded: (seed: string, backRankCode?: string) => void;
   onFindMatch: (seed: string, backRankCode: string) => Promise<MatchmakingResponse>;
   onCancelFindMatch: (queueId?: string) => Promise<void>;
-  onStartAiAsPlayer: (opponentName: string, seed: string, backRankCode?: string) => void;
+  onStartAiAsPlayer: (opponentName: string, seed: string, backRankCode: string | undefined, playerSide: 'white' | 'black') => void;
 };
 
 type ModalName = 'date' | 'custom' | 'rules' | 'matchmaking' | 'dailyMastered' | 'streak' | null;
@@ -38,7 +37,7 @@ type LeaderboardView = { scope: LeaderboardScope; label: string; title: string; 
 type MatchmakingState =
   | { status: 'idle' }
   | { status: 'finding'; queueId?: string }
-  | { status: 'found-ai'; opponentName: string; queueId?: string }
+  | { status: 'found-ai'; opponentName: string; playerSide: 'white' | 'black'; queueId?: string }
   | { status: 'timeout'; queueId?: string }
   | { status: 'failed'; message: string };
 
@@ -190,7 +189,6 @@ export function HomePage({
   const customSeedError = customSeedWasSubmitted && customSeedValidation.ok === false ? customSeedValidation.error : null;
   const customBackRankCode = customSeedValidation.ok ? customSeedValidation.backRankCode : null;
   const dailyAIStatusLine = getDailyAIStatusLine(dailyAIProgress);
-  const homePowerTier = getPlayerPowerTier({ dailyDifficulty: shuffleMode === 'daily' ? getDailyAIDifficulty(dailyAIProgress) : null, dailyProgress: shuffleMode === 'daily' ? dailyAIProgress : null, botLevel: shuffleMode === 'daily' ? undefined : 'medium' });
   const shouldConfirmDailyReplay = dailyAIProgress.stars >= 3 || dailyAIProgress.magicStarUnlocked;
   const dailyMasteredSeedSuggestions = CURATED_SEEDS.filter((seed) => ['gotham-chaos', 'boss-battle', 'queen-rush'].includes(seed.slug)).slice(0, 3);
   const activeLeaderboardView = leaderboardViews.find((view) => view.scope === leaderboardScope) ?? leaderboardViews[0];
@@ -544,7 +542,8 @@ export function HomePage({
     const aiFallbackDelay = 10000 + Math.floor(Math.random() * 5000);
     const aiFallbackId = window.setTimeout(() => {
       const opponentName = pickRandomPlayerName();
-      setMatchmaking((current) => (current.status === 'finding' ? { status: 'found-ai', opponentName, queueId: current.queueId } : current));
+      const playerSide = Math.random() < 0.5 ? 'white' : 'black';
+      setMatchmaking((current) => (current.status === 'finding' ? { status: 'found-ai', opponentName, playerSide, queueId: current.queueId } : current));
     }, aiFallbackDelay);
 
     const timeoutId = window.setTimeout(() => {
@@ -561,12 +560,12 @@ export function HomePage({
   // When AI match is found, cancel server queue and navigate to bot game after brief delay
   useEffect(() => {
     if (matchmaking.status !== 'found-ai') return;
-    const { opponentName, queueId } = matchmaking;
+    const { opponentName, playerSide, queueId } = matchmaking;
     const navigateId = window.setTimeout(() => {
       void onCancelFindMatch(queueId);
       setMatchmaking({ status: 'idle' });
       setModal(null);
-      onStartAiAsPlayer(opponentName, matchTarget.seed, matchTarget.backRankCode);
+      onStartAiAsPlayer(opponentName, matchTarget.seed, matchTarget.backRankCode, playerSide);
     }, 2000);
     return () => window.clearTimeout(navigateId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -575,8 +574,8 @@ export function HomePage({
   // Cycle through random names while searching
   useEffect(() => {
     if (matchmaking.status !== 'finding') {
-      setSearchingNames([]);
-      return undefined;
+      const clearId = window.setTimeout(() => setSearchingNames([]), 0);
+      return () => window.clearTimeout(clearId);
     }
     const refresh = () => {
       setSearchingNames(pickRandomPlayerNames(3));
