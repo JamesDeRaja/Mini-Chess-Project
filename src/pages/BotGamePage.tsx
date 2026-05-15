@@ -1176,6 +1176,13 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             onDragCancel={() => { setSelectedSquare(null); setLegalMoves([]); }}
             onSpawnComplete={handleBoardSpawnComplete}
           />
+          <div className="review-controls board-review-controls">
+            <button type="button" onClick={goToStartReview} disabled={moveHistory.length === 0}>⏮</button>
+            <button type="button" onClick={goToPreviousReviewPly} disabled={moveHistory.length === 0}>‹</button>
+            <button type="button" className={isVariationReview ? 'live-review-pending' : undefined} onClick={goToLiveReview}>Live</button>
+            <button type="button" onClick={goToNextReviewPly} disabled={moveHistory.length === 0}>›</button>
+            <button type="button" onClick={goToEndReview} disabled={moveHistory.length === 0}>⏭</button>
+          </div>
         </section>
 
         <aside className="side-panel review-panel history-panel">
@@ -1199,13 +1206,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             />
           </ol>
           <div className="review-footer history-actions">
-            <div className="review-controls">
-              <button type="button" onClick={goToStartReview} disabled={moveHistory.length === 0}>⏮</button>
-              <button type="button" onClick={goToPreviousReviewPly} disabled={moveHistory.length === 0}>‹</button>
-              <button type="button" className={isVariationReview ? 'live-review-pending' : undefined} onClick={goToLiveReview}>Live</button>
-              <button type="button" onClick={goToNextReviewPly} disabled={moveHistory.length === 0}>›</button>
-              <button type="button" onClick={goToEndReview} disabled={moveHistory.length === 0}>⏭</button>
-            </div>
             <div className={`panel-actions stacked-actions ${roundResult ? 'history-complete-actions' : ''}`}>
               {roundResult ? (
                 <>

@@ -750,6 +750,13 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
                 onDragCancel={() => { setSelectedSquare(null); setLegalMoves([]); }}
                 onSpawnComplete={handleBoardSpawnComplete}
               />
+              <div className="review-controls board-review-controls">
+                <button type="button" onClick={() => setPreviewPly(0)} disabled={latestPly === 0 || previewPly === 0}>⏮</button>
+                <button type="button" onClick={() => setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0))} disabled={latestPly === 0 || previewPly === 0}>‹</button>
+                <button type="button" className={isPreviewing ? 'live-review-pending' : undefined} onClick={() => setPreviewPly(null)} disabled={!isPreviewing}>Live</button>
+                <button type="button" onClick={() => setPreviewPly((ply) => { const nextPly = Math.min((ply ?? 0) + 1, latestPly); return nextPly >= latestPly ? null : nextPly; })} disabled={latestPly === 0 || !isPreviewing}>›</button>
+                <button type="button" onClick={() => setPreviewPly(null)} disabled={latestPly === 0 || !isPreviewing}>⏭</button>
+              </div>
             </>
           )}
           {shouldShowWaitingOverlay && (
@@ -792,13 +799,6 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
             />
           </ol>
           <div className="review-footer history-actions">
-            <div className="review-controls">
-              <button type="button" onClick={() => setPreviewPly(0)} disabled={latestPly === 0 || previewPly === 0}>⏮</button>
-              <button type="button" onClick={() => setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0))} disabled={latestPly === 0 || previewPly === 0}>‹</button>
-              <button type="button" className={isPreviewing ? 'live-review-pending' : undefined} onClick={() => setPreviewPly(null)} disabled={!isPreviewing}>Live</button>
-              <button type="button" onClick={() => setPreviewPly((ply) => { const nextPly = Math.min((ply ?? 0) + 1, latestPly); return nextPly >= latestPly ? null : nextPly; })} disabled={latestPly === 0 || !isPreviewing}>›</button>
-              <button type="button" onClick={() => setPreviewPly(null)} disabled={latestPly === 0 || !isPreviewing}>⏭</button>
-            </div>
             <div className="panel-actions stacked-actions">
               <button type="button" className="danger-action" onClick={() => handleOnlineGameAction('resign')} disabled={!canUseGameActions}>Resign</button>
               <button type="button" className="secondary-action" onClick={() => handleOnlineGameAction(drawOfferIsFromOpponent ? 'accept_draw' : 'request_draw')} disabled={!canUseGameActions || drawOfferBy === role}>{gameActionPending ? 'Updating...' : drawActionLabel}</button>
