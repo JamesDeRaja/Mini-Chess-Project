@@ -8,11 +8,24 @@ type PieceProps = {
   isSelected?: boolean;
 };
 
+const loadedPieceImages = new Set<string>();
+const failedPieceImages = new Set<string>();
+
+function hasLoadedPieceImage(src: string) {
+  return loadedPieceImages.has(src);
+}
+
+function hasFailedPieceImage(src: string) {
+  return failedPieceImages.has(src);
+}
+
 export function Piece({ piece, isDraggable = false, isSelected = false }: PieceProps) {
-  const [imageFailed, setImageFailed] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [, refreshImageStatus] = useState(0);
   const pieceImageSrc = getPieceImageSrc(piece);
+  const imageFailed = hasFailedPieceImage(pieceImageSrc);
+  const imageLoaded = hasLoadedPieceImage(pieceImageSrc);
   const ariaLabel = `${piece.color} ${piece.type}`;
+  const shouldShowFallback = imageFailed || !imageLoaded;
 
   return (
     <span
@@ -23,7 +36,9 @@ export function Piece({ piece, isDraggable = false, isSelected = false }: PieceP
       data-piece-id={piece.id}
       data-piece-type={piece.type}
     >
-      <span className="piece-fallback piece-loading-symbol" data-piece={piece.type} aria-hidden="true">{getPieceFallbackSymbol(piece)}</span>
+      {shouldShowFallback && (
+        <span className="piece-fallback piece-loading-symbol" data-piece={piece.type} aria-hidden="true">{getPieceFallbackSymbol(piece)}</span>
+      )}
       {!imageFailed && (
         <img
           className={`piece-img ${imageLoaded ? 'piece-img-loaded' : 'piece-img-loading'}`}
@@ -31,9 +46,13 @@ export function Piece({ piece, isDraggable = false, isSelected = false }: PieceP
           src={pieceImageSrc}
           alt=""
           draggable={false}
-          onLoad={() => setImageLoaded(true)}
+          onLoad={() => {
+            loadedPieceImages.add(pieceImageSrc);
+            refreshImageStatus((statusVersion) => statusVersion + 1);
+          }}
           onError={() => {
-            setImageFailed(true);
+            failedPieceImages.add(pieceImageSrc);
+            refreshImageStatus((statusVersion) => statusVersion + 1);
             if (import.meta.env.DEV) console.warn(`Could not load piece image: ${pieceImageSrc}`);
           }}
         />
