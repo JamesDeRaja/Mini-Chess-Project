@@ -1105,8 +1105,8 @@
 }
 .board-frame-with-timer {
   display: grid;
-  row-gap: clamp(10px, 1.8vw, 18px);
-  margin-top: clamp(8px, 1.4vw, 16px);
+  row-gap: clamp(6px, 1vw, 10px);
+  margin-top: 0;
 }
 .board-timer-anchor {
   position: relative;
@@ -1171,14 +1171,15 @@
 
 @media (max-width: 1099px) {
   .board-frame-with-timer {
-    margin-top: clamp(28px, 5svh, 54px);
+    row-gap: 10px;
+    margin-top: clamp(14px, 2.5svh, 28px);
   }
 }
 
 @media (max-width: 699px) {
   .board-frame-with-timer {
-    row-gap: 16px;
-    margin-top: clamp(44px, 7svh, 72px);
+    row-gap: 12px;
+    margin-top: clamp(22px, 4svh, 38px);
   }
   .board-turn-timer {
     min-width: 104px;
