@@ -1156,7 +1156,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
               <p className="eyebrow">{isMatchedGame ? 'Online Match' : isDailyAI ? 'Daily' : 'Match'}</p>
               <h2>{isMatchedGame ? `vs ${opponentDisplayName}` : 'Playing Against Bot'}</h2>
             </div>
-            <span className="mode-badge">{isMatchedGame ? 'Matched' : isDailyAI ? 'Daily' : '1v1'}</span>
           </div>
           <div className="score-stack">
             <CapturedScoreRow side="white" moves={moveHistory} scoringSide={playerColor} isActive={turn === 'white' && status === 'active'} />

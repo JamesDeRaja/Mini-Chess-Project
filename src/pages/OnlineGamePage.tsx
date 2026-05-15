@@ -717,7 +717,6 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
               <p className="eyebrow">Online</p>
               <h2>{isOnlineGameReady ? 'Online Match' : 'Invite Friend'}</h2>
             </div>
-            <span className="mode-badge">Online</span>
           </div>
           <div className="score-stack">
             <CapturedScoreRow side="white" moves={moveHistory} scoringSide={scoreSide} isActive={turn === 'white' && isOnlineGameReady && !isCompleted} />
