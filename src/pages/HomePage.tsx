@@ -16,6 +16,7 @@ import { createSeedChallengeUrl } from '../game/challenge.js';
 import { buildSeedShareMessage, getRandomShareTaunt } from '../game/shareTaunts.js';
 import { PowerShieldBadge } from '../components/PowerShieldBadge.js';
 import { getPlayerPowerTier } from '../game/playerPower.js';
+import { readShieldProgression } from '../game/shieldProgression.js';
 
 type HomePageProps = {
   initialModal?: Exclude<ModalName, null>;
@@ -160,6 +161,7 @@ export function HomePage({
   const [leaderboardFeedIndex, setLeaderboardFeedIndex] = useState(0);
   const [leaderboardChipExpanded, setLeaderboardChipExpanded] = useState(false);
   const [playStreak, setPlayStreak] = useState(() => getPlayStreak());
+  const [shieldProgression] = useState(readShieldProgression);
   const previousLeaderboardFeedSignatureRef = useRef('');
   const [leaderboardDialogOpen, setLeaderboardDialogOpen] = useState(false);
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('daily');
@@ -602,7 +604,7 @@ export function HomePage({
           <div className="brand-row">
             <span className="brand-icon-tile streak-brand-tile" aria-label={`${playStreak.count} day play streak`}><Flame size={42} aria-hidden="true" /><b>{playStreak.count}</b></span>
             <form className="player-greeting" onSubmit={(event) => { event.preventDefault(); commitDisplayNameDraft(); }}>
-              <span>Hello <PowerShieldBadge tier={homePowerTier} winStreak={shuffleMode === 'daily' ? dailyAIProgress.winStreak : undefined} lossStreak={shuffleMode === 'daily' ? dailyAIProgress.lossStreak : undefined} /></span>
+              <span>Hello <PowerShieldBadge tier={shieldProgression.tier} pips={shieldProgression.pips} /></span>
               <input
                 aria-label="Player name"
                 value={displayNameDraft}

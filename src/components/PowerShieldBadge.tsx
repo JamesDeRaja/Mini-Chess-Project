@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { SHIELD_PIPS_PER_TIER } from '../game/shieldProgression.js';
 import { getPowerRomanNumeral, type PlayerPowerTier } from '../game/playerPower.js';
 
 type Props = {
   tier: PlayerPowerTier;
+  pips: number;
   label?: string;
-  winStreak?: number;
-  lossStreak?: number;
 };
 
 const shieldGroups = [
@@ -17,16 +17,16 @@ const shieldGroups = [
   { levels: 'X', title: 'Boss', detail: 'The strongest shield. The bot follows the top local-evaluator move.' },
 ] as const;
 
-function getProgressMessage(tier: PlayerPowerTier, winStreak: number, lossStreak: number): string {
-  if (tier === 10) return '🏆 Max power! You\'re running at full Boss strength.';
-  if (lossStreak >= 2) return '😤 Break the streak — a win puts your shield back on the rise!';
-  if (lossStreak === 1) return '💪 Shake it off. Win the next one and your shield recovers.';
-  if (winStreak >= 2) return '🔥 On a hot streak! Wins are pushing your shield up.';
-  if (winStreak === 1) return '⚡ Nice! One more win and your shield climbs higher.';
-  return '🎯 Win your next game to push the shield up a level!';
+function getProgressMessage(tier: PlayerPowerTier, pips: number): string {
+  if (tier === 10) return '🏆 Maximum power! You\'re at full Boss strength.';
+  const remaining = SHIELD_PIPS_PER_TIER - pips;
+  const nextRoman = getPowerRomanNumeral((tier + 1) as PlayerPowerTier);
+  if (remaining === 1) return `⚡ One more win and your shield evolves to Power ${nextRoman}!`;
+  if (pips >= 3) return `🔥 Getting close — just ${remaining} wins to become Power ${nextRoman}!`;
+  return `🎯 Win ${remaining} more game${remaining === 1 ? '' : 's'} to reach Power ${nextRoman}!`;
 }
 
-export function PowerShieldBadge({ tier, label = 'Player power', winStreak, lossStreak }: Props) {
+export function PowerShieldBadge({ tier, pips, label = 'Player power' }: Props) {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const romanTier = getPowerRomanNumeral(tier);
   const guide = isGuideOpen ? (
@@ -41,24 +41,28 @@ export function PowerShieldBadge({ tier, label = 'Player power', winStreak, loss
             <p>Your shield shows how fierce the AI should be right now. Higher roman numerals mean stronger bot move choices.</p>
           </div>
         </div>
-        <div className="power-shield-progress">
-          <p className="power-shield-progress-label">Your power path</p>
+        <div className={`power-shield-progress power-shield-tier-${tier}`}>
+          <p className="power-shield-progress-label">
+            {tier < 10
+              ? `Progress to Power ${getPowerRomanNumeral((tier + 1) as PlayerPowerTier)}`
+              : 'Peak power reached'}
+          </p>
           <div
             className="power-shield-progress-track"
             role="progressbar"
-            aria-label={`Power level ${tier} out of 10`}
-            aria-valuenow={tier}
-            aria-valuemin={1}
-            aria-valuemax={10}
+            aria-label={`${pips} of ${SHIELD_PIPS_PER_TIER} wins toward next shield level`}
+            aria-valuenow={pips}
+            aria-valuemin={0}
+            aria-valuemax={SHIELD_PIPS_PER_TIER}
           >
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((t) => (
+            {Array.from({ length: SHIELD_PIPS_PER_TIER }, (_, i) => (
               <div
-                key={t}
-                className={`power-shield-progress-pip power-shield-tier-${t}${t <= tier ? ' filled' : ''}${t === tier ? ' peak' : ''}`}
+                key={i}
+                className={`power-shield-progress-pip${i < pips ? ' filled' : ''}${i === pips - 1 ? ' peak' : ''}`}
               />
             ))}
           </div>
-          <p className="power-shield-progress-message">{getProgressMessage(tier, winStreak ?? 0, lossStreak ?? 0)}</p>
+          <p className="power-shield-progress-message">{getProgressMessage(tier, pips)}</p>
         </div>
         <ul className="power-shield-guide-list">
           {shieldGroups.map((group) => (
@@ -69,7 +73,7 @@ export function PowerShieldBadge({ tier, label = 'Player power', winStreak, loss
             </li>
           ))}
         </ul>
-        <p className="power-shield-guide-note">Daily wins can raise the shield; loss streaks can soften it for the next rematch.</p>
+        <p className="power-shield-guide-note">Win games to fill the bar and evolve your shield. Losses drain one pip.</p>
       </section>
     </div>
   ) : null;

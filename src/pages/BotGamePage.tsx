@@ -26,7 +26,8 @@ import {
 import { findKingIndex, isKingInCheck } from '../game/check.js';
 import { createInitialBoard } from '../game/createInitialBoard.js';
 import { squareLabel } from '../game/coordinates.js';
-import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
+import { getOpponent, getStatusForTurn, isInsufficientMaterial } from '../game/gameStatus.js';
+import { applyShieldLoss, applyShieldWin, readShieldProgression, saveShieldProgression } from '../game/shieldProgression.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, validateSeedInput } from '../game/seed.js';
 import { getSeedDisplayName, normalizeSeedSlug } from '../game/curatedSeeds.js';
@@ -65,7 +66,7 @@ type RoundResult = {
   message: string;
   progressionMessage?: string;
   didPlayerWin: boolean;
-  drawReason?: 'agreed' | 'stalemate';
+  drawReason?: 'agreed' | 'stalemate' | 'bare-kings';
 };
 
 type PendingAction = 'resign' | 'draw' | 'restart' | null;
@@ -194,6 +195,7 @@ function getRoundMessage(status: GameStatus, drawReason?: RoundResult['drawReaso
   if (status === 'white_won') return 'Checkmate - White wins this game!';
   if (status === 'black_won') return 'Checkmate - Black wins this game!';
   if (status === 'draw' && drawReason === 'stalemate') return 'Stalemate - no legal moves, so the game is drawn.';
+  if (status === 'draw' && drawReason === 'bare-kings') return 'Only kings remain — the game is a draw.';
   if (status === 'draw') return 'Draw agreed for this game.';
   return '';
 }
@@ -284,6 +286,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const seedInfoLabel = isDailyAI ? '🌱 Daily seed' : '🌱 Random seed';
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   const [botAdaptationProfile, setBotAdaptationProfile] = useState(readBotAdaptationProfile);
+  const [shieldProgression, setShieldProgression] = useState(readShieldProgression);
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
   const dailyAscensionTier = getAscensionTierForDailyDifficulty(dailyAIDifficulty);
   const ascensionMissingNote = isDailyAI ? getAscensionMissingNote(dailyAscensionTier) : null;
@@ -338,9 +341,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const config = modeConfig[matchMode];
   const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber, botAdaptationProfile);
   const playerPowerTier = getPlayerPowerTier({ botLevel, dailyDifficulty: dailyAIDifficulty, dailyProgress: isDailyAI ? dailyAIProgress : null });
-  const shieldWinStreak = isDailyAI ? dailyAIProgress.winStreak : botAdaptationProfile.winStreak;
-  const shieldLossStreak = isDailyAI ? dailyAIProgress.lossStreak : botAdaptationProfile.lossStreak;
-  const playerPowerLabel = getPowerRomanNumeral(playerPowerTier);
+  const playerPowerLabel = getPowerRomanNumeral(shieldProgression.tier);
   const latestPly = boardTimeline.length - 1;
   const activeReviewPly = roundResult ? previewPly ?? latestPly : previewPly;
   const isPreviewing = previewPly !== null && previewPly < latestPly;
@@ -679,9 +680,13 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     const didPlayerWin = winner === playerColor;
     let progressionMessage: string | undefined;
 
+    setShieldProgression((current) => saveShieldProgression(didPlayerWin ? applyShieldWin(current) : applyShieldLoss(current)));
+
     if (isDailyAI) {
       progressionMessage = getDailyProgressionMessage(dailyAIProgress, didPlayerWin);
-      pendingDailyAIProgressRef.current = getNextDailyAIProgress(dailyAIProgress, didPlayerWin ? 'win' : 'loss');
+      const nextDailyProgress = getNextDailyAIProgress(dailyAIProgress, didPlayerWin ? 'win' : 'loss');
+      pendingDailyAIProgressRef.current = nextDailyProgress;
+      setDailyAIProgress(nextDailyProgress);
     } else {
       setBotAdaptationProfile((profile) => saveBotAdaptationProfile(getNextBotAdaptationProfile(profile, didPlayerWin)));
     }
@@ -720,7 +725,11 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     playMoveSound(move.isCapture);
     if (nextStatus !== 'active') {
       playResultSound(getWinner(nextStatus) === playerColor);
-      finishRound(nextStatus, nextStatus === 'draw' ? 'stalemate' : undefined);
+      let drawReason: RoundResult['drawReason'];
+      if (nextStatus === 'draw') {
+        drawReason = isInsufficientMaterial(nextBoard) ? 'bare-kings' : 'stalemate';
+      }
+      finishRound(nextStatus, drawReason);
     } else if (isKingInCheck(nextBoard, nextTurn)) {
       playCheckSound();
     }
@@ -1130,7 +1139,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           </div>
           <div className="info-stack">
             <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
-            <p><span>🛡️ Your power</span><strong><PowerShieldBadge tier={playerPowerTier} winStreak={shieldWinStreak} lossStreak={shieldLossStreak} /></strong></p>
+            <p><span>🛡️ Your power</span><strong><PowerShieldBadge tier={shieldProgression.tier} pips={shieldProgression.pips} /></strong></p>
             <p><span>{seedInfoLabel}</span><strong>{dailySeedInfo.seed}</strong></p>
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>
             <p><span>Back rank</span><strong>{dailySeedInfo.backRankCode}</strong></p>
@@ -1251,7 +1260,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
                   <p><span>Setup</span><strong>{dailySeedInfo.backRankCode}</strong></p>
                 </div>
                 <label className="name-capture-form inline-name-form power-name-form">
-                  <span>Name <PowerShieldBadge tier={playerPowerTier} winStreak={shieldWinStreak} lossStreak={shieldLossStreak} /></span>
+                  <span>Name <PowerShieldBadge tier={shieldProgression.tier} pips={shieldProgression.pips} /></span>
                   <input value={displayNameDraft} onChange={(event) => setDisplayNameDraft(event.target.value)} onBlur={() => setDisplayNameDraft(saveDisplayName(displayNameDraft))} maxLength={20} />
                 </label>
               </div>
