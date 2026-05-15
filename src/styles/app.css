@@ -9978,3 +9978,125 @@ body.home-modal-open .home-page {
   font-size: 0.9rem;
   color: var(--muted, #6b7280);
 }
+
+/* =================================================================
+   Responsive layout pass
+   Board-anchored review controls, viewport-safe result panel,
+   safe-area padding, fluid shield sizing. Layout & spacing only —
+   no game logic, colors, theme, or features are changed.
+   ================================================================= */
+
+/* The board column now hosts the board AND a board-width review bar.
+   Reserve vertical room for that bar so the board never grows large
+   enough to push the controls off-screen. */
+.chess-shell {
+  --review-bar-reserve: clamp(58px, 8.4vh, 84px);
+}
+
+.board-column {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, max-content);
+  justify-content: center;
+  justify-items: stretch;
+  justify-self: center;
+  align-content: start;
+  align-self: start;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  row-gap: clamp(8px, 1.5vh, 14px);
+  overflow: visible;
+}
+
+/* Cap the board so board + review bar occupy the same vertical space
+   the side panels use. Width is derived from the available height
+   (5:6 board), keeping cells square and hitboxes aligned at any size. */
+.board-column .board-frame {
+  max-width: min(
+    100%,
+    max(220px, calc(
+      (var(--play-area-height) - var(--review-bar-reserve)) * 5 / 6
+      + var(--rank-label-size, 24px)
+    ))
+  );
+}
+
+/* Compact review bar pinned directly beneath the board on every
+   layout, so step/replay controls are always within reach. */
+.board-column .review-controls,
+.board-review-controls {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(5px, 1.1vw, 10px);
+  width: 100%;
+  margin: 0;
+}
+
+.board-column .review-controls button {
+  min-width: 0;
+  min-height: clamp(40px, 6.4vw, 50px);
+  padding: clamp(6px, 1.4vw, 10px);
+  font-size: clamp(0.85rem, 2.4vw, 1.05rem);
+}
+
+/* --- Tablet & mobile: keep the review bar tight to the board and
+       surface the core action buttons above the move list. --- */
+@media (max-width: 1199px) {
+  .review-panel > .history-header { order: 0; }
+  .review-panel > .review-footer,
+  .review-panel > .history-actions { order: 1; margin-top: 0; }
+  .review-panel > .history-list { order: 2; }
+}
+
+@media (max-width: 799px) {
+  .board-column { row-gap: clamp(7px, 1.4vh, 12px); }
+  /* If vertical space is tight, the history list shrinks first —
+     never the board or its controls. */
+  .history-panel .history-list { max-height: min(280px, 34vh); }
+  .game-page { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+}
+
+@media (max-height: 560px) and (min-width: 800px) {
+  .chess-shell { --review-bar-reserve: clamp(46px, 9vh, 64px); }
+}
+
+/* --- Result / end screen: never overflow off-screen at any size --- */
+.winner-overlay {
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(14px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom))
+    max(14px, env(safe-area-inset-left));
+  overflow-y: auto;
+}
+
+.winner-card {
+  max-height: calc(
+    100dvh
+    - max(28px, env(safe-area-inset-top))
+    - max(28px, env(safe-area-inset-bottom))
+  );
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* --- Shield badge: fluid sizing, never overflows its slot, stays a
+       comfortable tap target while remaining visually subordinate. --- */
+.power-shield-badge {
+  max-width: 100%;
+  flex: 0 0 auto;
+}
+
+.power-shield-icon {
+  min-width: clamp(26px, 5.4vw, 31px);
+  height: clamp(29px, 6vw, 34px);
+  font-size: clamp(0.58rem, 1.7vw, 0.66rem);
+}
+
+/* --- Page-level safe-area padding so no control hides behind the
+       notch or the bottom browser/home-indicator area. --- */
+.home-page {
+  padding-bottom: max(clamp(18px, 3vw, 42px), env(safe-area-inset-bottom));
+}
