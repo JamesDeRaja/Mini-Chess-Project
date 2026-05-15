@@ -378,7 +378,7 @@ export function Board({
   const fileLabels = visualFiles.map((file) => fileLabel(file));
 
   return (
-    <div className="board-frame board-shell">
+    <div className={`board-frame board-shell ${timer ? 'board-frame-with-timer' : ''}`}>
       {timer && (
         <div className="board-timer-anchor">
           <button

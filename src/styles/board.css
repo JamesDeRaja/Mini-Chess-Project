@@ -1103,14 +1103,19 @@
 .board-frame {
   position: relative;
 }
+.board-frame-with-timer {
+  display: grid;
+  row-gap: clamp(10px, 1.8vw, 18px);
+  margin-top: clamp(8px, 1.4vw, 16px);
+}
 .board-timer-anchor {
-  position: absolute;
-  top: -18px;
-  left: 50%;
+  position: relative;
   z-index: 12;
   display: grid;
+  box-sizing: border-box;
+  width: 100%;
+  padding-left: var(--rank-label-size, 0px);
   justify-items: center;
-  transform: translateX(-50%);
   pointer-events: none;
 }
 .board-turn-timer {
@@ -1162,4 +1167,18 @@
   25% { transform: translateX(-2px) scale(1.13) rotate(-1deg); }
   50% { transform: translateX(2px) scale(1.16) rotate(1deg); }
   75% { transform: translateX(-1px) scale(1.13) rotate(-1deg); }
+}
+
+@media (max-width: 699px) {
+  .board-frame-with-timer {
+    row-gap: 12px;
+    margin-top: 18px;
+  }
+  .board-turn-timer {
+    min-width: 104px;
+    padding: 10px 15px;
+  }
+  .board-timer-help {
+    width: min(260px, 74vw);
+  }
 }
