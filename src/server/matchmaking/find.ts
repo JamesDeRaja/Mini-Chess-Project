@@ -47,6 +47,77 @@ function getGamePayload(whitePlayerId: string, seed: string, backRankCode: strin
 }
 
 
+const MATCHMAKING_STALE_MINUTES = 5;
+const MAX_PLAYER_WAITING_ROWS = 1;
+
+function minutesAgoIso(minutes: number): string {
+  return new Date(Date.now() - minutes * 60 * 1000).toISOString();
+}
+
+async function cleanupMatchmakingQueue(supabase: ServerSupabase, playerId: string) {
+  const staleCutoff = minutesAgoIso(MATCHMAKING_STALE_MINUTES);
+
+  await supabase
+    .from('matchmaking_queue')
+    .update({ status: 'expired' })
+    .eq('status', 'waiting')
+    .lt('created_at', staleCutoff);
+
+  await supabase
+    .from('matchmaking_queue')
+    .update({ status: 'expired' })
+    .eq('status', 'matched')
+    .is('game_id', null)
+    .lt('created_at', staleCutoff);
+
+  const { data: playerRows } = await supabase
+    .from('matchmaking_queue')
+    .select('id, status')
+    .eq('player_id', playerId)
+    .eq('status', 'waiting')
+    .order('created_at', { ascending: false });
+
+  const extraWaitingIds = (playerRows ?? [])
+    .slice(MAX_PLAYER_WAITING_ROWS)
+    .map((row) => String(row.id))
+    .filter(Boolean);
+
+  if (extraWaitingIds.length > 0) {
+    await supabase
+      .from('matchmaking_queue')
+      .update({ status: 'cancelled' })
+      .in('id', extraWaitingIds);
+  }
+}
+
+async function cleanupWaitingGames(supabase: ServerSupabase, playerId: string) {
+  const staleCutoff = minutesAgoIso(MATCHMAKING_STALE_MINUTES);
+
+  await supabase
+    .from('games')
+    .delete()
+    .eq('status', 'waiting')
+    .is('black_player_id', null)
+    .lt('created_at', staleCutoff);
+
+  const { data: playerWaitingGames } = await supabase
+    .from('games')
+    .select('id')
+    .eq('white_player_id', playerId)
+    .eq('status', 'waiting')
+    .is('black_player_id', null)
+    .order('created_at', { ascending: false });
+
+  const stalePlayerWaitingIds = (playerWaitingGames ?? [])
+    .slice(MAX_PLAYER_WAITING_ROWS)
+    .map((row) => String(row.id))
+    .filter(Boolean);
+
+  if (stalePlayerWaitingIds.length > 0) {
+    await supabase.from('games').delete().in('id', stalePlayerWaitingIds);
+  }
+}
+
 async function getUsableMatchedGameId(supabase: ServerSupabase, queueRow: QueueRow): Promise<string | null> {
   if (!queueRow.game_id) return null;
   const { data: game } = await supabase.from('games').select('id, status').eq('id', queueRow.game_id).maybeSingle();
@@ -57,6 +128,8 @@ async function getUsableMatchedGameId(supabase: ServerSupabase, queueRow: QueueR
 }
 
 async function findMatchUsingGamesTable(supabase: ServerSupabase, playerId: string, seed: string, backRankCode: string) {
+  await cleanupWaitingGames(supabase, playerId);
+
   const { data: existingRows, error: existingError } = await supabase
     .from('games')
     .select('id, status, white_player_id, black_player_id, seed, back_rank_code')
@@ -151,6 +224,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
   }
 
   const supabase = getServerSupabase();
+  await cleanupMatchmakingQueue(supabase, playerId);
 
   const { data: existingRows, error: existingError } = await supabase
     .from('matchmaking_queue')

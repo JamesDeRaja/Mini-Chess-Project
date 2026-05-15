@@ -5142,14 +5142,8 @@ button:focus-visible,
 }
 .piece-img-loaded {
   opacity: 1;
-  animation: piece-image-swap-wiggle 360ms cubic-bezier(.2, 1.45, .35, 1);
 }
 .piece:has(.piece-img-loaded) .piece-loading-symbol { opacity: 0; }
-@keyframes piece-image-swap-wiggle {
-  0% { transform: translateY(var(--piece-y, 0px)) rotate(-2deg) scale(calc(var(--piece-scale, 1) * 0.96)); }
-  55% { transform: translateY(var(--piece-y, 0px)) rotate(2deg) scale(calc(var(--piece-scale, 1) * 1.04)); }
-  100% { transform: translateY(var(--piece-y, 0px)) rotate(0) scale(var(--piece-scale, 1)); }
-}
 .stalemate-result-card {
   border-color: rgba(112, 132, 170, 0.46);
   background:
