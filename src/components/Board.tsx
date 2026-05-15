@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { Timer } from 'lucide-react';
 import { BOARD_FILES, BOARD_RANKS } from '../game/constants.js';
 import { fileLabel, index } from '../game/coordinates.js';
 import type { Board as ChessBoard, Color, Move, MoveAnalysis, Piece as ChessPiece, PieceType } from '../game/types.js';
@@ -9,6 +10,7 @@ import { Square } from './Square.js';
 type LastMove = (Pick<Move, 'from' | 'to'> & { color?: Color; piece?: Move['piece'] | PieceType; isCapture?: boolean; captureScore?: number | null }) | null;
 
 type BoardResultMarker = { squareIndex: number | null; icon: string; label: string; tone: 'win' | 'loss' | 'draw' };
+type BoardTimer = { seconds: number; isDanger?: boolean; label?: string; explanation?: string };
 
 type BoardProps = {
   board: ChessBoard;
@@ -23,6 +25,7 @@ type BoardProps = {
   isInteractive?: boolean;
   scoringSide?: Color;
   spawnKey?: string | number;
+  timer?: BoardTimer | null;
   onSquareClick: (squareIndex: number) => void;
   onDragStart?: (squareIndex: number) => Move[] | null;
   onDrop?: (squareIndex: number, move: Move) => void;
@@ -116,6 +119,7 @@ export function Board({
   isInteractive = true,
   scoringSide,
   spawnKey,
+  timer = null,
   onSquareClick,
   onDragStart,
   onDrop,
@@ -128,6 +132,7 @@ export function Board({
   const pendingMoveInputRef = useRef<MoveInputKind>('click');
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [isSpawningPieces, setIsSpawningPieces] = useState(true);
+  const [isTimerHelpOpen, setIsTimerHelpOpen] = useState(false);
   const squares = [];
   const ranks = Array.from({ length: BOARD_RANKS }, (_, rank) => rank);
   const files = Array.from({ length: BOARD_FILES }, (_, file) => file);
@@ -313,6 +318,8 @@ export function Board({
   }
 
   const visibleResultMarkers = Array.isArray(resultMarker) ? resultMarker : resultMarker ? [resultMarker] : [];
+  const timerLabel = timer?.label ?? (timer ? `${timer.seconds} seconds left this move` : '');
+  const timerExplanation = timer?.explanation ?? 'Each move has 20 seconds. If the timer reaches zero, the player to move loses on time.';
   const boardClassName = [
     'board',
     dragState?.hasMoved ? 'dragging-board' : '',
@@ -372,6 +379,25 @@ export function Board({
 
   return (
     <div className="board-frame board-shell">
+      {timer && (
+        <div className="board-timer-anchor">
+          <button
+            type="button"
+            className={`board-turn-timer ${timer.isDanger ? 'board-turn-timer-danger' : ''}`}
+            aria-label={`${timerLabel}. Tap for timer rules.`}
+            aria-expanded={isTimerHelpOpen}
+            onClick={() => setIsTimerHelpOpen((open) => !open)}
+          >
+            <Timer size={24} aria-hidden="true" />
+            <strong>{timer.seconds}s</strong>
+          </button>
+          {isTimerHelpOpen && (
+            <p className="board-timer-help" role="tooltip">
+              {timerExplanation}
+            </p>
+          )}
+        </div>
+      )}
       <div className="board-stage">
         <div className="board-rank-labels" aria-hidden="true">
           {rankLabels.map((rank) => <span key={rank}>{rank}</span>)}

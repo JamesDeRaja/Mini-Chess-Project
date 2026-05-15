@@ -10125,23 +10125,3 @@ body.home-modal-open .home-page {
   0%, 100% { opacity: 0.6; }
   50%       { opacity: 1; }
 }
-
-.status-metric-stack {
-  display: inline-grid;
-  gap: 6px;
-  justify-items: end;
-}
-.status-timer-section {
-  display: grid;
-  justify-items: center;
-  min-width: clamp(72px, 7vw, 104px);
-  padding: 9px 13px;
-  border: 1px solid rgba(184, 91, 77, 0.24);
-  border-radius: 18px;
-  background: rgba(255, 248, 233, 0.72);
-  color: var(--text-primary, #2d2b28);
-}
-.status-timer-section .status-score-pill-value {
-  color: #b85b4d;
-  font-variant-numeric: tabular-nums;
-}

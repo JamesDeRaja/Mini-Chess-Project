@@ -365,6 +365,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const activeReviewPly = roundResult ? previewPly ?? latestPly : previewPly;
   const isPreviewing = previewPly !== null && previewPly < latestPly;
   const isVariationReview = variationTimeline.length > 0;
+  const isTurnTimerEnabled = Boolean(isMatchedGame);
   const variationBoard: ChessBoard | null = isVariationReview ? (variationTimeline[variationPly]?.board ?? null) : null;
   const variationTurn: Color | null = isVariationReview && variationStartPly !== null ? ((variationStartPly + variationPly) % 2 === 0 ? 'white' : 'black') : null;
   const variationLastMove = isVariationReview ? (variationTimeline[variationPly]?.lastMove ?? null) : null;
@@ -937,11 +938,11 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }
 
   useEffect(() => {
-    if (status === 'active' && !roundResult) setTurnTimeLeft(TURN_TIMER_SECONDS);
-  }, [roundResetId, roundResult, status, turn]);
+    if (isTurnTimerEnabled && status === 'active' && !roundResult) setTurnTimeLeft(TURN_TIMER_SECONDS);
+  }, [isTurnTimerEnabled, roundResetId, roundResult, status, turn]);
 
   useEffect(() => {
-    if (status !== 'active' || roundResult || isPreviewing || isVariationReview || !isBoardReady) return undefined;
+    if (!isTurnTimerEnabled || status !== 'active' || roundResult || isPreviewing || isVariationReview || !isBoardReady) return undefined;
 
     if (turnTimeLeft <= 0) {
       const winner = getOpponent(turn);
@@ -960,7 +961,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     }, 1000);
 
     return () => window.clearTimeout(timerId);
-  }, [finishRound, isBoardReady, isPreviewing, isVariationReview, opponentDisplayName, playerColor, roundResult, status, turn, turnTimeLeft]);
+  }, [finishRound, isBoardReady, isPreviewing, isTurnTimerEnabled, isVariationReview, opponentDisplayName, playerColor, roundResult, status, turn, turnTimeLeft]);
 
   useEffect(() => {
     if (botMoveTimerRef.current !== null) {
@@ -1178,7 +1179,6 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         statusLabelOverride={headerStatusLabel}
         turnLabelOverride={headerTurnLabel}
         scoreLabel={headerScoreLabel}
-        timerLabel={status === 'active' && !roundResult ? `Timer ${turnTimeLeft}s` : undefined}
       />
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel">
@@ -1229,6 +1229,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             onDragStart={handleDragStart}
             onDrop={handleDrop}
             onDragCancel={() => { setSelectedSquare(null); setLegalMoves([]); }}
+            timer={isTurnTimerEnabled && status === 'active' && !roundResult ? { seconds: turnTimeLeft, isDanger: turnTimeLeft <= 5 } : null}
             onSpawnComplete={handleBoardSpawnComplete}
           />
         </section>

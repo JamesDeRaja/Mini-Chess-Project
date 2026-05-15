@@ -19,7 +19,7 @@ import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { recordPlayStreak } from '../game/playStreak.js';
 import { calculateGameScore, getMoveCaptureRecord } from '../game/scoring.js';
-import { playCheckSound, playMoveSound } from '../game/sound.js';
+import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
 import { applyMoveDelta, isMoveDelta, moveDeltaToMove, rebuildBoardFromHistory, replayMoves } from '../game/moveDelta.js';
 import { applyShieldLoss, applyShieldWin, readShieldProgression, saveShieldProgression } from '../game/shieldProgression.js';
 import { getNameFromPlayerId } from '../game/humanPlayers.js';
@@ -50,6 +50,8 @@ function generateClientMoveId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   return `move-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
+
+const TURN_TIMER_SECONDS = 20;
 
 function getLatestMove(game: OnlineGameRecord): MoveDelta | MoveRecord | null {
   return game.last_move ?? game.move_history?.at(-1) ?? null;
@@ -99,6 +101,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [initialReplayBoard, setInitialReplayBoard] = useState<ChessBoard>(() => createInitialBoard());
   const [turn, setTurn] = useState<Color>('white');
   const [status, setStatus] = useState<GameStatus>(isCreatingInvite ? 'waiting' : 'waiting');
+  const [turnTimeLeft, setTurnTimeLeft] = useState(TURN_TIMER_SECONDS);
   const [inviteState, setInviteState] = useState<InviteState>(isCreatingInvite ? 'creating_game' : 'waiting_for_link');
   const [role, setRole] = useState<Color | 'spectator'>(isCreatingInvite ? 'white' : 'spectator');
   const [whitePlayerId, setWhitePlayerId] = useState<string | null>(isCreatingInvite ? playerId : null);
@@ -130,6 +133,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [pendingClientMoveIds, setPendingClientMoveIds] = useState<Set<string>>(() => new Set());
   const historyListRef = useRef<HTMLOListElement | null>(null);
   const confirmedGameRef = useRef<OnlineGameRecord | null>(null);
+  const localTimeoutStatusRef = useRef<GameStatus | null>(null);
   const pendingClientMoveIdsRef = useRef(pendingClientMoveIds);
   const boardRef = useRef(board);
   const moveHistoryRef = useRef<Array<MoveDelta | MoveRecord>>(moveHistory);
@@ -294,12 +298,16 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   }
 
   function applyGameRecord(game: OnlineGameRecord, options: { preserveLocalMove?: boolean } = {}) {
+    if (localTimeoutStatusRef.current && game.status === 'active') return;
+    if (game.status === 'white_won' || game.status === 'black_won' || game.status === 'draw' || game.status === 'expired' || game.status === 'timeout') localTimeoutStatusRef.current = null;
     const safeMoveHistory = game.move_history ?? [];
     const derivedBackRankCode = game.back_rank_code ?? deriveBackRankCodeFromBoard(game.board);
     const initialBoard = derivedBackRankCode ? createInitialBoard({ backRankCode: derivedBackRankCode }) : safeMoveHistory.length === 0 ? game.board : createInitialBoard();
     const rebuiltBoard = rebuildBoardFromHistory(safeMoveHistory, { backRankCode: derivedBackRankCode, fallbackBoard: game.board });
     const isNewGameRecord = confirmedGameRef.current?.id !== game.id;
     if (isNewGameRecord) {
+      localTimeoutStatusRef.current = null;
+      setTurnTimeLeft(TURN_TIMER_SECONDS);
       setManualBoardFlip(null);
       setPreviewPly(null);
       setIsBoardReady(false);
@@ -475,6 +483,8 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
         updateInviteStateFromGame(game);
         const isNewGameRecord = confirmedGameRef.current?.id !== game.id;
     if (isNewGameRecord) {
+      localTimeoutStatusRef.current = null;
+      setTurnTimeLeft(TURN_TIMER_SECONDS);
       setManualBoardFlip(null);
       setPreviewPly(null);
       setIsBoardReady(false);
@@ -532,6 +542,34 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   // applyGameRecord intentionally merges changed server rows while this fallback is keyed by active sync state.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveGameId, hasPendingMove, isCompleted, isOnlineGameReady, playerId]);
+
+  useEffect(() => {
+    if (isOnlineGameReady && !isCompleted && !isPreviewing && !hasPendingMove) setTurnTimeLeft(TURN_TIMER_SECONDS);
+  }, [hasPendingMove, isCompleted, isOnlineGameReady, isPreviewing, turn]);
+
+  useEffect(() => {
+    if (!isOnlineGameReady || isCompleted || isPreviewing || hasPendingMove || role === 'spectator') return undefined;
+
+    if (turnTimeLeft <= 0) {
+      const winner = getOpponent(turn);
+      const timeoutStatus: GameStatus = winner === 'white' ? 'white_won' : 'black_won';
+      localTimeoutStatusRef.current = timeoutStatus;
+      setStatus(timeoutStatus);
+      setResultType('timeout');
+      setSelectedSquare(null);
+      setLegalMoves([]);
+      setInviteState('completed');
+      setMoveAnnouncement(`${turn === role ? 'You ran' : `${opponentName ?? 'Opponent'} ran`} out of time. ${winner === role ? 'You win!' : 'You lose.'}`);
+      playResultSound(winner === role);
+      return undefined;
+    }
+
+    const timerId = window.setTimeout(() => {
+      setTurnTimeLeft((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timerId);
+  }, [hasPendingMove, isCompleted, isOnlineGameReady, isPreviewing, opponentName, role, turn, turnTimeLeft]);
 
   async function handleShareInvite() {
     if (!inviteLink) return;
@@ -619,6 +657,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     const optimisticHistory = [...moveHistory, createMoveRecord(selectedMove, { clientMoveId, playerId })];
     setBoard(nextBoard);
     setTurn(nextTurn);
+    setTurnTimeLeft(TURN_TIMER_SECONDS);
     setStatus(nextStatus);
     setMoveHistory(optimisticHistory);
     setLastMove(selectedMove);
@@ -756,6 +795,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
                 onDragStart={handleDragStart}
                 onDrop={handleDrop}
                 onDragCancel={() => { setSelectedSquare(null); setLegalMoves([]); }}
+                timer={isOnlineGameReady && !isCompleted && !isPreviewing && role !== 'spectator' ? { seconds: turnTimeLeft, isDanger: turnTimeLeft <= 5 } : null}
                 onSpawnComplete={handleBoardSpawnComplete}
               />
             </>
