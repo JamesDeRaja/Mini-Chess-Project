@@ -150,7 +150,7 @@ export function App() {
   }
 
   function startAiAsPlayer(opponentName: string, seed: string, backRankCode?: string) {
-    trackEvent('matchmaking_ai_fallback', { seed, opponentName });
+    trackEvent('seed_challenge_start', { seed, opponentName });
     const setupQuery = backRankCode ? `&setup=${encodeURIComponent(backRankCode)}` : '';
     navigate(`/bot?seed=${encodeURIComponent(seed)}${setupQuery}&opponent=${encodeURIComponent(opponentName)}&matched=1`);
   }
