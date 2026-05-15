@@ -9874,3 +9874,173 @@ body.home-modal-open .home-page {
     font-size: clamp(0.78rem, 3.4vw, 0.9rem);
   }
 }
+
+/* ===================================================================
+   HOMEPAGE VISUAL REFRESH
+   Polish: smooth background, card gradients, elevated shadows, mobile.
+   No layout or logic changes.
+   =================================================================== */
+
+/* 1. Smooth background — replaces hard 65 % cream / 35 % green split */
+.home-page,
+:root[data-theme='light'] .home-page,
+:root[data-theme='dark'] .home-page {
+  background:
+    radial-gradient(circle at 10% 9%,  rgba(255,255,255,0.58) 0 0.42rem, transparent 0.5rem),
+    radial-gradient(circle at 24% 18%, rgba(244,221,155,0.50) 0 0.34rem, transparent 0.42rem),
+    radial-gradient(circle at 78% 11%, rgba(255,255,255,0.58) 0 0.70rem, transparent 0.78rem),
+    radial-gradient(circle at 88% 22%, rgba(255,255,255,0.46) 0 0.34rem, transparent 0.42rem),
+    radial-gradient(ellipse at 18%  0%, rgba(248,230,150,0.22) 0 38%, transparent 64%),
+    radial-gradient(ellipse at 85% 100%, rgba(136,196,158,0.26) 0 42%, transparent 66%),
+    linear-gradient(158deg, #fef9ec 0%, #faf3de 24%, #edf4ef 62%, #cde5d4 100%);
+}
+
+/* 2. Richer action-card gradients (replaces flat solid fills) */
+.home-action-ai {
+  background: linear-gradient(148deg, #e6f4eb 0%, #cfe6d5 100%);
+  border-color: rgba(152, 194, 162, 0.72);
+}
+.home-action-match {
+  background: linear-gradient(148deg, #fdeaa4 0%, #f2d474 100%);
+  border-color: rgba(228, 200, 128, 0.72);
+}
+.home-action-invite {
+  background: linear-gradient(148deg, #f6d0c8 0%, #ecaaa4 100%);
+  border-color: rgba(222, 168, 160, 0.72);
+}
+.home-action-date {
+  background: linear-gradient(148deg, #dcf0f9 0%, #bbd9f0 100%);
+  border-color: rgba(148, 192, 222, 0.72);
+}
+.home-action-seed {
+  background: linear-gradient(148deg, #eedaf9 0%, #d8bcf2 100%);
+  border-color: rgba(188, 150, 220, 0.72);
+}
+.home-action-rules {
+  background: linear-gradient(148deg, #fef4d3 0%, #f6df94 100%);
+  border-color: rgba(232, 208, 140, 0.72);
+}
+
+/* 3. Deeper card elevation — subtle bottom shadow gives a pressed-tile feel */
+.home-action-card {
+  box-shadow:
+    0 4px 0 rgba(50, 78, 54, 0.10),
+    0 16px 36px rgba(70, 100, 80, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.84);
+}
+.home-action-card:hover:not(:disabled) {
+  transform: translateY(-5px);
+  box-shadow:
+    0 8px 0 rgba(50, 78, 54, 0.08),
+    0 28px 52px rgba(70, 100, 80, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.90);
+}
+
+/* 4. Action arrow — brighter, more dimensional */
+.action-arrow {
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 3px 10px rgba(44, 42, 36, 0.12), inset 0 -2px 0 rgba(44, 42, 36, 0.06);
+}
+
+/* 5. Today-setup showcase panel */
+.today-setup-showcase {
+  background: rgba(255, 252, 245, 0.98);
+  border-color: rgba(158, 196, 168, 0.52);
+  box-shadow:
+    0 8px 0 rgba(80, 111, 84, 0.08),
+    0 32px 64px rgba(84, 111, 88, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+/* 6. Today pill */
+.today-pill {
+  background: rgba(255, 253, 246, 0.98);
+  box-shadow:
+    0 4px 0 rgba(80, 111, 84, 0.07),
+    0 16px 34px rgba(84, 111, 88, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.90);
+}
+
+/* 7. Setup header pill — softer gradient badge */
+.setup-header-pill {
+  background: linear-gradient(148deg, #eaf2e8 0%, #daeede 100%);
+  letter-spacing: 0.26em;
+}
+
+/* 8. Leaderboard chip */
+.home-leaderboard-chip {
+  background: rgba(255, 253, 245, 0.92);
+  border-color: rgba(210, 200, 175, 0.72);
+  box-shadow:
+    0 18px 32px rgba(84, 111, 88, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.80);
+}
+
+/* 9. Streak tile — warmer glow */
+.streak-brand-tile {
+  box-shadow:
+    0 14px 0 rgba(158, 84, 18, 0.18),
+    0 22px 36px rgba(255, 130, 35, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.90);
+}
+
+/* 10. Popular seeds section — glassy card tray */
+.popular-seeds-home {
+  border-color: rgba(178, 214, 190, 0.74);
+  background: rgba(244, 251, 246, 0.84);
+}
+.popular-seed-home-card {
+  background: rgba(255, 253, 244, 0.94);
+  border-color: rgba(205, 226, 212, 0.84);
+  box-shadow: 0 4px 0 rgba(60, 88, 62, 0.06), 0 8px 18px rgba(60, 88, 62, 0.08);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.popular-seed-home-card.seed-card-clickable:hover,
+.popular-seed-home-card.seed-card-clickable:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 0 rgba(60, 88, 62, 0.06), 0 18px 28px rgba(60, 88, 62, 0.14);
+  border-color: rgba(128, 175, 140, 0.70);
+}
+
+/* 11. Seed icon action buttons — cleaner look */
+.seed-icon-action {
+  border-color: rgba(120, 162, 128, 0.30);
+  background: rgba(255, 252, 242, 0.94);
+  box-shadow: 0 6px 0 rgba(44, 43, 40, 0.07), 0 9px 16px rgba(80, 122, 108, 0.10);
+}
+.seed-icon-action:hover:not(:disabled) {
+  background: linear-gradient(145deg, #fdeaa4 0%, #f6d86e 100%);
+  border-color: rgba(210, 185, 100, 0.60);
+}
+
+/* 12. Mobile polish */
+@media (max-width: 760px) {
+  /* Softer rounded corners on small screens */
+  .home-action-card { border-radius: 22px; }
+  .today-setup-showcase { border-radius: 30px; }
+  .popular-seeds-home { border-radius: 22px; }
+  .popular-seed-home-card { border-radius: 16px; }
+
+  /* The leaderboard chip goes full-width on mobile, give it better shape */
+  .home-leaderboard-chip {
+    border-radius: 20px;
+    box-shadow: 0 12px 24px rgba(84, 111, 88, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.80);
+  }
+
+  /* Hero tagline fits better at small sizes */
+  .hero-tagline {
+    font-size: 0.95rem;
+  }
+
+  /* Keep seed action buttons finger-friendly */
+  .seed-card-action-row button:not(.seed-icon-action),
+  .seed-challenge-action {
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 460px) {
+  /* Very small phones — compact but readable cards */
+  .home-action-card { border-radius: 18px; }
+  .popular-seed-home-card { border-radius: 14px; }
+}
