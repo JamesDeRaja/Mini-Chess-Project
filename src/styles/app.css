@@ -9874,3 +9874,553 @@ body.home-modal-open .home-page {
     font-size: clamp(0.78rem, 3.4vw, 0.9rem);
   }
 }
+
+/* ─── Popular Seeds Page Bento Redesign (psp-*) ─────────────────────────────
+   All classes are scoped to the psp- namespace or to .popular-seeds-page
+   so they don't bleed into other pages. ──────────────────────────────────── */
+
+/* Outer card: reduce excess padding and remove forced text-align: center */
+.psp-card {
+  text-align: left;
+  padding: clamp(18px, 3vw, 36px);
+}
+
+/* ── Header ── */
+.psp-header {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto clamp(14px, 2vw, 24px);
+}
+.psp-header h1 {
+  margin: 4px auto 8px;
+  font-size: clamp(2rem, 5vw, 3.8rem);
+}
+.psp-subtitle {
+  margin: 0 auto 10px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.psp-search {
+  margin: 0 auto 10px;
+}
+.psp-tabs {
+  justify-content: center;
+}
+.popular-seeds-page .psp-tabs button {
+  flex: 0 1 auto;
+  min-height: clamp(40px, 4.5vw, 52px);
+  padding: 8px clamp(10px, 1.4vw, 18px);
+  font-size: clamp(0.82rem, 1.2vw, 1rem);
+}
+
+/* ── Bento grid ── */
+.psp-bento {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: clamp(14px, 2vw, 22px);
+  align-items: start;
+}
+
+/* ── Main column ── */
+.psp-main {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 1.8vw, 20px);
+  min-width: 0;
+}
+
+/* ── Featured card ── */
+.psp-featured-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: clamp(16px, 2.5vw, 28px);
+  padding: clamp(20px, 2.8vw, 32px);
+  border-radius: 26px;
+  background: linear-gradient(135deg, #243528 0%, #1a2c22 60%, #14231b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  color: #eae8e0;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+  overflow: hidden;
+}
+.psp-featured-card:hover,
+.psp-featured-card:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: 0 24px 56px rgba(20, 35, 27, 0.35);
+  outline: none;
+}
+.psp-featured-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.psp-featured-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.psp-featured-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--button-bg);
+  color: var(--ink);
+  font-size: 0.7rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  width: fit-content;
+}
+.psp-featured-title {
+  margin: 0 0 4px;
+  font-size: clamp(1.6rem, 3.2vw, 2.6rem);
+  color: #f0ede5;
+  line-height: 1.05;
+}
+.psp-featured-slug {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  color: rgba(240, 237, 229, 0.5);
+  font-weight: 700;
+}
+.psp-featured-desc {
+  margin: 0 0 12px;
+  color: rgba(240, 237, 229, 0.75);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.psp-featured-tags .seed-tag-row span,
+.psp-featured-card .seed-tag-row span {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(240, 237, 229, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.psp-featured-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: rgba(240, 237, 229, 0.55);
+}
+.psp-featured-stats strong {
+  color: #f0ede5;
+}
+
+/* Featured card right side: deco + actions */
+.psp-featured-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  min-width: 160px;
+}
+.psp-featured-deco {
+  position: relative;
+  width: 140px;
+  height: 120px;
+  flex-shrink: 0;
+}
+.psp-deco-piece {
+  position: absolute;
+  object-fit: contain;
+  opacity: 0.28;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+}
+.psp-deco-q { width: 72px; height: 72px; top: 0; right: 0; opacity: 0.32; }
+.psp-deco-k { width: 56px; height: 56px; top: 10px; right: 62px; opacity: 0.2; }
+.psp-deco-r { width: 44px; height: 44px; bottom: 0; right: 8px; opacity: 0.2; }
+.psp-deco-b { width: 40px; height: 40px; bottom: 4px; right: 54px; opacity: 0.15; }
+
+.psp-featured-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+.psp-featured-icon {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(240, 237, 229, 0.8);
+}
+.psp-featured-icon:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+  color: #f0ede5;
+}
+
+/* ── Normal seed card grid ── */
+.psp-grid {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  height: auto;
+  overflow-y: visible;
+  max-height: none;
+  margin: 0;
+  gap: clamp(10px, 1.4vw, 16px);
+}
+
+/* ── Normal seed card ── */
+.psp-seed-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: clamp(12px, 1.4vw, 16px);
+  border-radius: 18px;
+}
+.psp-seed-card:hover,
+.psp-seed-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(80, 122, 108, 0.18);
+  outline: none;
+}
+.psp-seed-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.psp-card-header {
+  margin-bottom: 4px;
+}
+.psp-card-title {
+  margin: 0 0 2px;
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  line-height: 1.1;
+  color: var(--ink);
+}
+.psp-card-slug {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+.psp-card-desc {
+  margin: 0 0 6px;
+  font-size: 0.82rem;
+  line-height: 1.38;
+  color: var(--muted);
+  min-height: 0;
+}
+.psp-card-tags {
+  margin: 0 0 8px;
+}
+.psp-card-tags .seed-tag-row span,
+.psp-card-tags span {
+  font-size: 0.68rem;
+  padding: 3px 7px;
+}
+
+/* Setup strip */
+.psp-card-setup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: rgba(141, 191, 175, 0.12);
+  margin-bottom: 7px;
+}
+.psp-setup-label {
+  font-size: 0.66rem;
+  font-weight: 950;
+  color: var(--mint-dark);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.psp-setup-strip {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+.psp-piece-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+.psp-piece-letter {
+  font-size: 0.8rem;
+  font-weight: 950;
+  color: var(--ink);
+  width: 16px;
+  text-align: center;
+  line-height: 1;
+}
+
+/* Stats row */
+.psp-card-stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px 6px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.psp-card-stats strong {
+  color: var(--ink);
+}
+.psp-stats-dot {
+  color: rgba(119, 111, 99, 0.4);
+}
+
+/* Card actions */
+.psp-card-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 6px;
+}
+.psp-play-btn {
+  width: 100%;
+  font-weight: 850;
+  background: var(--button-bg);
+  color: var(--ink);
+  border-radius: 14px;
+  min-height: 40px;
+  font-size: 0.9rem;
+}
+.psp-play-btn:hover:not(:disabled) {
+  background: var(--button-bg-hover);
+  transform: translateY(-1px);
+}
+.psp-play-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 4px 0 rgba(45, 43, 40, 0.08);
+}
+.psp-secondary-actions {
+  display: flex;
+  gap: 5px;
+  justify-content: flex-end;
+}
+
+/* ── Sidebar ── */
+.psp-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.4vw, 16px);
+  position: sticky;
+  top: clamp(16px, 2.5vw, 32px);
+  min-width: 0;
+}
+
+/* Today's Daily panel */
+.psp-daily-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: clamp(14px, 1.8vw, 20px);
+  border-radius: 20px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  box-shadow: 0 10px 28px rgba(80, 122, 108, 0.1);
+}
+.psp-daily-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 950;
+  font-size: 1rem;
+  color: var(--text);
+}
+.psp-daily-tagline {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.psp-daily-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: rgba(141, 191, 175, 0.12);
+}
+.psp-daily-setup-code {
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+.psp-daily-setup-code strong {
+  color: var(--ink);
+  letter-spacing: 0.06em;
+}
+.psp-daily-stats {
+  display: flex;
+  gap: 6px;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+.psp-daily-play {
+  border-radius: 14px;
+  min-height: 44px;
+}
+.psp-daily-challenge {
+  width: 100%;
+  justify-content: center;
+  border-radius: 14px;
+  min-height: 40px;
+  font-size: 0.88rem;
+}
+
+/* How It Works */
+.psp-how-it-works {
+  padding: clamp(12px, 1.5vw, 16px);
+  border-radius: 16px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+}
+.psp-how-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  font-size: 0.88rem;
+  font-weight: 950;
+  color: var(--text);
+}
+.psp-how-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: rgba(141, 191, 175, 0.25);
+  color: var(--mint-dark);
+  font-size: 0.66rem;
+  font-weight: 950;
+}
+.psp-how-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.psp-how-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.psp-how-piece {
+  flex-shrink: 0;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+/* ── Override: PSP-page min-height no longer needs to fill vh ── */
+.popular-seeds-page .psp-card {
+  min-height: 0;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+
+/* Tablet: sidebar moves above grid, 2-col seed cards */
+@media (max-width: 1080px) {
+  .psp-bento {
+    grid-template-columns: 1fr;
+  }
+  .psp-sidebar {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    order: -1;
+  }
+  .psp-daily-panel {
+    flex: 1 1 260px;
+  }
+  .psp-how-it-works {
+    flex: 1 1 200px;
+  }
+  .psp-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  .psp-featured-side {
+    min-width: 140px;
+  }
+}
+
+/* Mobile: single column, scrollable tabs, touch-friendly buttons */
+@media (max-width: 640px) {
+  .psp-card {
+    padding: clamp(12px, 4vw, 20px);
+  }
+  .psp-bento {
+    gap: 12px;
+  }
+  .psp-featured-card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .psp-featured-side {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+  }
+  .psp-featured-deco {
+    display: none;
+  }
+  .psp-featured-actions {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    gap: 6px;
+  }
+  .psp-play-btn {
+    white-space: nowrap;
+    width: auto;
+    flex: 1;
+  }
+  .psp-featured-card .psp-play-btn {
+    flex: 0 0 auto;
+  }
+  .psp-sidebar {
+    flex-direction: column;
+  }
+  .psp-grid {
+    grid-template-columns: 1fr;
+  }
+  .popular-seeds-page .psp-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .popular-seeds-page .psp-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .popular-seeds-page .psp-tabs button {
+    flex: 0 0 auto;
+    min-height: 40px;
+    font-size: 0.82rem;
+    padding: 8px 10px;
+  }
+  .psp-play-btn,
+  .psp-daily-play,
+  .psp-daily-challenge {
+    min-height: 44px;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 400px) {
+  .psp-featured-stats {
+    gap: 4px 10px;
+    font-size: 0.76rem;
+  }
+  .psp-featured-title {
+    font-size: 1.5rem;
+  }
+}
