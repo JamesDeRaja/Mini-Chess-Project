@@ -10,6 +10,64 @@ function isResult(value: unknown): value is string { return typeof value === 'st
 function isColor(value: unknown): value is 'white' | 'black' { return value === 'white' || value === 'black'; }
 function isBackRankCode(value: string | null): value is string { return Boolean(value && /^[KQRBNP]{5}$/i.test(value)); }
 
+
+const CHALLENGE_DEDUPE_WINDOW_MINUTES = 10;
+const MAX_ACTIVE_CHALLENGES_PER_PLAYER = 20;
+
+type ServerSupabase = ReturnType<typeof getServerSupabase>;
+
+function minutesAgoIso(minutes: number): string {
+  return new Date(Date.now() - minutes * 60 * 1000).toISOString();
+}
+
+async function findRecentDuplicateChallenge(supabase: ServerSupabase, payload: {
+  seed_slug: string;
+  back_rank_code: string;
+  challenger_player_id: string | null;
+  challenger_score: number;
+  challenger_moves: number;
+  challenger_result: string;
+  challenger_color: 'white' | 'black';
+}) {
+  if (!payload.challenger_player_id) return null;
+
+  const { data } = await supabase
+    .from('challenges')
+    .select('*')
+    .eq('challenger_player_id', payload.challenger_player_id)
+    .eq('seed_slug', payload.seed_slug)
+    .eq('back_rank_code', payload.back_rank_code)
+    .eq('challenger_score', payload.challenger_score)
+    .eq('challenger_moves', payload.challenger_moves)
+    .eq('challenger_result', payload.challenger_result)
+    .eq('challenger_color', payload.challenger_color)
+    .gte('created_at', minutesAgoIso(CHALLENGE_DEDUPE_WINDOW_MINUTES))
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data ?? null;
+}
+
+async function pruneOldPlayerChallenges(supabase: ServerSupabase, playerId: string | null) {
+  if (!playerId) return;
+
+  const { data } = await supabase
+    .from('challenges')
+    .select('id')
+    .eq('challenger_player_id', playerId)
+    .order('created_at', { ascending: false })
+    .range(MAX_ACTIVE_CHALLENGES_PER_PLAYER, 999);
+
+  const staleIds = (data ?? [])
+    .map((row) => String(row.id))
+    .filter(Boolean);
+
+  if (staleIds.length > 0) {
+    await supabase.from('challenges').delete().in('id', staleIds);
+  }
+}
+
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== 'POST') { response.status(405).send('Method not allowed'); return; }
   const seed = cleanText(request.body?.seed, 80);
@@ -43,9 +101,17 @@ export default async function handler(request: VercelRequest, response: VercelRe
       chain_root_id: chainRoot,
       chain_depth: chainDepth,
     };
+    const recentDuplicate = await findRecentDuplicateChallenge(supabase, payload);
+    if (recentDuplicate) {
+      await pruneOldPlayerChallenges(supabase, payload.challenger_player_id);
+      response.status(200).json({ challenge: recentDuplicate });
+      return;
+    }
+
     // Global anti-cheat is out of scope for V1. Seed scores are casual/social until server-verified replay validation is added.
     const { data, error } = await supabase.from('challenges').insert(payload).select('*').single();
     if (error) throw error;
+    await pruneOldPlayerChallenges(supabase, payload.challenger_player_id);
     response.status(200).json({ challenge: data });
   } catch (error) {
     response.status(503).send(error instanceof Error ? error.message : 'Challenge service unavailable');

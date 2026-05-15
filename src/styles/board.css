@@ -197,7 +197,7 @@
 
 /* Juicy, low-noise chess feedback */
 .piece-spawn-board .piece {
-  opacity: 0;
+  opacity: 1;
   animation: piece-spawn-pop 520ms cubic-bezier(.16, 1.45, .3, 1) forwards;
   animation-delay: calc(var(--spawn-order, 0) * 26ms);
 }
@@ -231,6 +231,13 @@
   z-index: 3;
 }
 .piece-tweening { animation: none !important; }
+
+.board-result-active .piece,
+.board-result-active .piece-wrapper,
+.board-result-active .piece-img-loaded {
+  opacity: 1 !important;
+  animation: none !important;
+}
 .last-move-destination-square .piece { animation: piece-squash-land 430ms cubic-bezier(.14, 1.65, .38, 1); }
 .last-move-destination-square.moved-piece-knight .piece { animation-name: knight-hop-land; animation-duration: 520ms; }
 .last-move-destination-square.moved-piece-rook .piece { animation-name: rook-thump-land; animation-duration: 460ms; }

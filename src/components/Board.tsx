@@ -313,6 +313,14 @@ export function Board({
   }
 
   const visibleResultMarkers = Array.isArray(resultMarker) ? resultMarker : resultMarker ? [resultMarker] : [];
+  const boardClassName = [
+    'board',
+    dragState?.hasMoved ? 'dragging-board' : '',
+    isSpawningPieces ? 'piece-spawn-board' : '',
+    visibleResultMarkers.length > 0 ? 'board-result-active' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
   const visibleLegalMoves = dragState?.hasMoved ? dragState.legalMoves : legalMoves;
   const dragHoveredSquare = dragState?.hasMoved ? dragState.hoveredSquare : null;
   const dragHoveredLegalSquare = dragHoveredSquare !== null && visibleLegalMoves.some((move) => move.to === dragHoveredSquare) ? dragHoveredSquare : null;
@@ -368,7 +376,7 @@ export function Board({
         <div className="board-rank-labels" aria-hidden="true">
           {rankLabels.map((rank) => <span key={rank}>{rank}</span>)}
         </div>
-        <div ref={boardElementRef} className={`board ${dragState?.hasMoved ? 'dragging-board' : ''} ${isSpawningPieces ? 'piece-spawn-board' : ''}`} role="grid" aria-label={ariaLabel}>{squares}<AnalysisOverlay analysis={analysis} actualTo={lastMove?.to ?? null} isFlipped={isFlipped} /></div>
+        <div ref={boardElementRef} className={boardClassName} role="grid" aria-label={ariaLabel}>{squares}<AnalysisOverlay analysis={analysis} actualTo={lastMove?.to ?? null} isFlipped={isFlipped} /></div>
         <div className="board-file-labels" aria-hidden="true">
           {fileLabels.map((file) => <span key={file}>{file}</span>)}
         </div>
