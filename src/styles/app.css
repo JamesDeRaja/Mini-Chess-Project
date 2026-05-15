@@ -9932,3 +9932,49 @@ body.home-modal-open .home-page {
     font-size: 0.84rem;
   }
 }
+
+/* Animated fire streak badge */
+@keyframes fire-flicker {
+  0%   { transform: scaleX(1)    scaleY(1)    rotate(-1deg); }
+  18%  { transform: scaleX(0.95) scaleY(1.06) rotate(1.8deg); }
+  36%  { transform: scaleX(1.04) scaleY(0.95) rotate(-0.6deg); }
+  54%  { transform: scaleX(0.96) scaleY(1.05) rotate(1.2deg); }
+  72%  { transform: scaleX(1.03) scaleY(0.97) rotate(-1.8deg); }
+  90%  { transform: scaleX(0.97) scaleY(1.03) rotate(0.8deg); }
+  100% { transform: scaleX(1)    scaleY(1)    rotate(-1deg); }
+}
+
+@keyframes fire-glow-pulse {
+  0%, 100% { filter: drop-shadow(0 8px 10px rgba(255, 120, 20, 0.42)); }
+  50%       { filter: drop-shadow(0 10px 22px rgba(255, 55, 5, 0.74)); }
+}
+
+.streak-brand-tile {
+  cursor: pointer;
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.streak-brand-tile:hover { transform: scale(1.1); }
+.streak-brand-tile:active { transform: scale(0.93); }
+
+.streak-brand-tile svg {
+  transform-origin: 50% 70%;
+  animation: fire-flicker 1.5s ease-in-out infinite, fire-glow-pulse 2.2s ease-in-out infinite;
+}
+
+/* Streak info modal */
+.streak-info-modal h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.streak-modal-flame {
+  color: #ff9f1c;
+  flex-shrink: 0;
+}
+
+.streak-last-played {
+  font-size: 0.9rem;
+  color: var(--muted, #6b7280);
+}

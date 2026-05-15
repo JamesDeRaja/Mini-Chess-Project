@@ -29,7 +29,7 @@ type HomePageProps = {
   onCancelFindMatch: (queueId?: string) => Promise<void>;
 };
 
-type ModalName = 'date' | 'custom' | 'rules' | 'matchmaking' | 'dailyMastered' | null;
+type ModalName = 'date' | 'custom' | 'rules' | 'matchmaking' | 'dailyMastered' | 'streak' | null;
 type LeaderboardFeedItem = { id: string; displayName: string; score: number; kind: 'rank' | 'new-score'; rank?: number };
 type LeaderboardView = { scope: LeaderboardScope; label: string; title: string; description: string };
 
@@ -602,7 +602,7 @@ export function HomePage({
       <section className="home-hero-shell" aria-labelledby="home-title">
         <div className="hero-copy">
           <div className="brand-row">
-            <span className="brand-icon-tile streak-brand-tile" aria-label={`${playStreak.count} day play streak`}><Flame size={42} aria-hidden="true" /><b>{playStreak.count}</b></span>
+            <button type="button" className="brand-icon-tile streak-brand-tile" aria-label={`${playStreak.count} day play streak — tap to learn more`} onClick={() => { trackEvent('homepage_cta_click', { cta: 'streak_info' }); setModal('streak'); }}><Flame size={42} aria-hidden="true" /><b>{playStreak.count}</b></button>
             <form className="player-greeting" onSubmit={(event) => { event.preventDefault(); commitDisplayNameDraft(); }}>
               <span>Hello <PowerShieldBadge tier={shieldProgression.tier} pips={shieldProgression.pips} /></span>
               <input
@@ -814,6 +814,24 @@ export function HomePage({
             <div className="panel-actions centered-actions">
               <button type="button" className="success-action" onClick={continueDailyAiReplay}>Continue daily anyway</button>
               <button type="button" className="secondary-action" onClick={() => setModal(null)}>Back to menu</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modal === 'streak' && (
+        <div className="modal-backdrop" role="presentation" onClick={closeModal}>
+          <div className="confirm-card utility-modal streak-info-modal" role="dialog" aria-modal="true" aria-labelledby="streak-modal-title" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="modal-close" onClick={() => setModal(null)} aria-label="Close streak info"><X size={18} /></button>
+            <p className="eyebrow">Play Streak</p>
+            <h2 id="streak-modal-title"><Flame size={28} aria-hidden="true" className="streak-modal-flame" /> {playStreak.count}-day streak</h2>
+            <p>Your streak counts the number of days in a row you&apos;ve played at least one game. Every time you complete a game, your streak is kept alive for another 24&nbsp;hours.</p>
+            <p>Miss a day and it resets to zero — so come back tomorrow to keep the fire burning!</p>
+            {playStreak.lastPlayedDate && (
+              <p className="streak-last-played">Last played: <strong>{getDisplayDate(playStreak.lastPlayedDate)}</strong></p>
+            )}
+            <div className="panel-actions centered-actions">
+              <button type="button" className="secondary-action" onClick={() => setModal(null)}>Got it</button>
             </div>
           </div>
         </div>
