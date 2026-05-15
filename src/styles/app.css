@@ -9928,7 +9928,12 @@ body.home-modal-open .home-page {
   gap: clamp(14px, 1.8vw, 22px);
   margin: 20px 0;
   text-align: left;
-  align-items: stretch;
+  align-items: start;
+}
+/* Let cards shrink to content height — no artificial min-height */
+.seed-bento-grid .seed-card {
+  min-height: 0;
+  height: auto;
 }
 
 /* Featured (top 2 popular) cards span two columns */
