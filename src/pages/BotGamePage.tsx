@@ -14,6 +14,7 @@ import { applyMove, createMoveRecord } from '../game/applyMove.js';
 import { analyzeMove, getBestMoveForPosition, getMoveNotation } from '../game/analysis.js';
 import { removeAscensionPieces, type AscensionTier } from '../game/ascension.js';
 import { type BotLevel, getBotMoveByLevel, getMoveIdentity } from '../game/bot.js';
+import { pickRandomPlayerName } from '../game/humanPlayers.js';
 import {
   type DailyAIDifficulty,
   type DailyAIProgress,
@@ -53,6 +54,8 @@ type BotGamePageProps = {
   customBackRankCode?: string;
   playerSide?: Color;
   activeChallengeContext?: ActiveChallengeContext;
+  pseudoOpponentName?: string;
+  isMatchedGame?: boolean;
   onHome: () => void;
   onCustomSeed: () => void;
   onDaily: () => void;
@@ -109,6 +112,13 @@ function getNextBotAdaptationProfile(profile: BotAdaptationProfile, didPlayerWin
 
 const BOT_MOVE_DELAY_MIN_MS = 650;
 const BOT_MOVE_DELAY_SPREAD_MS = 450;
+
+function getMatchedPlayerDelay(): number {
+  const roll = Math.random();
+  if (roll < 0.12) return 3200 + Math.floor(Math.random() * 2300); // Long think: 3.2-5.5s
+  if (roll < 0.38) return 1800 + Math.floor(Math.random() * 1400); // Medium think: 1.8-3.2s
+  return 900 + Math.floor(Math.random() * 900);                     // Quick move: 0.9-1.8s
+}
 const HISTORY_AUTOPLAY_INTERVAL_MS = 780;
 const RESULT_REVEAL_DELAY_MS = 1250;
 
@@ -246,6 +256,9 @@ type BotGameContentProps = BotGamePageProps & {
   seedValidation: ValidSeedValidation | null;
 };
 
+const MATCHED_GAME_BOT_LEVEL: BotLevel = 'strong';
+const MATCHED_GAME_BEST_MOVE_CHANCE = 0.65;
+
 function InvalidSeedPanel({ customSeed, error, onHome, onCustomSeed, onDaily, onRandomSetup }: BotGamePageProps & { error: string }) {
   return (
     <main className="game-page invalid-seed-page">
@@ -268,10 +281,10 @@ function InvalidSeedPanel({ customSeed, error, onHome, onCustomSeed, onDaily, on
 export function BotGamePage(props: BotGamePageProps) {
   const seedValidation = props.customSeed ? validateSeedInput(props.customSeed) : null;
   if (seedValidation && seedValidation.ok === false) return <InvalidSeedPanel {...props} error={seedValidation.error} />;
-  return <BotGameContent {...props} seedValidation={seedValidation} />;
+  return <BotGameContent {...props} seedValidation={seedValidation ?? null} />;
 }
 
-function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, customBackRankCode, playerSide, activeChallengeContext, onHome, seedValidation }: BotGameContentProps) {
+function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, customBackRankCode, playerSide, activeChallengeContext, pseudoOpponentName, isMatchedGame, onHome, seedValidation }: BotGameContentProps) {
   const dailySeedInfo = useMemo(() => {
     if (seedValidation?.ok) {
       const safeBackRankCode = customBackRankCode && isValidBackRankCode(customBackRankCode) ? customBackRankCode.toUpperCase() : seedValidation.backRankCode;
@@ -287,6 +300,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [dailyAIProgress, setDailyAIProgress] = useState(() => resetDailyAIProgressIfNeeded(dailySeedInfo.dateKey));
   const [botAdaptationProfile, setBotAdaptationProfile] = useState(readBotAdaptationProfile);
   const [shieldProgression, setShieldProgression] = useState(readShieldProgression);
+  const [botOpponentName] = useState(() => pickRandomPlayerName());
+  const opponentDisplayName = (isMatchedGame && pseudoOpponentName) ? pseudoOpponentName : botOpponentName;
   const dailyAIDifficulty = isDailyAI ? getDailyAIDifficulty(dailyAIProgress) : null;
   const dailyAscensionTier = getAscensionTierForDailyDifficulty(dailyAIDifficulty);
   const ascensionMissingNote = isDailyAI ? getAscensionMissingNote(dailyAscensionTier) : null;
@@ -339,7 +354,9 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const lastQueuedBotMoveKeyRef = useRef('');
   const recentBotMoveKeysRef = useRef<string[]>([]);
   const config = modeConfig[matchMode];
-  const botLevel = dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber, botAdaptationProfile);
+  const botLevel = isMatchedGame
+    ? MATCHED_GAME_BOT_LEVEL
+    : (dailyAIDifficulty ? getBotLevelForDailyDifficulty(dailyAIDifficulty) : getBotLevel(matchMode, score, config.winsRequired, roundNumber, botAdaptationProfile));
   const playerPowerTier = getPlayerPowerTier({ botLevel, dailyDifficulty: dailyAIDifficulty, dailyProgress: isDailyAI ? dailyAIProgress : null });
   const playerPowerLabel = getPowerRomanNumeral(shieldProgression.tier);
   const latestPly = boardTimeline.length - 1;
@@ -687,7 +704,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       const nextDailyProgress = getNextDailyAIProgress(dailyAIProgress, didPlayerWin ? 'win' : 'loss');
       pendingDailyAIProgressRef.current = nextDailyProgress;
       setDailyAIProgress(nextDailyProgress);
-    } else {
+    } else if (!isMatchedGame) {
       setBotAdaptationProfile((profile) => saveBotAdaptationProfile(getNextBotAdaptationProfile(profile, didPlayerWin)));
     }
 
@@ -927,10 +944,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     if (lastQueuedBotMoveKeyRef.current === botMoveKey) return undefined;
     lastQueuedBotMoveKeyRef.current = botMoveKey;
 
-    const naturalDelay = BOT_MOVE_DELAY_MIN_MS + Math.floor(Math.random() * BOT_MOVE_DELAY_SPREAD_MS);
+    const naturalDelay = isMatchedGame ? getMatchedPlayerDelay() : (BOT_MOVE_DELAY_MIN_MS + Math.floor(Math.random() * BOT_MOVE_DELAY_SPREAD_MS));
     botMoveTimerRef.current = window.setTimeout(() => {
       botMoveTimerRef.current = null;
-      const botMove = getBotMoveByLevel(board, botColor, botLevel, { avoidMoveKeys: new Set(recentBotMoveKeysRef.current), bestMoveChance: getBestMoveChanceForPower(playerPowerTier) });
+      const botMove = getBotMoveByLevel(board, botColor, botLevel, { avoidMoveKeys: new Set(recentBotMoveKeysRef.current), bestMoveChance: isMatchedGame ? MATCHED_GAME_BEST_MOVE_CHANCE : getBestMoveChanceForPower(playerPowerTier) });
       if (botMove) {
         recentBotMoveKeysRef.current = [...recentBotMoveKeysRef.current.slice(-11), getMoveIdentity(botMove)];
         completeMove(botMove);
@@ -957,7 +974,9 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       : roundResult.didPlayerWin
         ? 'You won'
         : 'You lost'
-    : undefined;
+    : status === 'active'
+      ? turn === playerColor ? 'Your turn' : `${opponentDisplayName}'s turn`
+      : undefined;
   const resultMarker = useMemo(() => {
     if (!roundResult || displayStatus === 'active') return null;
     if (displayStatus === 'white_won' || displayStatus === 'black_won') {
@@ -1114,11 +1133,17 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   return (
     <main className="game-page">
       <GameHeader
-        title="Play Against Bot"
+        title={isMatchedGame ? `vs ${opponentDisplayName}` : 'vs AI Bot'}
         turn={turn}
         status={status}
         playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
-        details={dailyAIDifficulty ? `Daily ladder · ${dailyAIDifficulty} bot · Power ${playerPowerLabel} · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars` : `${config.label} · ${botLevel} bot · Power ${playerPowerLabel}`}
+        details={
+          isMatchedGame
+            ? `Matched game · Power ${playerPowerLabel}`
+            : dailyAIDifficulty
+              ? `Daily challenge · Power ${playerPowerLabel} · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars`
+              : `${config.label} · Power ${playerPowerLabel}`
+        }
         onTitleClick={onHome}
         statusLabelOverride={headerStatusLabel}
         turnLabelOverride={headerTurnLabel}
@@ -1128,17 +1153,16 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         <aside className="side-panel match-panel">
           <div className="panel-title-row">
             <div>
-              <p className="eyebrow">Match</p>
-              <h2>{config.label}</h2>
+              <p className="eyebrow">{isMatchedGame ? 'Online Match' : isDailyAI ? 'Daily' : 'Match'}</p>
+              <h2>{isMatchedGame ? `vs ${opponentDisplayName}` : 'Playing Against Bot'}</h2>
             </div>
-            <span className="mode-badge">{isDailyAI ? 'Daily' : '1v1'}</span>
           </div>
           <div className="score-stack">
             <CapturedScoreRow side="white" moves={moveHistory} scoringSide={playerColor} isActive={turn === 'white' && status === 'active'} />
             <CapturedScoreRow side="black" moves={moveHistory} scoringSide={playerColor} isActive={turn === 'black' && status === 'active'} />
           </div>
           <div className="info-stack">
-            <p><span>▥ Bot level</span><strong>{dailyAIDifficulty ?? botLevel}</strong></p>
+            <p><span>Opponent</span><strong>{opponentDisplayName}</strong></p>
             <p><span>🛡️ Your power</span><strong><PowerShieldBadge tier={shieldProgression.tier} pips={shieldProgression.pips} /></strong></p>
             <p><span>{seedInfoLabel}</span><strong>{dailySeedInfo.seed}</strong></p>
             <p><span>▣ Date</span><strong>{dailySeedInfo.dateKey}</strong></p>

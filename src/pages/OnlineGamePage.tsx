@@ -21,6 +21,8 @@ import { recordPlayStreak } from '../game/playStreak.js';
 import { calculateGameScore, getMoveCaptureRecord } from '../game/scoring.js';
 import { playCheckSound, playMoveSound } from '../game/sound.js';
 import { applyMoveDelta, isMoveDelta, moveDeltaToMove, rebuildBoardFromHistory, replayMoves } from '../game/moveDelta.js';
+import { applyShieldLoss, applyShieldWin, readShieldProgression, saveShieldProgression } from '../game/shieldProgression.js';
+import { getNameFromPlayerId } from '../game/humanPlayers.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveDelta, MoveRecord } from '../game/types.js';
 import { createOnlineGame, createSeededGame, joinOnlineGame, submitOnlineGameAction, submitOnlineMove } from '../multiplayer/gameApi.js';
 import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
@@ -123,6 +125,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [submittedScore, setSubmittedScore] = useState(false);
   const [scoreSubmitMessage, setScoreSubmitMessage] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [shieldProgression, setShieldProgression] = useState(readShieldProgression);
   const [copied, setCopied] = useState(false);
   const [pendingClientMoveIds, setPendingClientMoveIds] = useState<Set<string>>(() => new Set());
   const historyListRef = useRef<HTMLOListElement | null>(null);
@@ -157,6 +160,8 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const shouldShowWaitingOverlay = !isCompleted && inviteState !== 'error' && !isOnlineGameReady;
   const canInteractWithBoard = isBoardReady && !isPreviewing && !shouldShowWaitingOverlay && !isCompleted && role === turn && !hasPendingMove;
   const displayStatus: GameStatus = isOnlineGameReady && status === 'waiting' ? 'active' : status;
+  const opponentPlayerId = role === 'white' ? blackPlayerId : role === 'black' ? whitePlayerId : null;
+  const opponentName = opponentPlayerId ? getNameFromPlayerId(opponentPlayerId) : null;
   const primaryStatus = useMemo(() => {
     if (inviteState === 'creating_game') return 'Creating game...';
     if (inviteState === 'waiting_for_link') return 'Creating invite link...';
@@ -165,8 +170,8 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     if (isCompleted) return status === 'draw' ? 'Draw' : `${status === 'white_won' ? 'White' : 'Black'} won`;
     if (!isOnlineGameReady) return 'Waiting for opponent';
     if (role === 'spectator') return `${turn === 'white' ? 'White' : 'Black'} to move`;
-    return role === turn ? 'Your turn' : "Opponent's turn";
-  }, [inviteState, isCompleted, isOnlineGameReady, role, status, turn]);
+    return role === turn ? 'Your turn' : `${opponentName ?? 'Opponent'}'s turn`;
+  }, [inviteState, isCompleted, isOnlineGameReady, opponentName, role, status, turn]);
   const winner: Color | null = status === 'white_won' ? 'white' : status === 'black_won' ? 'black' : null;
   const drawOfferIsFromOpponent = (role === 'white' || role === 'black') && drawOfferBy !== null && drawOfferBy !== role;
   const drawActionLabel = drawOfferIsFromOpponent ? 'Accept Draw' : drawOfferBy === role ? 'Draw Requested' : 'Request Draw';
@@ -210,7 +215,9 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
             : winner === role
               ? 'You won'
               : 'You lost'
-    : undefined;
+    : isOnlineGameReady && role !== 'spectator'
+      ? role === turn ? 'Your turn' : `${opponentName ?? 'Opponent'}'s turn`
+      : undefined;
   const scoreSide: Color = role === 'white' || role === 'black' ? role : winner ?? 'white';
   const scoreMode = isDailySeed ? 'daily' : 'online';
   const scoreBreakdown = useMemo(() => calculateGameScore({ status, side: scoreSide, moveHistory }), [moveHistory, scoreSide, status]);
@@ -230,7 +237,9 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     });
     setLocalBestScore(getLocalBestScore(seedLabel, scoreMode, scoreSide) ?? entry);
     recordPlayStreak();
-  }, [backRankCode, isCompleted, isLifecycleTerminal, role, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode, scoreSide, seedLabel, status]);
+    const didPlayerWin = winner === role;
+    setShieldProgression((current) => saveShieldProgression(didPlayerWin ? applyShieldWin(current) : applyShieldLoss(current)));
+  }, [backRankCode, isCompleted, isLifecycleTerminal, role, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode, scoreSide, seedLabel, status, winner]);
 
   useEffect(() => {
     if (!isCompleted || !isDailySeed) return;
@@ -699,7 +708,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
 
   return (
     <main className="game-page">
-      <GameHeader title="Online Game" turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} statusLabelOverride={headerStatusLabel} turnLabelOverride={headerTurnLabel} scoreLabel={headerScoreLabel} />
+      <GameHeader title={opponentName ? `vs ${opponentName}` : 'Online Game'} turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} statusLabelOverride={headerStatusLabel} turnLabelOverride={headerTurnLabel} scoreLabel={headerScoreLabel} />
       {toast && <p className="sync-toast" role="status">{toast}</p>}
       <div className="game-layout chess-shell">
         <aside className="side-panel match-panel online-match-panel">
@@ -708,7 +717,6 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
               <p className="eyebrow">Online</p>
               <h2>{isOnlineGameReady ? 'Online Match' : 'Invite Friend'}</h2>
             </div>
-            <span className="mode-badge">Online</span>
           </div>
           <div className="score-stack">
             <CapturedScoreRow side="white" moves={moveHistory} scoringSide={scoreSide} isActive={turn === 'white' && isOnlineGameReady && !isCompleted} />
@@ -716,13 +724,13 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
           </div>
           <div className="info-stack">
             <p><span className="info-label-with-piece"><img className="inline-pawn-icon" src={role === 'black' ? '/pieces/black-pawn.png' : '/pieces/white-pawn.png'} alt="" draggable={false} />You are</span><strong>{role === 'spectator' ? 'Spectating' : role === 'white' ? 'White' : 'Black'}</strong></p>
-            <p><span>☌ Opponent</span><strong>{isOnlineGameReady ? 'Joined' : 'Waiting'}</strong></p>
+            <p><span>☌ Opponent</span><strong>{isOnlineGameReady && opponentName ? opponentName : isOnlineGameReady ? 'Joined' : 'Waiting'}</strong></p>
             <p><span>● Status</span><strong>{leftPanelStatus}</strong></p>
             {isOnlineGameReady && !isCompleted && <p><span>↻ Turn</span><strong>{turn === 'white' ? 'White' : 'Black'}</strong></p>}
             <p><span>🌱 Seed</span><strong>{seedLabel}</strong></p>
             <p><span>Back rank</span><strong>{backRankCode ?? 'Setup pending'}</strong></p>
           </div>
-          <p className="panel-note">{isOnlineGameReady ? (drawOfferBy ? `${drawOfferBy === role ? 'You offered a draw.' : 'Opponent offered a draw.'}` : 'Share remains available.') : shareIsLoading ? 'Share the invite link. Your friend joins when they open it.' : 'Send this link to a friend. The game starts when they join.'}</p>
+          <p className="panel-note">{isOnlineGameReady ? (drawOfferBy ? `${drawOfferBy === role ? 'You offered a draw.' : `${opponentName ?? 'Opponent'} offered a draw.`}` : 'Share remains available.') : shareIsLoading ? 'Share the invite link. Your friend joins when they open it.' : 'Send this link to a friend. The game starts when they join.'}</p>
           <div className="match-actions">
             <button type="button" className="wide-action primary-action" onClick={handleShareInvite} disabled={!inviteLink || shareIsLoading}>{shareIsLoading ? 'Creating Link...' : copied ? 'Copied' : isOnlineGameReady ? 'Share' : 'Share Invite'}</button>
             <button type="button" className="wide-action secondary-action" onClick={() => setManualBoardFlip((flipped) => !(flipped ?? role === 'black'))}><RotateCcw size={18} /> Flip Board</button>
