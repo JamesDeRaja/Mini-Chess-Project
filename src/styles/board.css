@@ -51,10 +51,10 @@
 .square-dark .coordinate-label { color: rgba(255, 248, 233, 0.62); }
 
 .selected-square {
-  outline: 5px solid rgba(247, 207, 114, 0.96);
+  outline: 5px solid rgba(84, 123, 216, 0.96);
   outline-offset: -5px;
   z-index: 2;
-  box-shadow: inset 0 0 0 999px rgba(247, 207, 114, 0.18);
+  box-shadow: inset 0 0 0 999px rgba(84, 123, 216, 0.18);
 }
 
 .legal-target-square::after,
@@ -63,7 +63,7 @@
   inset: 0;
   content: '';
 }
-.last-move-square::before { background: rgba(247, 207, 114, 0.4); }
+.last-move-square::before { background: rgba(84, 123, 216, 0.34); }
 .legal-target-square::after { background: rgba(255, 169, 149, 0.16); }
 
 .king-in-check {
@@ -582,10 +582,10 @@
   font-size: 0.94rem;
 }
 .board-label span { color: #7fb79b; }
-.selected-square { outline: 4px solid rgba(242, 208, 99, 0.78); outline-offset: -4px; }
-.last-move-square::before { background: rgba(242, 208, 99, 0.28); }
+.selected-square { outline: 4px solid rgba(84, 123, 216, 0.84); outline-offset: -4px; }
+.last-move-square::before { background: rgba(84, 123, 216, 0.26); }
 .legal-target-square::after { background: rgba(241, 200, 193, 0.16); }
-.move-dot { background: rgba(242, 208, 99, 0.9); box-shadow: 0 0 0 8px rgba(242, 208, 99, 0.18); }
+.move-dot { background: rgba(84, 123, 216, 0.9); box-shadow: 0 0 0 8px rgba(84, 123, 216, 0.18); }
 .capture-dot { background: rgba(255, 248, 233, 0.14); box-shadow: 0 0 0 9px rgba(241, 200, 193, 0.18), inset 0 0 16px rgba(241, 200, 193, 0.1); }
 
 @media (max-width: 1450px) {
@@ -991,15 +991,15 @@
 
 /* Stronger quick-glance move and mistake feedback. */
 .last-move-square::before {
-  background: rgba(247, 207, 114, 0.46);
-  box-shadow: inset 0 0 0 4px rgba(255, 247, 214, 0.42);
+  background: rgba(84, 123, 216, 0.34);
+  box-shadow: inset 0 0 0 4px rgba(225, 234, 255, 0.48);
 }
 
 .last-move-destination-square::after {
   position: absolute;
   inset: -4px;
   z-index: 1;
-  border: 4px solid rgba(255, 214, 79, 0.94);
+  border: 4px solid rgba(84, 123, 216, 0.94);
   border-radius: inherit;
   content: '';
   pointer-events: none;
