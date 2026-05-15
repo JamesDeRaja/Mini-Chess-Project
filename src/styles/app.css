@@ -4380,7 +4380,7 @@ button:focus-visible,
   display: grid;
   grid-template-columns: minmax(0, var(--left-panel-width)) minmax(0, 1fr) minmax(0, var(--right-panel-width));
   grid-template-areas: "match board history";
-  align-items: start;
+  align-items: center;
   justify-content: center;
   gap: var(--gameplay-gap);
   width: min(100%, 1720px);
@@ -4395,7 +4395,8 @@ button:focus-visible,
   min-width: 0;
   overflow: visible;
   justify-items: center;
-  align-content: start;
+  align-self: center;
+  align-content: center;
 }
 
 .match-panel {
