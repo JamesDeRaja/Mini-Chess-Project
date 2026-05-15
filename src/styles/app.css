@@ -9874,3 +9874,301 @@ body.home-modal-open .home-page {
     font-size: clamp(0.78rem, 3.4vw, 0.9rem);
   }
 }
+
+/* Redesigned popular seeds: favourite controls, tag chips, and adaptive cards. */
+.popular-seeds-page {
+  padding: clamp(12px, 3vw, 44px);
+  background:
+    radial-gradient(circle at 8% 24%, rgba(150, 216, 194, 0.42), transparent 24rem),
+    radial-gradient(circle at 92% 68%, rgba(150, 216, 194, 0.46), transparent 26rem),
+    linear-gradient(180deg, #f8f3df 0%, #fbf7ea 48%, #d7f1e4 100%);
+}
+.popular-seeds-page .challenge-card.wide {
+  width: min(100%, 1540px);
+  padding: clamp(20px, 4vw, 58px);
+  border-color: rgba(222, 217, 203, 0.92);
+  border-radius: clamp(26px, 4vw, 48px);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.92), transparent 27rem),
+    linear-gradient(180deg, rgba(255, 251, 239, 0.94), rgba(249, 243, 226, 0.92));
+  box-shadow: 0 26px 70px rgba(80, 122, 108, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+.popular-seeds-hero {
+  max-width: 820px;
+  margin: 0 auto;
+  text-align: center;
+}
+.popular-seeds-hero-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(224, 194, 101, 0.56);
+  border-radius: 50%;
+  color: #7f9f86;
+  background: linear-gradient(180deg, rgba(255, 251, 239, 0.98), rgba(246, 214, 120, 0.52));
+  box-shadow: 0 10px 0 rgba(45, 43, 40, 0.06), 0 16px 28px rgba(97, 87, 50, 0.12);
+}
+.popular-seeds-hero h1 {
+  margin-bottom: 12px;
+  letter-spacing: -0.075em;
+  font-size: clamp(3.35rem, 8vw, 6.4rem);
+  line-height: 0.86;
+}
+.popular-seeds-hero > p:not(.eyebrow) {
+  max-width: 720px;
+  margin: 0 auto;
+  color: #657269;
+  font-size: clamp(1rem, 1.7vw, 1.2rem);
+  font-weight: 780;
+}
+.popular-seed-search {
+  width: min(100%, 780px);
+  min-height: 54px;
+  margin: clamp(20px, 3vw, 28px) auto 12px;
+  border-color: rgba(222, 217, 203, 0.96);
+  background: rgba(255, 251, 239, 0.9);
+  box-shadow: 0 10px 28px rgba(97, 87, 50, 0.08), inset 0 -3px rgba(247, 207, 114, 0.12);
+}
+.popular-seed-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(8px, 1vw, 12px);
+  width: min(100%, 900px);
+  margin: 0 auto clamp(14px, 2vw, 20px);
+}
+.popular-seed-chip-row button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.38em;
+  min-height: 42px;
+  border: 1px solid rgba(222, 217, 203, 0.9);
+  border-radius: 999px;
+  padding: 9px 17px;
+  color: #4f5e56;
+  background: rgba(255, 251, 239, 0.86);
+  box-shadow: 0 5px 0 rgba(217, 178, 70, 0.18), 0 12px 22px rgba(80, 122, 108, 0.08);
+  font: inherit;
+  font-size: clamp(0.86rem, 1.2vw, 0.98rem);
+  font-weight: 950;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+.popular-seed-chip-row button:hover,
+.popular-seed-chip-row button:focus-visible,
+.popular-seed-chip-row button.selected {
+  border-color: rgba(127, 159, 134, 0.62);
+  color: #243027;
+  background: rgba(211, 235, 224, 0.96);
+  box-shadow: 0 5px 0 rgba(127, 159, 134, 0.24), 0 15px 28px rgba(80, 122, 108, 0.13);
+  transform: translateY(-1px);
+}
+.popular-seeds-page .leaderboard-tabs {
+  width: min(100%, 1440px);
+  margin: 0 auto clamp(20px, 2vw, 28px);
+  gap: clamp(6px, 1vw, 12px);
+  padding: 8px;
+  overflow: visible;
+  border-radius: 30px;
+  background: rgba(255, 251, 239, 0.78);
+  box-shadow: inset 0 -6px rgba(247, 207, 114, 0.16), 0 10px 28px rgba(97, 87, 50, 0.06);
+}
+.popular-seeds-page .leaderboard-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.32em;
+  min-height: clamp(50px, 5vw, 68px);
+  border-radius: 24px;
+  font-size: clamp(0.95rem, 1.35vw, 1.16rem);
+  text-transform: capitalize;
+}
+.popular-seeds-page .seed-card-grid {
+  grid-template-columns: repeat(4, minmax(230px, 1fr));
+  gap: clamp(16px, 2vw, 24px);
+  margin-top: 0;
+}
+.popular-seeds-page .seed-card {
+  position: relative;
+  isolation: isolate;
+  min-height: 360px;
+  padding: clamp(20px, 2vw, 28px);
+  overflow: hidden;
+  border: 1px solid rgba(222, 217, 203, 0.88);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.95), transparent 16rem),
+    linear-gradient(145deg, rgba(255, 251, 239, 0.95), rgba(229, 248, 239, 0.88));
+  box-shadow: 0 16px 32px rgba(80, 122, 108, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.68);
+}
+.popular-seeds-page .seed-card:nth-child(-n + 2) {
+  grid-column: span 2;
+  min-height: 420px;
+}
+.popular-seeds-page .seed-card h2,
+.popular-seeds-page .seed-card > strong,
+.popular-seeds-page .seed-card p,
+.popular-seeds-page .seed-tag-row,
+.popular-seeds-page .seed-card-action-stack {
+  position: relative;
+  z-index: 1;
+}
+.popular-seeds-page .seed-card h2 {
+  max-width: calc(100% - 54px);
+  margin: 4px 0 4px;
+  font-size: clamp(2rem, 3.8vw, 3.2rem);
+  letter-spacing: -0.075em;
+}
+.popular-seeds-page .seed-card > strong {
+  color: #7f9f86;
+  font-size: clamp(0.8rem, 1vw, 0.92rem);
+  font-weight: 950;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.popular-seeds-page .seed-card-description {
+  min-height: 2.8em;
+  margin-top: 8px;
+}
+.seed-favourite-action {
+  position: absolute;
+  top: clamp(18px, 2vw, 26px);
+  right: clamp(18px, 2vw, 26px);
+  z-index: 2;
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(222, 217, 203, 0.9);
+  border-radius: 50%;
+  padding: 0;
+  color: #98a39b;
+  background: rgba(255, 251, 239, 0.92);
+  box-shadow: 0 7px 0 rgba(217, 178, 70, 0.18), 0 12px 20px rgba(80, 122, 108, 0.1);
+  cursor: pointer;
+}
+.seed-favourite-action:hover,
+.seed-favourite-action:focus-visible,
+.seed-favourite-action.selected {
+  color: #c77a58;
+  background: #fff8e8;
+  transform: translateY(-1px);
+}
+.popular-seeds-page .seed-card-action-stack {
+  gap: 10px;
+  padding-top: 16px;
+}
+.popular-seeds-page .seed-card-action-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+}
+.popular-seeds-page .seed-card-action-row button:not(.seed-icon-action),
+.popular-seeds-page .seed-challenge-action {
+  min-height: 56px;
+  border-radius: 21px;
+}
+.popular-seeds-page .seed-icon-action {
+  width: 54px;
+  min-width: 54px;
+  height: 54px;
+}
+@media (max-width: 1180px) {
+  .popular-seeds-page .seed-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .popular-seeds-page .seed-card:nth-child(-n + 2) {
+    grid-column: span 1;
+    min-height: 380px;
+  }
+}
+@media (max-width: 820px) {
+  .popular-seeds-page .challenge-card.wide {
+    padding: clamp(18px, 4.5vw, 28px);
+  }
+  .popular-seed-chip-row {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    margin-inline: calc(clamp(18px, 4.5vw, 28px) * -1);
+    padding: 2px clamp(18px, 4.5vw, 28px) 12px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+  .popular-seed-chip-row button {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+  .popular-seeds-page .leaderboard-tabs {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 5px;
+    padding: 5px;
+    border-radius: 24px;
+  }
+  .popular-seeds-page .leaderboard-tabs button {
+    min-height: 46px;
+    padding-inline: 4px;
+    border-radius: 19px;
+    font-size: clamp(0.78rem, 2.7vw, 0.98rem);
+  }
+}
+@media (max-width: 640px) {
+  .popular-seeds-page {
+    padding: 10px;
+  }
+  .popular-seeds-page .seed-detail-home-button {
+    position: sticky;
+    top: 10px;
+    margin-bottom: 8px;
+  }
+  .popular-seeds-hero-icon {
+    display: none;
+  }
+  .popular-seeds-hero h1 {
+    font-size: clamp(3.05rem, 16vw, 4.25rem);
+  }
+  .popular-seed-search {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    min-height: 50px;
+    padding: 9px 12px;
+  }
+  .popular-seed-search input {
+    flex-basis: auto;
+  }
+  .popular-seed-search small {
+    width: auto;
+    text-align: right;
+    font-size: 0.76rem;
+  }
+  .popular-seeds-page .seed-card-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .popular-seeds-page .seed-card,
+  .popular-seeds-page .seed-card:nth-child(-n + 2) {
+    min-height: 0;
+    padding: 20px;
+    border-radius: 24px;
+  }
+  .popular-seeds-page .seed-card h2 {
+    font-size: clamp(2.1rem, 11vw, 3rem);
+  }
+  .seed-favourite-action {
+    width: 44px;
+    height: 44px;
+  }
+  .popular-seeds-page .seed-card-action-row {
+    grid-template-columns: minmax(0, 1fr) 48px 48px;
+    gap: 8px;
+  }
+  .popular-seeds-page .seed-icon-action {
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+  }
+}
