@@ -13,11 +13,17 @@ export function MoveQualityBadge({ square, orientation, label = '+ Best' }: Move
   const layout = useOverlayLayout(badgeRef);
   const squareGeometry = layout ? getOverlaySquareGeometry(square, orientation, layout) : null;
 
+  const badgeStyle = squareGeometry && layout
+    ? squareGeometry.centerX > layout.width / 2
+      ? { right: layout.width - squareGeometry.x - squareGeometry.width * 0.38, top: squareGeometry.y + squareGeometry.height * 0.28 }
+      : { left: squareGeometry.x + squareGeometry.width * 0.62, top: squareGeometry.y + squareGeometry.height * 0.28 }
+    : undefined;
+
   return (
     <div
       ref={badgeRef}
       className="move-quality-badge"
-      style={squareGeometry ? { left: squareGeometry.x + squareGeometry.width * 0.62, top: squareGeometry.y + squareGeometry.height * 0.28 } : undefined}
+      style={badgeStyle}
       aria-hidden="true"
     >
       <span className="move-quality-star">★</span>
