@@ -1133,7 +1133,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   return (
     <main className="game-page">
       <GameHeader
-        title={`vs ${opponentDisplayName}`}
+        title={isMatchedGame ? `vs ${opponentDisplayName}` : 'vs AI Bot'}
         turn={turn}
         status={status}
         playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
