@@ -323,9 +323,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
   const [variationStartPly, setVariationStartPly] = useState<number | null>(null);
-  const [variationBoard, setVariationBoard] = useState<ChessBoard | null>(null);
-  const [variationTurn, setVariationTurn] = useState<Color | null>(null);
-  const [variationLastMove, setVariationLastMove] = useState<(Pick<Move, 'from' | 'to'> & { color?: Color; isCapture?: boolean; captureScore?: number | null }) | null>(null);
+  const [variationTimeline, setVariationTimeline] = useState<Array<{ board: ChessBoard; lastMove: (Pick<Move, 'from' | 'to'> & { color?: Color; isCapture?: boolean; captureScore?: number | null }) | null }>>([]);
+  const [variationPly, setVariationPly] = useState(0);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareTaunt, setShareTaunt] = useState('');
   const [challengeUrl, setChallengeUrl] = useState('');
@@ -343,7 +342,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const latestPly = boardTimeline.length - 1;
   const activeReviewPly = roundResult ? previewPly ?? latestPly : previewPly;
   const isPreviewing = previewPly !== null && previewPly < latestPly;
-  const isVariationReview = Boolean(variationBoard && variationTurn);
+  const isVariationReview = variationTimeline.length > 0;
+  const variationBoard: ChessBoard | null = isVariationReview ? (variationTimeline[variationPly]?.board ?? null) : null;
+  const variationTurn: Color | null = isVariationReview && variationStartPly !== null ? ((variationStartPly + variationPly) % 2 === 0 ? 'white' : 'black') : null;
+  const variationLastMove = isVariationReview ? (variationTimeline[variationPly]?.lastMove ?? null) : null;
   const displayBoard = variationBoard ?? (isPreviewing ? boardTimeline[previewPly] : board);
   const displayMove = variationLastMove ?? (isPreviewing && previewPly > 0 ? moveHistory[previewPly - 1] : lastMove);
   const displayTurn = variationTurn ?? (isPreviewing ? (previewPly % 2 === 0 ? 'white' : 'black') : turn);
@@ -477,11 +479,40 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
         setIsHistoryAutoplaying(false);
+        if (isVariationReview) {
+          setSelectedSquare(null);
+          setLegalMoves([]);
+          if (variationPly > 0) {
+            setVariationPly(variationPly - 1);
+          } else {
+            const startPly = variationStartPly ?? 0;
+            setVariationStartPly(null);
+            setVariationTimeline([]);
+            setVariationPly(0);
+            setPreviewPly(Math.max(startPly - 1, 0));
+          }
+          return;
+        }
         setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0));
       }
       if (event.key === 'ArrowRight') {
         event.preventDefault();
         setIsHistoryAutoplaying(false);
+        if (isVariationReview) {
+          setSelectedSquare(null);
+          setLegalMoves([]);
+          if (variationPly < variationTimeline.length - 1) {
+            setVariationPly(variationPly + 1);
+          } else if (variationPly === 0) {
+            const startPly = variationStartPly ?? 0;
+            setVariationStartPly(null);
+            setVariationTimeline([]);
+            setVariationPly(0);
+            const nextPly = Math.min(startPly + 1, latestPly);
+            setPreviewPly(nextPly >= latestPly ? null : nextPly);
+          }
+          return;
+        }
         setPreviewPly((ply) => {
           const nextPly = Math.min((ply ?? latestPly) + 1, latestPly);
           return nextPly >= latestPly ? null : nextPly;
@@ -500,7 +531,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [latestPly]);
+  }, [isVariationReview, variationPly, variationTimeline.length, variationStartPly, latestPly]);
 
   function pauseHistoryAutoplay() {
     setIsHistoryAutoplaying(false);
@@ -513,9 +544,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   function clearReviewVariation() {
     setVariationStartPly(null);
-    setVariationBoard(null);
-    setVariationTurn(null);
-    setVariationLastMove(null);
+    setVariationTimeline([]);
+    setVariationPly(0);
     clearReviewSelection();
   }
 
@@ -527,17 +557,20 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   function goToPreviousReviewPly() {
     pauseHistoryAutoplay();
-    const variationNavigationPly = getVariationNavigationPly();
-    clearReviewVariation();
-    if (variationNavigationPly !== null) {
-      setPreviewPly(Math.max(variationNavigationPly - 1, 0));
+    if (isVariationReview) {
+      clearReviewSelection();
+      if (variationPly > 0) {
+        setVariationPly(variationPly - 1);
+      } else {
+        const startPly = variationStartPly ?? 0;
+        setVariationStartPly(null);
+        setVariationTimeline([]);
+        setVariationPly(0);
+        setPreviewPly(Math.max(startPly - 1, 0));
+      }
       return;
     }
     setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0));
-  }
-
-  function getVariationNavigationPly(): number | null {
-    return isVariationReview && variationStartPly !== null ? variationStartPly : null;
   }
 
   function goToLiveReview() {
@@ -548,11 +581,20 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
   function goToNextReviewPly() {
     pauseHistoryAutoplay();
-    const variationNavigationPly = getVariationNavigationPly();
-    clearReviewVariation();
-    if (variationNavigationPly !== null) {
-      const nextPly = Math.min(variationNavigationPly + 1, latestPly);
-      setPreviewPly(nextPly >= latestPly ? null : nextPly);
+    if (isVariationReview) {
+      clearReviewSelection();
+      if (variationPly < variationTimeline.length - 1) {
+        setVariationPly(variationPly + 1);
+      } else if (variationPly === 0) {
+        // At the branch start with no variation moves played yet — exit to main line
+        const startPly = variationStartPly ?? 0;
+        setVariationStartPly(null);
+        setVariationTimeline([]);
+        setVariationPly(0);
+        const nextPly = Math.min(startPly + 1, latestPly);
+        setPreviewPly(nextPly >= latestPly ? null : nextPly);
+      }
+      // At the tip of a variation with moves: stay put (no further moves to replay)
       return;
     }
     setPreviewPly((ply) => {
@@ -572,13 +614,13 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     const branchPly = previewPly ?? latestPly;
     const branchBoard = boardTimeline[branchPly];
     if (!branchBoard) return null;
-    const branchTurn = branchPly % 2 === 0 ? 'white' : 'black';
+    const branchTurn: Color = branchPly % 2 === 0 ? 'white' : 'black';
     const clonedBoard = cloneBoard(branchBoard);
+    const initialLastMove = branchPly > 0 ? (moveHistory[branchPly - 1] ?? null) : null;
     pauseHistoryAutoplay();
     setVariationStartPly(branchPly);
-    setVariationBoard(clonedBoard);
-    setVariationTurn(branchTurn);
-    setVariationLastMove(branchPly > 0 ? moveHistory[branchPly - 1] ?? null : null);
+    setVariationTimeline([{ board: clonedBoard, lastMove: initialLastMove }]);
+    setVariationPly(0);
     clearReviewSelection();
     setPreviewPly(branchPly >= latestPly ? null : branchPly);
     setIsResultPanelDismissed(true);
@@ -715,9 +757,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setAscensionPopupTier(getPendingAscensionPopupTier(isDailyAI, roundAscensionTier));
     setPreviewPly(null);
     setVariationStartPly(null);
-    setVariationBoard(null);
-    setVariationTurn(null);
-    setVariationLastMove(null);
+    setVariationTimeline([]);
+    setVariationPly(0);
     setIsHistoryAutoplaying(false);
     setIsFlipped(roundPlayerColor === 'black');
     setIsBoardReady(false);
@@ -780,15 +821,18 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     return true;
   }
 
-  function completeVariationMove(move: Move, sourceBoard = variationBoard) {
+  function completeVariationMove(move: Move, sourceBoard: ChessBoard | null = variationBoard) {
     if (!sourceBoard) return;
     const nextBoard = applyMove(sourceBoard, move);
-    const nextTurn = getOpponent(move.piece.color);
-    setVariationBoard(nextBoard);
-    setVariationTurn(nextTurn);
+    const newEntry = {
+      board: nextBoard,
+      lastMove: { from: move.from, to: move.to, color: move.piece.color, isCapture: move.isCapture, captureScore: move.capturedPiece ? getCaptureScore(move.capturedPiece.type) : null },
+    };
+    // Truncate any moves made after the current position (branch-from-branch) and append
+    setVariationTimeline((timeline) => [...timeline.slice(0, variationPly + 1), newEntry]);
+    setVariationPly(variationPly + 1);
     setSelectedSquare(null);
     setLegalMoves([]);
-    setVariationLastMove({ from: move.from, to: move.to, color: move.piece.color, isCapture: move.isCapture, captureScore: move.capturedPiece ? getCaptureScore(move.capturedPiece.type) : null });
     setMoveAnnouncement(`Analysis branch: ${move.piece.color === 'white' ? 'White' : 'Black'} ${move.piece.type} moved from ${squareLabel(move.from % 5, Math.floor(move.from / 5))} to ${squareLabel(move.to % 5, Math.floor(move.to / 5))}.`);
   }
 
