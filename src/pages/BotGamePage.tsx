@@ -682,7 +682,9 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
 
     if (isDailyAI) {
       progressionMessage = getDailyProgressionMessage(dailyAIProgress, didPlayerWin);
-      pendingDailyAIProgressRef.current = getNextDailyAIProgress(dailyAIProgress, didPlayerWin ? 'win' : 'loss');
+      const nextDailyProgress = getNextDailyAIProgress(dailyAIProgress, didPlayerWin ? 'win' : 'loss');
+      pendingDailyAIProgressRef.current = nextDailyProgress;
+      setDailyAIProgress(nextDailyProgress);
     } else {
       setBotAdaptationProfile((profile) => saveBotAdaptationProfile(getNextBotAdaptationProfile(profile, didPlayerWin)));
     }
