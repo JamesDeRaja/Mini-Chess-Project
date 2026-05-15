@@ -1139,10 +1139,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         playerRole={`You are ${playerColor === 'white' ? 'White' : 'Black'}`}
         details={
           isMatchedGame
-            ? `Matched game · vs ${opponentDisplayName} · Power ${playerPowerLabel}`
+            ? `Matched game · Power ${playerPowerLabel}`
             : dailyAIDifficulty
-              ? `Daily challenge · vs ${opponentDisplayName} · Power ${playerPowerLabel} · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars`
-              : `${config.label} · vs ${opponentDisplayName} · Power ${playerPowerLabel}`
+              ? `Daily challenge · Power ${playerPowerLabel} · ${dailyAIProgress.stars}${dailyAIProgress.magicStarUnlocked ? ' + magic' : ''} stars`
+              : `${config.label} · Power ${playerPowerLabel}`
         }
         onTitleClick={onHome}
         statusLabelOverride={headerStatusLabel}
