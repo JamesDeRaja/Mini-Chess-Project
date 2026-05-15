@@ -1104,12 +1104,12 @@
   position: relative;
 }
 .board-frame-with-timer {
-  display: grid;
-  row-gap: clamp(10px, 1.8vw, 18px);
-  margin-top: clamp(8px, 1.4vw, 16px);
+  position: relative;
 }
 .board-timer-anchor {
-  position: relative;
+  position: absolute;
+  top: clamp(-76px, -5.2vw, -58px);
+  left: 0;
   z-index: 12;
   display: grid;
   box-sizing: border-box;
@@ -1171,8 +1171,14 @@
 
 @media (max-width: 699px) {
   .board-frame-with-timer {
+    display: grid;
     row-gap: 12px;
     margin-top: 18px;
+  }
+  .board-timer-anchor {
+    position: relative;
+    top: auto;
+    left: auto;
   }
   .board-turn-timer {
     min-width: 104px;
