@@ -38,7 +38,7 @@ type MatchmakingState =
   | { status: 'idle' }
   | { status: 'finding'; queueId?: string }
   | { status: 'found-ai'; opponentName: string; playerSide: 'white' | 'black'; queueId?: string }
-  | { status: 'timeout'; queueId?: string }
+  | { status: 'no-player-found'; queueId?: string }
   | { status: 'failed'; message: string };
 
 
@@ -477,7 +477,7 @@ export function HomePage({
   }
 
   const cancelMatch = useCallback(async () => {
-    if (matchmaking.status === 'finding' || matchmaking.status === 'timeout' || matchmaking.status === 'found-ai') await onCancelFindMatch(matchmaking.queueId);
+    if (matchmaking.status === 'finding' || matchmaking.status === 'no-player-found' || matchmaking.status === 'found-ai') await onCancelFindMatch(matchmaking.queueId);
     setMatchmaking({ status: 'idle' });
     setModal(null);
   }, [matchmaking, onCancelFindMatch]);
@@ -489,7 +489,7 @@ export function HomePage({
   }
 
   async function switchFromMatchmaking(nextAction: () => void | Promise<void>) {
-    if (matchmaking.status === 'finding' || matchmaking.status === 'timeout') await onCancelFindMatch(matchmaking.queueId);
+    if (matchmaking.status === 'finding' || matchmaking.status === 'no-player-found') await onCancelFindMatch(matchmaking.queueId);
     setMatchmaking({ status: 'idle' });
     setModal(null);
     await nextAction();
@@ -538,22 +538,20 @@ export function HomePage({
         .catch((error: Error) => setMatchmaking((current) => (current.status === 'finding' ? { status: 'failed', message: error.message } : current)));
     }, 5000);
 
-    // AI fallback: if no real match in 10-15 seconds, connect to a human-named AI
-    const aiFallbackDelay = 10000 + Math.floor(Math.random() * 5000);
-    const aiFallbackId = window.setTimeout(() => {
-      const opponentName = pickRandomPlayerName();
-      const playerSide = Math.random() < 0.5 ? 'white' : 'black';
-      setMatchmaking((current) => (current.status === 'finding' ? { status: 'found-ai', opponentName, playerSide, queueId: current.queueId } : current));
-    }, aiFallbackDelay);
-
-    const timeoutId = window.setTimeout(() => {
-      setMatchmaking((current) => (current.status === 'finding' ? { status: 'timeout', queueId: current.queueId } : current));
-    }, 60000);
+    // If no real match appears after a short scan, usually connect to a human-named AI.
+    // About 1 in 10 searches shows a no-player-found state instead, so matchmaking feels less automatic.
+    const fallbackDelay = 10000 + Math.floor(Math.random() * 5000);
+    const fallbackId = window.setTimeout(() => {
+      setMatchmaking((current) => {
+        if (current.status !== 'finding') return current;
+        if (Math.random() < 0.1) return { status: 'no-player-found', queueId: current.queueId };
+        return { status: 'found-ai', opponentName: pickRandomPlayerName(), playerSide: Math.random() < 0.5 ? 'white' : 'black', queueId: current.queueId };
+      });
+    }, fallbackDelay);
 
     return () => {
       window.clearInterval(pollId);
-      window.clearTimeout(timeoutId);
-      window.clearTimeout(aiFallbackId);
+      window.clearTimeout(fallbackId);
     };
   }, [matchTarget.backRankCode, matchTarget.seed, matchmaking.status, onFindMatch]);
 
@@ -578,7 +576,7 @@ export function HomePage({
       return () => window.clearTimeout(clearId);
     }
     const refresh = () => {
-      setSearchingNames(pickRandomPlayerNames(3));
+      setSearchingNames(pickRandomPlayerNames(5));
       setSearchNameGeneration((g) => g + 1);
     };
     refresh();
@@ -1031,8 +1029,8 @@ export function HomePage({
             <h2 id="matchmaking-modal-title">
               {matchmaking.status === 'found-ai'
                 ? 'Match found!'
-                : matchmaking.status === 'timeout'
-                  ? 'No opponent found yet.'
+                : matchmaking.status === 'no-player-found'
+                  ? 'No player found.'
                   : matchmaking.status === 'failed'
                     ? 'Matchmaking unavailable'
                     : 'Scanning for players...'}
@@ -1069,18 +1067,22 @@ export function HomePage({
               <>
                 <p>Queued seed: <strong>{matchTarget.seed}</strong></p>
                 <p>Back rank: {matchTarget.backRankCode}</p>
-                <p className="panel-note">Your setup stays open online. The next player who taps Find Match joins this board, and colors are picked at random.</p>
+                <p className="panel-note">
+                  {matchmaking.status === 'no-player-found'
+                    ? 'No player was available for this setup right now.'
+                    : 'Your setup stays open online. The next player who taps Find Match joins this board, and colors are picked at random.'}
+                </p>
               </>
             )}
 
             {matchmaking.status === 'failed' && <p className="error-message inline-message">{matchmaking.message}</p>}
-            {matchmaking.status === 'timeout' && <p>No one matched within a minute. You can keep waiting or send an invite link.</p>}
+            {matchmaking.status === 'no-player-found' && <p>No player found. Try again later, challenge a friend, or play AI now.</p>}
 
             {matchmaking.status !== 'found-ai' && (
               <div className="panel-actions centered-actions">
-                {matchmaking.status === 'timeout' && <button type="button" onClick={() => requestMatchFor(matchTarget.seed, matchTarget.backRankCode)}><Users size={18} /> Keep Waiting</button>}
-                <button type="button" onClick={() => { void switchFromMatchmaking(inviteMatchTarget); }}><LinkIcon size={18} /> Challenge Friend Instead</button>
-                <button type="button" onClick={() => { void switchFromMatchmaking(() => playAiForSeed(matchTarget.seed, matchTarget.backRankCode)); }}><Bot size={18} /> Play AI While Waiting</button>
+                {matchmaking.status === 'no-player-found' && <button type="button" onClick={() => requestMatchFor(matchTarget.seed, matchTarget.backRankCode)}><Users size={18} /> Try Again</button>}
+                {matchmaking.status === 'no-player-found' && <button type="button" onClick={() => { void switchFromMatchmaking(inviteMatchTarget); }}><LinkIcon size={18} /> Challenge Friend</button>}
+                {matchmaking.status === 'no-player-found' && <button type="button" onClick={() => { void switchFromMatchmaking(() => playAiForSeed(matchTarget.seed, matchTarget.backRankCode)); }}><Bot size={18} /> Play AI</button>}
                 <button type="button" onClick={cancelMatch}>Cancel</button>
               </div>
             )}

@@ -10031,8 +10031,8 @@ body.home-modal-open .home-page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  min-height: 74px;
+  gap: 6px;
+  min-height: 116px;
 }
 
 .matchmaking-scanning-name {
