@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/preserve-manual-memoization */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, Copy, Flag, Handshake, Home, Pause, Play, RotateCcw, Share2, Shuffle, Sparkles, Trophy } from 'lucide-react';
 import { Board } from '../components/Board.js';
@@ -121,6 +121,7 @@ function getMatchedPlayerDelay(): number {
 }
 const HISTORY_AUTOPLAY_INTERVAL_MS = 780;
 const RESULT_REVEAL_DELAY_MS = 1250;
+const TURN_TIMER_SECONDS = 20;
 
 const ascensionRemovedPieces: PieceType[] = ['knight', 'bishop', 'rook'];
 const ascensionPieceLabels: Record<PieceType, string> = {
@@ -315,6 +316,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [boardTimeline, setBoardTimeline] = useState<ChessBoard[]>(() => [cloneBoard(initialBoardForMount)]);
   const [turn, setTurn] = useState<Color>('white');
   const [status, setStatus] = useState<GameStatus>('active');
+  const [turnTimeLeft, setTurnTimeLeft] = useState(TURN_TIMER_SECONDS);
   const [selectedSquare, setSelectedSquare] = useState<number | null>(null);
   const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<(Pick<Move, 'from' | 'to'> & { color?: Color; isCapture?: boolean; captureScore?: number | null }) | null>(null);
@@ -363,6 +365,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const activeReviewPly = roundResult ? previewPly ?? latestPly : previewPly;
   const isPreviewing = previewPly !== null && previewPly < latestPly;
   const isVariationReview = variationTimeline.length > 0;
+  const isTurnTimerEnabled = Boolean(isMatchedGame);
   const variationBoard: ChessBoard | null = isVariationReview ? (variationTimeline[variationPly]?.board ?? null) : null;
   const variationTurn: Color | null = isVariationReview && variationStartPly !== null ? ((variationStartPly + variationPly) % 2 === 0 ? 'white' : 'black') : null;
   const variationLastMove = isVariationReview ? (variationTimeline[variationPly]?.lastMove ?? null) : null;
@@ -478,7 +481,9 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     const animationFrame = window.requestAnimationFrame(() => {
       if (activeReviewPly && activeReviewPly > 0) {
         const activeMove = historyList.querySelector<HTMLElement>(`[data-history-ply="${activeReviewPly}"]`);
-        activeMove?.scrollIntoView({ block: 'center', inline: 'nearest' });
+        if (activeMove) {
+          historyList.scrollTop = activeMove.offsetTop - (historyList.clientHeight - activeMove.clientHeight) / 2;
+        }
         return;
       }
 
@@ -692,7 +697,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     };
   }, [isHistoryAutoplaying, latestPly, moveHistory.length, previewPly]);
 
-  const finishRound = useCallback((nextStatus: GameStatus, drawReason?: RoundResult['drawReason']) => {
+  const finishRound = useCallback((nextStatus: GameStatus, drawReason?: RoundResult['drawReason'], messageOverride?: string) => {
     const winner = getWinner(nextStatus);
     const didPlayerWin = winner === playerColor;
     let progressionMessage: string | undefined;
@@ -720,8 +725,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       resultRevealTimerRef.current = null;
       setIsResultPanelReady(true);
     }, RESULT_REVEAL_DELAY_MS);
-    setRoundResult({ status: nextStatus, winner, message: getRoundMessage(nextStatus, drawReason), progressionMessage, didPlayerWin, drawReason });
-  }, [config.winsRequired, dailyAIProgress, isDailyAI, playerColor, score]);
+    setRoundResult({ status: nextStatus, winner, message: messageOverride ?? getRoundMessage(nextStatus, drawReason), progressionMessage, didPlayerWin, drawReason });
+  }, [config.winsRequired, dailyAIProgress, isDailyAI, isMatchedGame, playerColor, score]);
 
   const completeMove = useCallback((move: Move) => {
     const nextBoard = applyMove(board, move);
@@ -730,6 +735,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setBoard(nextBoard);
     setBoardTimeline((timeline) => [...timeline, cloneBoard(nextBoard)]);
     setTurn(nextTurn);
+    setTurnTimeLeft(TURN_TIMER_SECONDS);
     setStatus(nextStatus);
     setSelectedSquare(null);
     setLegalMoves([]);
@@ -767,6 +773,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setBoard(initialBoard);
     setBoardTimeline([cloneBoard(initialBoard)]);
     setTurn('white');
+    setTurnTimeLeft(TURN_TIMER_SECONDS);
     setStatus('active');
     setSelectedSquare(null);
     setLegalMoves([]);
@@ -933,6 +940,32 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }
 
   useEffect(() => {
+    if (isTurnTimerEnabled && status === 'active' && !roundResult) setTurnTimeLeft(TURN_TIMER_SECONDS);
+  }, [isTurnTimerEnabled, roundResetId, roundResult, status, turn]);
+
+  useEffect(() => {
+    if (!isTurnTimerEnabled || status !== 'active' || roundResult || isPreviewing || isVariationReview || !isBoardReady) return undefined;
+
+    if (turnTimeLeft <= 0) {
+      const winner = getOpponent(turn);
+      const timeoutStatus: GameStatus = winner === 'white' ? 'white_won' : 'black_won';
+      const timedOutPlayer = turn === playerColor ? 'You ran' : `${opponentDisplayName} ran`;
+      setStatus(timeoutStatus);
+      setSelectedSquare(null);
+      setLegalMoves([]);
+      playResultSound(winner === playerColor);
+      finishRound(timeoutStatus, undefined, `${timedOutPlayer} out of time. ${winner === playerColor ? 'You win!' : 'You lose.'}`);
+      return undefined;
+    }
+
+    const timerId = window.setTimeout(() => {
+      setTurnTimeLeft((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timerId);
+  }, [finishRound, isBoardReady, isPreviewing, isTurnTimerEnabled, isVariationReview, opponentDisplayName, playerColor, roundResult, status, turn, turnTimeLeft]);
+
+  useEffect(() => {
     if (botMoveTimerRef.current !== null) {
       window.clearTimeout(botMoveTimerRef.current);
       botMoveTimerRef.current = null;
@@ -960,7 +993,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         botMoveTimerRef.current = null;
       }
     };
-  }, [board, botColor, botLevel, completeMove, isBoardReady, isPreviewing, moveHistory.length, playerPowerTier, roundResetId, status, turn]);
+  }, [board, botColor, botLevel, completeMove, isBoardReady, isMatchedGame, isPreviewing, moveHistory.length, playerPowerTier, roundResetId, status, turn]);
 
   const handleBoardSpawnComplete = useCallback(() => {
     setIsBoardReady(true);
@@ -1130,6 +1163,19 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }, [roundResult, submittedScore]);
 
 
+  function renderReviewControls(className = 'review-controls') {
+    return (
+      <div className={className}>
+        <button type="button" onClick={goToStartReview} disabled={moveHistory.length === 0}>⏮</button>
+        <button type="button" onClick={goToPreviousReviewPly} disabled={moveHistory.length === 0}>‹</button>
+        <button type="button" className={isVariationReview ? 'live-review-pending' : undefined} onClick={goToLiveReview}>Live</button>
+        <button type="button" onClick={goToNextReviewPly} disabled={moveHistory.length === 0}>›</button>
+        <button type="button" onClick={goToEndReview} disabled={moveHistory.length === 0}>⏭</button>
+      </div>
+    );
+  }
+
+
   return (
     <main className="game-page">
       <GameHeader
@@ -1198,8 +1244,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             onDragStart={handleDragStart}
             onDrop={handleDrop}
             onDragCancel={() => { setSelectedSquare(null); setLegalMoves([]); }}
+            timer={isTurnTimerEnabled && status === 'active' && !roundResult ? { seconds: turnTimeLeft, isDanger: turnTimeLeft <= 5 } : null}
             onSpawnComplete={handleBoardSpawnComplete}
           />
+          {renderReviewControls('review-controls board-review-controls')}
         </section>
 
         <aside className="side-panel review-panel history-panel">
@@ -1223,13 +1271,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             />
           </ol>
           <div className="review-footer history-actions">
-            <div className="review-controls">
-              <button type="button" onClick={goToStartReview} disabled={moveHistory.length === 0}>⏮</button>
-              <button type="button" onClick={goToPreviousReviewPly} disabled={moveHistory.length === 0}>‹</button>
-              <button type="button" className={isVariationReview ? 'live-review-pending' : undefined} onClick={goToLiveReview}>Live</button>
-              <button type="button" onClick={goToNextReviewPly} disabled={moveHistory.length === 0}>›</button>
-              <button type="button" onClick={goToEndReview} disabled={moveHistory.length === 0}>⏭</button>
-            </div>
+            {renderReviewControls()}
             <div className={`panel-actions stacked-actions ${roundResult ? 'history-complete-actions' : ''}`}>
               {roundResult ? (
                 <>
@@ -1254,8 +1296,8 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         <GameResultPanel
           result={roundResult.status === 'draw' && roundResult.drawReason === 'stalemate' ? 'stalemate' : roundResult.status === 'draw' ? 'draw' : roundResult.didPlayerWin ? 'win' : 'loss'}
           winner={roundResult.winner}
-          eyebrow={matchWinner ? 'Match complete' : roundResult.drawReason === 'stalemate' ? 'Stalemate' : `Game ${roundNumber} complete`}
-          title={matchWinner ? 'Match complete' : roundResult.drawReason === 'stalemate' ? 'Stalemate' : roundResult.status === 'draw' ? 'Draw agreed' : roundResult.didPlayerWin ? 'You won' : 'You lost'}
+          eyebrow={roundResult.drawReason === 'stalemate' ? 'Stalemate' : roundResult.status === 'draw' ? `Game ${roundNumber} complete` : roundResult.didPlayerWin ? 'You won' : 'You lost'}
+          title={roundResult.drawReason === 'stalemate' ? 'Stalemate' : roundResult.status === 'draw' ? 'Draw agreed' : roundResult.didPlayerWin ? 'You won' : 'You lost'}
           summary={roundResult.message}
           progressionMessage={roundResult.progressionMessage}
           dismissed={isResultPanelDismissed}

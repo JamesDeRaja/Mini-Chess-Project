@@ -19,7 +19,7 @@ import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { recordPlayStreak } from '../game/playStreak.js';
 import { calculateGameScore, getMoveCaptureRecord } from '../game/scoring.js';
-import { playCheckSound, playMoveSound } from '../game/sound.js';
+import { playCheckSound, playMoveSound, playResultSound } from '../game/sound.js';
 import { applyMoveDelta, isMoveDelta, moveDeltaToMove, rebuildBoardFromHistory, replayMoves } from '../game/moveDelta.js';
 import { applyShieldLoss, applyShieldWin, readShieldProgression, saveShieldProgression } from '../game/shieldProgression.js';
 import { getNameFromPlayerId } from '../game/humanPlayers.js';
@@ -50,6 +50,8 @@ function generateClientMoveId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   return `move-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
+
+const TURN_TIMER_SECONDS = 20;
 
 function getLatestMove(game: OnlineGameRecord): MoveDelta | MoveRecord | null {
   return game.last_move ?? game.move_history?.at(-1) ?? null;
@@ -99,6 +101,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [initialReplayBoard, setInitialReplayBoard] = useState<ChessBoard>(() => createInitialBoard());
   const [turn, setTurn] = useState<Color>('white');
   const [status, setStatus] = useState<GameStatus>(isCreatingInvite ? 'waiting' : 'waiting');
+  const [turnTimeLeft, setTurnTimeLeft] = useState(TURN_TIMER_SECONDS);
   const [inviteState, setInviteState] = useState<InviteState>(isCreatingInvite ? 'creating_game' : 'waiting_for_link');
   const [role, setRole] = useState<Color | 'spectator'>(isCreatingInvite ? 'white' : 'spectator');
   const [whitePlayerId, setWhitePlayerId] = useState<string | null>(isCreatingInvite ? playerId : null);
@@ -125,11 +128,12 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const [submittedScore, setSubmittedScore] = useState(false);
   const [scoreSubmitMessage, setScoreSubmitMessage] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [shieldProgression, setShieldProgression] = useState(readShieldProgression);
+  const [, setShieldProgression] = useState(readShieldProgression);
   const [copied, setCopied] = useState(false);
   const [pendingClientMoveIds, setPendingClientMoveIds] = useState<Set<string>>(() => new Set());
   const historyListRef = useRef<HTMLOListElement | null>(null);
   const confirmedGameRef = useRef<OnlineGameRecord | null>(null);
+  const localTimeoutStatusRef = useRef<GameStatus | null>(null);
   const pendingClientMoveIdsRef = useRef(pendingClientMoveIds);
   const boardRef = useRef(board);
   const moveHistoryRef = useRef<Array<MoveDelta | MoveRecord>>(moveHistory);
@@ -177,6 +181,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const drawActionLabel = drawOfferIsFromOpponent ? 'Accept Draw' : drawOfferBy === role ? 'Draw Requested' : 'Request Draw';
   const canUseGameActions = isOnlineGameReady && !isCompleted && (role === 'white' || role === 'black') && !gameActionPending;
   const isStalemateResult = status === 'draw' && resultType === 'stalemate';
+  const isTurnTimeoutResult = resultType === 'timeout' && isFinishedGame;
   const onlineResult: 'win' | 'loss' | 'draw' | 'stalemate' | 'spectator' = isStalemateResult ? 'stalemate' : isLifecycleTerminal || status === 'draw' ? 'draw' : role === 'spectator' ? 'spectator' : winner === role ? 'win' : 'loss';
   const onlineResultTitle = status === 'expired'
     ? 'This challenge link has expired.'
@@ -195,6 +200,8 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     ? 'Challenge links expire after 60 minutes. Create a new challenge to keep playing.'
     : status === 'timeout'
       ? 'No moves were made for 60 minutes. Create a new challenge to keep playing.'
+      : isTurnTimeoutResult
+        ? `${winner === role ? 'Your opponent' : 'You'} ran out of time. ${winner === role ? 'You win' : 'You lose'} on time. Seed: ${seedLabel}.`
       : resultType === 'stalemate'
         ? `Stalemate: the player to move had no legal moves and was not in check. ${moveHistory.length} moves. Seed: ${seedLabel}.`
         : resultType === 'draw_agreement'
@@ -294,12 +301,16 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   }
 
   function applyGameRecord(game: OnlineGameRecord, options: { preserveLocalMove?: boolean } = {}) {
+    if (localTimeoutStatusRef.current && game.status === 'active') return;
+    if (game.status === 'white_won' || game.status === 'black_won' || game.status === 'draw' || game.status === 'expired' || game.status === 'timeout') localTimeoutStatusRef.current = null;
     const safeMoveHistory = game.move_history ?? [];
     const derivedBackRankCode = game.back_rank_code ?? deriveBackRankCodeFromBoard(game.board);
     const initialBoard = derivedBackRankCode ? createInitialBoard({ backRankCode: derivedBackRankCode }) : safeMoveHistory.length === 0 ? game.board : createInitialBoard();
     const rebuiltBoard = rebuildBoardFromHistory(safeMoveHistory, { backRankCode: derivedBackRankCode, fallbackBoard: game.board });
     const isNewGameRecord = confirmedGameRef.current?.id !== game.id;
     if (isNewGameRecord) {
+      localTimeoutStatusRef.current = null;
+      setTurnTimeLeft(TURN_TIMER_SECONDS);
       setManualBoardFlip(null);
       setPreviewPly(null);
       setIsBoardReady(false);
@@ -475,6 +486,8 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
         updateInviteStateFromGame(game);
         const isNewGameRecord = confirmedGameRef.current?.id !== game.id;
     if (isNewGameRecord) {
+      localTimeoutStatusRef.current = null;
+      setTurnTimeLeft(TURN_TIMER_SECONDS);
       setManualBoardFlip(null);
       setPreviewPly(null);
       setIsBoardReady(false);
@@ -532,6 +545,34 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   // applyGameRecord intentionally merges changed server rows while this fallback is keyed by active sync state.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveGameId, hasPendingMove, isCompleted, isOnlineGameReady, playerId]);
+
+  useEffect(() => {
+    if (isOnlineGameReady && !isCompleted && !isPreviewing && !hasPendingMove) setTurnTimeLeft(TURN_TIMER_SECONDS);
+  }, [hasPendingMove, isCompleted, isOnlineGameReady, isPreviewing, turn]);
+
+  useEffect(() => {
+    if (!isOnlineGameReady || isCompleted || isPreviewing || hasPendingMove || role === 'spectator') return undefined;
+
+    if (turnTimeLeft <= 0) {
+      const winner = getOpponent(turn);
+      const timeoutStatus: GameStatus = winner === 'white' ? 'white_won' : 'black_won';
+      localTimeoutStatusRef.current = timeoutStatus;
+      setStatus(timeoutStatus);
+      setResultType('timeout');
+      setSelectedSquare(null);
+      setLegalMoves([]);
+      setInviteState('completed');
+      setMoveAnnouncement(`${turn === role ? 'You ran' : `${opponentName ?? 'Opponent'} ran`} out of time. ${winner === role ? 'You win!' : 'You lose.'}`);
+      playResultSound(winner === role);
+      return undefined;
+    }
+
+    const timerId = window.setTimeout(() => {
+      setTurnTimeLeft((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timerId);
+  }, [hasPendingMove, isCompleted, isOnlineGameReady, isPreviewing, opponentName, role, turn, turnTimeLeft]);
 
   async function handleShareInvite() {
     if (!inviteLink) return;
@@ -619,6 +660,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     const optimisticHistory = [...moveHistory, createMoveRecord(selectedMove, { clientMoveId, playerId })];
     setBoard(nextBoard);
     setTurn(nextTurn);
+    setTurnTimeLeft(TURN_TIMER_SECONDS);
     setStatus(nextStatus);
     setMoveHistory(optimisticHistory);
     setLastMove(selectedMove);
@@ -706,6 +748,19 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const leftPanelStatus = isCompleted ? onlineResultTitle : shareIsLoading ? 'Creating invite link' : isOnlineGameReady ? 'Active' : 'Waiting for opponent';
   const playerRoleLabel = role === 'spectator' ? 'Spectating' : `You are ${role === 'white' ? 'White' : 'Black'}`;
 
+  function renderReviewControls(className = 'review-controls') {
+    return (
+      <div className={className}>
+        <button type="button" onClick={() => setPreviewPly(0)} disabled={latestPly === 0 || previewPly === 0}>⏮</button>
+        <button type="button" onClick={() => setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0))} disabled={latestPly === 0 || previewPly === 0}>‹</button>
+        <button type="button" className={isPreviewing ? 'live-review-pending' : undefined} onClick={() => setPreviewPly(null)} disabled={!isPreviewing}>Live</button>
+        <button type="button" onClick={() => setPreviewPly((ply) => { const nextPly = Math.min((ply ?? 0) + 1, latestPly); return nextPly >= latestPly ? null : nextPly; })} disabled={latestPly === 0 || !isPreviewing}>›</button>
+        <button type="button" onClick={() => setPreviewPly(null)} disabled={latestPly === 0 || !isPreviewing}>⏭</button>
+      </div>
+    );
+  }
+
+
   return (
     <main className="game-page">
       <GameHeader title={opponentName ? `vs ${opponentName}` : 'Online Game'} turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} statusLabelOverride={headerStatusLabel} turnLabelOverride={headerTurnLabel} scoreLabel={headerScoreLabel} />
@@ -756,8 +811,10 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
                 onDragStart={handleDragStart}
                 onDrop={handleDrop}
                 onDragCancel={() => { setSelectedSquare(null); setLegalMoves([]); }}
+                timer={isOnlineGameReady && !isCompleted && !isPreviewing && role !== 'spectator' ? { seconds: turnTimeLeft, isDanger: turnTimeLeft <= 5 } : null}
                 onSpawnComplete={handleBoardSpawnComplete}
               />
+              {renderReviewControls('review-controls board-review-controls')}
             </>
           )}
           {shouldShowWaitingOverlay && (
@@ -800,13 +857,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
             />
           </ol>
           <div className="review-footer history-actions">
-            <div className="review-controls">
-              <button type="button" onClick={() => setPreviewPly(0)} disabled={latestPly === 0 || previewPly === 0}>⏮</button>
-              <button type="button" onClick={() => setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0))} disabled={latestPly === 0 || previewPly === 0}>‹</button>
-              <button type="button" className={isPreviewing ? 'live-review-pending' : undefined} onClick={() => setPreviewPly(null)} disabled={!isPreviewing}>Live</button>
-              <button type="button" onClick={() => setPreviewPly((ply) => { const nextPly = Math.min((ply ?? 0) + 1, latestPly); return nextPly >= latestPly ? null : nextPly; })} disabled={latestPly === 0 || !isPreviewing}>›</button>
-              <button type="button" onClick={() => setPreviewPly(null)} disabled={latestPly === 0 || !isPreviewing}>⏭</button>
-            </div>
+            {renderReviewControls()}
             <div className="panel-actions stacked-actions">
               <button type="button" className="danger-action" onClick={() => handleOnlineGameAction('resign')} disabled={!canUseGameActions}>Resign</button>
               <button type="button" className="secondary-action" onClick={() => handleOnlineGameAction(drawOfferIsFromOpponent ? 'accept_draw' : 'request_draw')} disabled={!canUseGameActions || drawOfferBy === role}>{gameActionPending ? 'Updating...' : drawActionLabel}</button>
@@ -818,7 +869,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
         <GameResultPanel
           result={onlineResult}
           winner={winner}
-          eyebrow="Game complete"
+          eyebrow={isTurnTimeoutResult ? (winner === role ? 'Won on time' : 'Lost on time') : 'Game complete'}
           title={onlineResult === 'win' ? 'You won' : onlineResult === 'loss' ? 'You lost' : onlineResult === 'stalemate' ? 'Stalemate' : onlineResult === 'spectator' ? 'Game complete' : 'Draw'}
           summary={onlineResultSummary}
           homeAction={(

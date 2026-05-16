@@ -47,15 +47,15 @@ function getGamePayload(whitePlayerId: string, seed: string, backRankCode: strin
 }
 
 
-const MATCHMAKING_STALE_MINUTES = 5;
+const MATCHMAKING_STALE_SECONDS = 20;
 const MAX_PLAYER_WAITING_ROWS = 1;
 
-function minutesAgoIso(minutes: number): string {
-  return new Date(Date.now() - minutes * 60 * 1000).toISOString();
+function secondsAgoIso(seconds: number): string {
+  return new Date(Date.now() - seconds * 1000).toISOString();
 }
 
 async function cleanupMatchmakingQueue(supabase: ServerSupabase, playerId: string) {
-  const staleCutoff = minutesAgoIso(MATCHMAKING_STALE_MINUTES);
+  const staleCutoff = secondsAgoIso(MATCHMAKING_STALE_SECONDS);
 
   await supabase
     .from('matchmaking_queue')
@@ -91,7 +91,7 @@ async function cleanupMatchmakingQueue(supabase: ServerSupabase, playerId: strin
 }
 
 async function cleanupWaitingGames(supabase: ServerSupabase, playerId: string) {
-  const staleCutoff = minutesAgoIso(MATCHMAKING_STALE_MINUTES);
+  const staleCutoff = secondsAgoIso(MATCHMAKING_STALE_SECONDS);
 
   await supabase
     .from('games')

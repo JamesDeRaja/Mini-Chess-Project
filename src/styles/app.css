@@ -4380,7 +4380,7 @@ button:focus-visible,
   display: grid;
   grid-template-columns: minmax(0, var(--left-panel-width)) minmax(0, 1fr) minmax(0, var(--right-panel-width));
   grid-template-areas: "match board history";
-  align-items: start;
+  align-items: center;
   justify-content: center;
   gap: var(--gameplay-gap);
   width: min(100%, 1720px);
@@ -4395,7 +4395,8 @@ button:focus-visible,
   min-width: 0;
   overflow: visible;
   justify-items: center;
-  align-content: start;
+  align-self: center;
+  align-content: center;
 }
 
 .match-panel {
@@ -10124,4 +10125,39 @@ body.home-modal-open .home-page {
 @keyframes status-blink {
   0%, 100% { opacity: 0.6; }
   50%       { opacity: 1; }
+}
+
+/* Mobile/tablet gameplay: when side panels stack below the board, keep timer clear
+   of the header/status UI and surface review controls directly under the board. */
+.board-review-controls {
+  display: none;
+}
+
+@media (max-width: 1199px) {
+  .board-column {
+    padding-top: clamp(34px, 5svh, 58px);
+  }
+
+  .board-review-controls {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    width: min(100%, 520px);
+    margin: clamp(10px, 2svh, 16px) auto 0;
+  }
+
+  .board-review-controls button {
+    min-width: 0;
+    min-height: 42px;
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 799px) {
+  .board-column {
+    padding-top: clamp(48px, 7svh, 78px);
+  }
+
+  .board-review-controls {
+    width: min(100%, calc(100vw - 32px));
+  }
 }
