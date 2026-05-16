@@ -359,7 +359,7 @@ export function Board({
 
   const visibleResultMarkers = Array.isArray(resultMarker) ? resultMarker : resultMarker ? [resultMarker] : [];
   const timerLabel = timer?.label ?? (timer ? `${timer.seconds} seconds left this move` : '');
-  const timerExplanation = timer?.explanation ?? 'Each move has 20 seconds. If the timer reaches zero, the player to move loses on time.';
+  const timerExplanation = timer?.explanation ?? 'Each move has 20sec';
   const boardClassName = [
     'board',
     dragState?.hasMoved ? 'dragging-board' : '',

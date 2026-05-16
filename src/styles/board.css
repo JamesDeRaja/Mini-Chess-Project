@@ -1140,8 +1140,16 @@
 }
 .board-turn-timer-expanded {
   max-width: min(calc(100vw - 32px), 520px);
-  background: #263856;
-  box-shadow: 0 14px 0 rgba(38, 56, 86, 0.18), 0 20px 42px rgba(38, 56, 86, 0.3);
+}
+
+.board-turn-timer:not(.board-turn-timer-danger):hover:not(:disabled),
+.board-turn-timer:not(.board-turn-timer-danger):focus-visible,
+.board-turn-timer:not(.board-turn-timer-danger):active:not(:disabled),
+.board-turn-timer-expanded:not(.board-turn-timer-danger) {
+  color: #fffbef;
+  background: #111315;
+  background-image: none;
+  box-shadow: 0 14px 0 rgba(17, 19, 21, 0.18), 0 20px 42px rgba(0, 0, 0, 0.28);
 }
 .board-turn-timer strong {
   min-width: 42px;
