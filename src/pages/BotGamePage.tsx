@@ -1053,6 +1053,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const canUseBotGameActions = status === 'active' && !roundResult;
   const canAutoplayHistory = Boolean(roundResult && moveHistory.length > 0);
   const confirmActionClassName = pendingAction ? 'danger-action' : undefined;
+  const confirmActionLabel = pendingAction === 'resign' ? 'Resign' : pendingAction === 'draw' ? 'Draw' : 'Continue';
   const restartActionLabel = canUseBotGameActions ? 'Restart Match' : 'Rematch';
 
 
@@ -1445,7 +1446,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             <h2>{pendingAction === 'resign' ? 'Resign this game?' : pendingAction === 'draw' ? 'Offer a draw?' : 'Rematch?'}</h2>
             <p>This action can change or reset the current game. Do you want to continue?</p>
             <div className="panel-actions centered-actions">
-              <button type="button" className={confirmActionClassName} onClick={confirmPendingAction}>Continue</button>
+              <button type="button" className={confirmActionClassName} onClick={confirmPendingAction}>{confirmActionLabel}</button>
               <button type="button" className="success-action" onClick={() => setPendingAction(null)}>Back to game</button>
             </div>
           </div>

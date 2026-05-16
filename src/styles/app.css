@@ -10736,3 +10736,160 @@ body.home-modal-open .home-page {
   .seed-leaderboard-table .leaderboard-row > :nth-child(6) { grid-area: color; justify-self: start; padding-left: 0; }
   .seed-leaderboard-table .leaderboard-row > :nth-child(7) { grid-area: date; justify-self: end; }
 }
+
+/* Retention polish: make the home streak flame feel alive and rewarding. */
+@keyframes streak-tile-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg) scale(1); }
+  35% { transform: translateY(-3px) rotate(1.2deg) scale(1.045); }
+  70% { transform: translateY(1px) rotate(-0.6deg) scale(0.99); }
+}
+
+@keyframes streak-aura-breathe {
+  0%, 100% {
+    opacity: 0.68;
+    transform: translate(-50%, -50%) scale(0.88) rotate(0deg);
+    filter: blur(8px) saturate(1.1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.18) rotate(18deg);
+    filter: blur(12px) saturate(1.45);
+  }
+}
+
+@keyframes streak-ember-orbit {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(0deg) translateY(-30px) scale(0.72);
+  }
+  18%, 78% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(360deg) translateY(-38px) scale(1.06);
+  }
+}
+
+@keyframes streak-flame-dance {
+  0%, 100% { transform: translateY(0) scaleX(1) scaleY(1) rotate(-2deg); }
+  14% { transform: translateY(-2px) scaleX(0.94) scaleY(1.1) rotate(2deg); }
+  32% { transform: translateY(1px) scaleX(1.07) scaleY(0.95) rotate(-1deg); }
+  54% { transform: translateY(-3px) scaleX(0.98) scaleY(1.12) rotate(2.4deg); }
+  78% { transform: translateY(0) scaleX(1.04) scaleY(0.98) rotate(-2.2deg); }
+}
+
+@keyframes streak-count-pop {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  45% { transform: translate(-50%, -50%) scale(1.14); }
+  70% { transform: translate(-50%, -50%) scale(0.96); }
+}
+
+.streak-brand-tile {
+  isolation: isolate;
+  overflow: visible;
+  animation: streak-tile-float 2.8s ease-in-out infinite;
+  will-change: transform;
+}
+
+.streak-brand-tile::before,
+.streak-brand-tile::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 999px;
+}
+
+.streak-brand-tile::before {
+  width: 74px;
+  height: 74px;
+  background:
+    conic-gradient(from 20deg, rgba(255, 221, 100, 0.1), rgba(255, 138, 31, 0.75), rgba(255, 69, 58, 0.26), rgba(255, 221, 100, 0.1)),
+    radial-gradient(circle, rgba(255, 239, 172, 0.76), rgba(255, 149, 38, 0.22) 48%, transparent 70%);
+  animation: streak-aura-breathe 2.4s ease-in-out infinite;
+}
+
+.streak-brand-tile::after {
+  width: 6px;
+  height: 6px;
+  background: #ffe07a;
+  box-shadow:
+    16px 4px 0 rgba(255, 190, 64, 0.82),
+    -14px 8px 0 rgba(255, 122, 38, 0.58),
+    8px -15px 0 rgba(255, 239, 168, 0.9),
+    -20px -7px 0 rgba(255, 93, 50, 0.52);
+  animation: streak-ember-orbit 3.4s linear infinite;
+}
+
+.streak-brand-tile svg {
+  animation: streak-flame-dance 1.12s ease-in-out infinite, fire-glow-pulse 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 10px 14px rgba(255, 126, 24, 0.46)) drop-shadow(0 0 18px rgba(255, 204, 76, 0.38));
+}
+
+.streak-brand-tile b {
+  animation: streak-count-pop 2.8s ease-in-out infinite;
+  border: 2px solid rgba(255, 205, 72, 0.72);
+  box-shadow: 0 4px 14px rgba(255, 125, 18, 0.28), 0 0 0 5px rgba(255, 225, 120, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.streak-brand-tile:hover {
+  animation-duration: 1.15s;
+}
+
+.streak-brand-tile:hover::before,
+.streak-brand-tile:hover::after,
+.streak-brand-tile:hover svg,
+.streak-brand-tile:hover b {
+  animation-duration: 0.85s;
+}
+
+@media (max-width: 760px) {
+  .streak-brand-tile::before {
+    width: 62px;
+    height: 62px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-brand-tile,
+  .streak-brand-tile::before,
+  .streak-brand-tile::after,
+  .streak-brand-tile svg,
+  .streak-brand-tile b {
+    animation: none;
+  }
+}
+
+/* Streak count sits in the bright base of the flame, without a badge backing. */
+.streak-brand-tile b {
+  top: 40px;
+  color: #fffdf4;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  text-shadow: 0 1px 2px rgba(120, 43, 0, 0.52), 0 0 9px rgba(255, 255, 255, 0.95), 0 0 16px rgba(255, 218, 94, 0.86);
+}
+
+@media (max-width: 760px) {
+  .streak-brand-tile b {
+    top: 33px;
+  }
+}
+
+/* Keep streak hover feedback, but make the generic button highlight invisible. */
+.streak-brand-tile:hover:not(:disabled),
+.streak-brand-tile:focus:not(:focus-visible) {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: 0 0 0 rgba(255, 255, 255, 0);
+  filter: none;
+  transform: scale(1.1);
+}
+
+.streak-brand-tile:hover::before,
+.streak-brand-tile:hover::after,
+.streak-brand-tile:hover svg,
+.streak-brand-tile:hover b {
+  animation-duration: 0.85s;
+}
