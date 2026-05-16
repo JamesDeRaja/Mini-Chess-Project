@@ -17,7 +17,7 @@ type Props = {
   context?: TauntContext;
   style?: ShareMessageStyle;
   initialTaunt?: string;
-  onUseShareText?: (shareText: string, taunt: string) => void | Promise<void>;
+  onUseShareText?: (shareText: string, taunt: string) => string | void | Promise<string | void>;
 };
 
 async function copyText(text: string) {
@@ -30,22 +30,37 @@ async function copyText(text: string) {
   area.remove();
 }
 
+function escapeRegExp(text: string) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function removeTrailingUrlFromShareText(text: string, url: string) {
+  return text.replace(new RegExp(`\\s*${escapeRegExp(url)}\\s*$`), '').trim();
+}
+
 export function ShareChallengeModal({ open, onClose, result, playerName, score, moves, seedSlug, backRankCode, challengeUrl, comparisonText, context = 'generic', style = 'trashTalk', initialTaunt, onUseShareText }: Props) {
   const [taunt, setTaunt] = useState(() => initialTaunt || getRandomShareTaunt(context));
   const [copyStatus, setCopyStatus] = useState('');
   const [shareCopied, setShareCopied] = useState(false);
   const shareText = useMemo(() => buildShareMessage({ style, taunt, playerName, score, moves, seedSlug, backRankCode, challengeUrl, comparisonText }), [backRankCode, challengeUrl, comparisonText, moves, playerName, score, seedSlug, style, taunt]);
   if (!open) return null;
-  async function rememberShare() { await onUseShareText?.(shareText, taunt); }
-  async function copyShareText() { await rememberShare(); await copyText(shareText); setCopyStatus('Result copied.'); }
-  async function copyLink() { await rememberShare(); await copyText(challengeUrl); setCopyStatus('Challenge link copied.'); }
+  async function resolveShareContent() {
+    const resolvedUrl = await onUseShareText?.(shareText, taunt);
+    const finalUrl = typeof resolvedUrl === 'string' ? resolvedUrl : challengeUrl;
+    const finalShareText = finalUrl === challengeUrl
+      ? shareText
+      : buildShareMessage({ style, taunt, playerName, score, moves, seedSlug, backRankCode, challengeUrl: finalUrl, comparisonText });
+    return { finalUrl, finalShareText };
+  }
+  async function copyShareText() { const { finalShareText } = await resolveShareContent(); await copyText(finalShareText); setCopyStatus('Result copied.'); }
+  async function copyLink() { const { finalUrl } = await resolveShareContent(); await copyText(finalUrl); setCopyStatus('Challenge link copied.'); }
   async function nativeShare() {
-    await rememberShare();
-    await copyText(challengeUrl);
+    const { finalUrl, finalShareText } = await resolveShareContent();
+    await copyText(finalUrl);
     setCopyStatus('Challenge link copied.');
     setShareCopied(true);
     window.setTimeout(() => setShareCopied(false), 1600);
-    if (navigator.share) await navigator.share({ title: 'Pocket Shuffle Chess Challenge', text: shareText });
+    if (navigator.share) await navigator.share({ title: 'Pocket Shuffle Chess Challenge', text: removeTrailingUrlFromShareText(finalShareText, finalUrl), url: finalUrl });
   }
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>

@@ -33,7 +33,7 @@ import { getLegalMoves } from '../game/legalMoves.js';
 import { dailyBackRankCodeFromSeed, getDailySeed, getUtcDateKey, isValidBackRankCode, validateSeedInput } from '../game/seed.js';
 import { getSeedDisplayName, normalizeSeedSlug } from '../game/curatedSeeds.js';
 import { compareChallengeResult, createChallengePayload, createSeedChallengeUrl, createChallengeUrl, type ActiveChallengeContext } from '../game/challenge.js';
-import { buildShareMessage, getContextualTauntContext, getRandomComparisonText, getRandomShareTaunt, type TauntContext } from '../game/shareTaunts.js';
+import { getContextualTauntContext, getRandomComparisonText, getRandomShareTaunt, type TauntContext } from '../game/shareTaunts.js';
 import { getAnonymousPlayerId, getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { recordPlayStreak } from '../game/playStreak.js';
@@ -1430,11 +1430,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           initialTaunt={currentShareTaunt}
           onUseShareText={async (shareText, taunt) => {
             setShareTaunt(taunt);
-            const url = await ensureChallengeRecord(shareText, taunt);
-            if (url !== effectiveChallengeUrl) {
-              const updatedText = buildShareMessage({ style: isDailyAI ? 'daily' : 'trashTalk', taunt, playerName: displayNameDraft, score: scoreBreakdown.totalScore, moves: scoreBreakdown.fullMoves, seedSlug, backRankCode: dailySeedInfo.backRankCode, challengeUrl: url, comparisonText: comparisonText ?? challengeComparison?.message });
-              void updatedText;
-            }
+            return ensureChallengeRecord(shareText, taunt);
           }}
         />
       )}
