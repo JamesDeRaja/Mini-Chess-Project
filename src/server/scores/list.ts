@@ -16,6 +16,21 @@ type ScoreRow = {
   created_at: string;
 };
 
+type SeedScoreRow = {
+  id: string;
+  seed_slug: string;
+  seed: string;
+  back_rank_code: string | null;
+  player_id: string | null;
+  player_name: string | null;
+  score: number;
+  moves: number;
+  result: string;
+  color: string;
+  challenge_id: string | null;
+  created_at: string;
+};
+
 function hashString(value: string): number {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
@@ -109,6 +124,44 @@ function createGlobalStartPointFillers(): ScoreRow[] {
   }).map((row) => ({ ...row, score: Math.max(5, row.score) }));
 }
 
+function utcDayStart(date = new Date()): string {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())).toISOString();
+}
+
+function mapSeedScoreToScore(row: SeedScoreRow): ScoreRow {
+  return {
+    id: `seed-score-${row.id}`,
+    player_id: row.player_id ?? `seed-score-player-${row.id}`,
+    display_name: row.player_name ?? 'Anonymous Player',
+    seed: row.seed,
+    back_rank_code: row.back_rank_code,
+    mode: row.seed.startsWith('daily-') ? 'daily' : 'seed',
+    side: row.color,
+    result: row.result,
+    score: row.score,
+    moves: row.moves,
+    created_at: row.created_at,
+  };
+}
+
+async function fetchSeedScoreRows(supabase: ReturnType<typeof getServerSupabase>, input: { scope: string; seed: string | null }): Promise<ScoreRow[]> {
+  if (input.scope === 'global-start-points') return [];
+  let query = supabase
+    .from('seed_scores')
+    .select('*')
+    .order('score', { ascending: false })
+    .order('moves', { ascending: true })
+    .order('created_at', { ascending: true })
+    .limit(input.scope === 'global' ? 500 : 100);
+
+  if (input.seed) query = query.eq('seed_slug', input.seed);
+  else if (input.scope === 'daily') query = query.gte('created_at', utcDayStart());
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return ((data ?? []) as SeedScoreRow[]).map(mapSeedScoreToScore);
+}
+
 function sortScores(scores: ScoreRow[]): ScoreRow[] {
   return [...scores].sort((a, b) => b.score - a.score || a.moves - b.moves || a.created_at.localeCompare(b.created_at));
 }
@@ -131,11 +184,6 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const seed = typeof request.query.seed === 'string' ? request.query.seed : null;
   const mode = typeof request.query.mode === 'string' ? request.query.mode : 'daily';
   const scope = typeof request.query.scope === 'string' ? request.query.scope : 'daily';
-  const requiresSeed = scope === 'daily';
-  if (requiresSeed && !seed) {
-    response.status(400).send('Missing seed');
-    return;
-  }
 
   const supabase = getServerSupabase();
   let query = supabase
@@ -144,39 +192,44 @@ export default async function handler(request: VercelRequest, response: VercelRe
     .order('score', { ascending: false })
     .order('moves', { ascending: true })
     .order('created_at', { ascending: true })
-    .limit(scope === 'daily' ? 100 : 500);
+    .limit(scope === 'global' ? 500 : 100);
 
-  if (scope === 'daily') query = query.eq('seed', seed);
+  if (seed) query = query.eq('seed', seed);
+  else if (scope === 'daily') query = query.gte('created_at', utcDayStart());
   if (scope === 'global-start-points') query = query.not('back_rank_code', 'is', null);
 
-  const { data, error } = await query;
+  try {
+    const [{ data, error }, seedScoreRows] = await Promise.all([
+      query,
+      fetchSeedScoreRows(supabase, { scope, seed }),
+    ]);
 
-  if (error) {
-    response.status(500).send(error.message);
-    return;
-  }
+    if (error) throw error;
 
-  if (scope === 'global-start-points') {
-    const bestByStartingPoint = bestScoresByKey([...(data ?? []) as ScoreRow[], ...createGlobalStartPointFillers()], (row) => row.back_rank_code ?? row.seed);
-    response.status(200).json({ scores: sortScores(bestByStartingPoint).slice(0, 25) });
-    return;
-  }
+    if (scope === 'global-start-points') {
+      const bestByStartingPoint = bestScoresByKey([...(data ?? []) as ScoreRow[], ...createGlobalStartPointFillers()], (row) => row.back_rank_code ?? row.seed);
+      response.status(200).json({ scores: sortScores(bestByStartingPoint).slice(0, 25) });
+      return;
+    }
 
-  const databaseRows = (data ?? []) as ScoreRow[];
-  const sourceRows = scope === 'global' ? [...databaseRows, ...createGlobalLeaderboardFillers()] : databaseRows;
+    const databaseRows = [...((data ?? []) as ScoreRow[]), ...seedScoreRows];
+    const sourceRows = scope === 'global' ? [...databaseRows, ...createGlobalLeaderboardFillers()] : databaseRows;
 
-  const bestByPlayerSeedModeSide = new Map<string, ScoreRow>();
-  for (const row of sourceRows) {
-    const key = scope === 'global' ? `${row.player_id}:${row.side}` : `${row.player_id}:${row.seed}:${row.side}`;
-    if (!bestByPlayerSeedModeSide.has(key)) bestByPlayerSeedModeSide.set(key, row);
-  }
-
-  if (scope === 'daily' && seed) {
-    for (const row of createDailyLeaderboardFillers(seed, mode)) {
+    const bestByPlayerSeedModeSide = new Map<string, ScoreRow>();
+    for (const row of sourceRows) {
       const key = `${row.player_id}:${row.seed}:${row.side}`;
       if (!bestByPlayerSeedModeSide.has(key)) bestByPlayerSeedModeSide.set(key, row);
     }
-  }
 
-  response.status(200).json({ scores: sortScores([...bestByPlayerSeedModeSide.values()]).slice(0, 25) });
+    if (scope === 'daily' && seed) {
+      for (const row of createDailyLeaderboardFillers(seed, mode)) {
+        const key = `${row.player_id}:${row.seed}:${row.side}`;
+        if (!bestByPlayerSeedModeSide.has(key)) bestByPlayerSeedModeSide.set(key, row);
+      }
+    }
+
+    response.status(200).json({ scores: sortScores([...bestByPlayerSeedModeSide.values()]).slice(0, 25) });
+  } catch (error) {
+    response.status(500).send(error instanceof Error ? error.message : 'Unable to load leaderboard');
+  }
 }
