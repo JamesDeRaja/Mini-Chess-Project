@@ -131,10 +131,12 @@ export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLe
                 <strong>{seed.slug}</strong>
                 <p className="seed-card-description">{seed.description}</p>
                 <div className="seed-tag-row">{seed.tags.slice(0, 4).map((tag) => <span key={tag}>{tag}</span>)}</div>
+                <div className="seed-card-highlight-stats" aria-label={`${seed.displayName} activity highlights`}>
+                  <span><small>Plays</small><strong>{row?.total_plays ?? 0}</strong></span>
+                  <span><small>Shares</small><strong>{row?.total_shares ?? 0}</strong></span>
+                </div>
                 <div className="seed-card-meta-row">
                   <span>Setup <b>{setup}</b></span>
-                  <span>{row?.total_plays ?? 0} plays</span>
-                  <span>{row?.total_shares ?? 0} shares</span>
                 </div>
                 <div className="seed-card-best-score">
                   <span>Leaderboard #1</span>
