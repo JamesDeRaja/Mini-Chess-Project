@@ -5,6 +5,7 @@ import { CURATED_SEEDS, getSeedDisplayName, normalizeSeedSlug } from '../game/cu
 import { createSeedChallengeUrl } from '../game/challenge.js';
 import { createSeedFromInput } from '../game/seed.js';
 import { buildSeedShareMessage, getRandomShareTaunt } from '../game/shareTaunts.js';
+import { getDisplayedSeedStats } from '../game/seedDefaultStats.js';
 import { fetchPopularSeedStats, fetchSeedLeaderboard, recordSeedShare, type SeedScoreRecord, type SeedStatsRecord } from '../multiplayer/challengeApi.js';
 
 type Props = {
@@ -39,15 +40,18 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
   const [topScores, setTopScores] = useState<SeedScoreRecord[]>([]);
   const [copiedSeed, setCopiedSeed] = useState<string | null>(null);
   const topThree = useMemo(() => topScores.slice(0, 3), [topScores]);
+  const displayStats = getDisplayedSeedStats(normalized, stats);
   const popularStatBySeed = useMemo(() => new Map(popularStats.map((row) => [row.seed_slug, row])), [popularStats]);
   const others = CURATED_SEEDS
     .filter((item) => item.slug !== normalized)
     .sort((a, b) => {
       const av = popularStatBySeed.get(a.slug);
       const bv = popularStatBySeed.get(b.slug);
-      return (bv?.total_shares ?? 0) - (av?.total_shares ?? 0)
+      const aDisplayStats = getDisplayedSeedStats(a.slug, av);
+      const bDisplayStats = getDisplayedSeedStats(b.slug, bv);
+      return bDisplayStats.displayedShares - aDisplayStats.displayedShares
         || (bv?.total_completed ?? 0) - (av?.total_completed ?? 0)
-        || (bv?.total_plays ?? 0) - (av?.total_plays ?? 0);
+        || bDisplayStats.displayedPlays - aDisplayStats.displayedPlays;
     })
     .slice(0, 8);
 
@@ -110,8 +114,9 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
             <h1>{title}</h1>
             <p>{seed?.description ?? 'A shared Pocket Shuffle Chess setup ready for rematches, AI practice, and friend challenges.'}</p>
             <div className="seed-detail-momentum" aria-label={`${title} activity highlights`}>
-              <span className="seed-detail-momentum-card seed-detail-momentum-card-plays"><small>Total plays</small><strong>{stats?.total_plays ?? 0}</strong><em>Players testing this setup</em></span>
-              <span className="seed-detail-momentum-card seed-detail-momentum-card-shares"><small>Total shares</small><strong>{stats?.total_shares ?? 0}</strong><em>Challenge links copied</em></span>
+              <span className="seed-detail-momentum-card seed-detail-momentum-card-heat"><small>Seed Heat</small><strong>{displayStats.heat}</strong><em>Deterministic from seed text</em></span>
+              <span className="seed-detail-momentum-card seed-detail-momentum-card-plays"><small>Plays</small><strong>{displayStats.formattedPlays}</strong><em>Default activity plus saved plays</em></span>
+              <span className="seed-detail-momentum-card seed-detail-momentum-card-shares"><small>Shares</small><strong>{displayStats.formattedShares}</strong><em>Default activity plus saved shares</em></span>
             </div>
             <div className="seed-detail-facts">
               <span><small>Seed</small><strong>{normalized}</strong></span>
@@ -166,6 +171,7 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
             {others.map((item) => {
               const nextSetup = getFallbackBackRankCode(item.slug);
               const nextShareText = buildSeedShareMessage({ style: 'popularSeed', taunt: getRandomShareTaunt('friendChallenge'), seedSlug: item.slug, backRankCode: nextSetup, challengeUrl: createSeedChallengeUrl(item.slug) });
+              const nextDisplayStats = getDisplayedSeedStats(item.slug, popularStatBySeed.get(item.slug));
               return (
                 <article
                   className="seed-card seed-card-clickable seed-loop-card"
@@ -185,8 +191,9 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
                   <strong>{item.slug}</strong>
                   <p>{item.description}</p>
                   <div className="seed-card-meta-row seed-loop-meta-row">
-                    <span>{popularStatBySeed.get(item.slug)?.total_plays ?? 0} plays</span>
-                    <span>{popularStatBySeed.get(item.slug)?.total_shares ?? 0} shares</span>
+                    <span>Seed Heat <b>{nextDisplayStats.heat}</b></span>
+                    <span>{nextDisplayStats.formattedPlays} plays</span>
+                    <span>{nextDisplayStats.formattedShares} shares</span>
                     <span>Setup <b>{nextSetup}</b></span>
                   </div>
                   <div className="seed-card-action-stack">

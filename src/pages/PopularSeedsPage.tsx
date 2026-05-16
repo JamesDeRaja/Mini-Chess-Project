@@ -3,6 +3,7 @@ import { CopyCheck, Home, Search, Share2, Trophy, Users } from 'lucide-react';
 import { CURATED_SEEDS } from '../game/curatedSeeds.js';
 import { createSeedFromInput } from '../game/seed.js';
 import { buildSeedShareMessage, getRandomShareTaunt } from '../game/shareTaunts.js';
+import { getDisplayedSeedStats } from '../game/seedDefaultStats.js';
 import { fetchPopularSeedStats, recordSeedShare, type SeedStatsRecord } from '../multiplayer/challengeApi.js';
 
 type SortMode = 'popular' | 'new' | 'highest' | 'shared' | 'daily';
@@ -79,11 +80,13 @@ export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLe
       })
       .sort((a, b) => {
         const av = statBySeed.get(a.slug); const bv = statBySeed.get(b.slug);
+        const aDisplayStats = getDisplayedSeedStats(a.slug, av);
+        const bDisplayStats = getDisplayedSeedStats(b.slug, bv);
         if (sort === 'highest') return (bv?.best_score ?? 0) - (av?.best_score ?? 0);
-        if (sort === 'shared') return (bv?.total_shares ?? 0) - (av?.total_shares ?? 0);
+        if (sort === 'shared') return bDisplayStats.displayedShares - aDisplayStats.displayedShares;
         if (sort === 'daily') return Number(b.tags.includes('daily')) - Number(a.tags.includes('daily'));
         if (sort === 'new') return b.slug.localeCompare(a.slug);
-        return (bv?.total_shares ?? 0) - (av?.total_shares ?? 0) || (bv?.total_completed ?? 0) - (av?.total_completed ?? 0) || (bv?.total_plays ?? 0) - (av?.total_plays ?? 0);
+        return bDisplayStats.displayedShares - aDisplayStats.displayedShares || (bv?.total_completed ?? 0) - (av?.total_completed ?? 0) || bDisplayStats.displayedPlays - aDisplayStats.displayedPlays;
       });
   }, [searchQuery, sort, statBySeed]);
 
@@ -113,6 +116,7 @@ export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLe
             const valid = createSeedFromInput(seed.slug);
             const setup = valid.ok ? valid.backRankCode : 'BQKRN';
             const row = statBySeed.get(seed.slug);
+            const displayStats = getDisplayedSeedStats(seed.slug, row);
             return (
               <article
                 className="seed-card seed-card-clickable"
@@ -132,8 +136,9 @@ export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLe
                 <p className="seed-card-description">{seed.description}</p>
                 <div className="seed-tag-row">{seed.tags.slice(0, 4).map((tag) => <span key={tag}>{tag}</span>)}</div>
                 <div className="seed-card-highlight-stats" aria-label={`${seed.displayName} activity highlights`}>
-                  <span><small>Plays</small><strong>{row?.total_plays ?? 0}</strong></span>
-                  <span><small>Shares</small><strong>{row?.total_shares ?? 0}</strong></span>
+                  <span><small>Seed Heat</small><strong>{displayStats.heat}</strong></span>
+                  <span><small>Plays</small><strong>{displayStats.formattedPlays}</strong></span>
+                  <span><small>Shares</small><strong>{displayStats.formattedShares}</strong></span>
                 </div>
                 <div className="seed-card-meta-row">
                   <span>Setup <b>{setup}</b></span>

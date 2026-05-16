@@ -11165,3 +11165,39 @@ body.home-modal-open .home-page {
     justify-self: start;
   }
 }
+
+/* Deterministic seed activity defaults: display Seed Heat, Plays, and Shares together. */
+.seed-card-highlight-stats,
+.seed-detail-momentum {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.seed-card-highlight-stats span:first-child strong,
+.seed-detail-momentum-card-heat strong {
+  font-size: clamp(1.05rem, 2vw, 1.55rem);
+  letter-spacing: -0.035em;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.seed-detail-momentum-card-heat {
+  border-color: rgba(127, 159, 134, 0.62);
+  background: linear-gradient(145deg, rgba(255, 251, 239, 0.96), rgba(127, 159, 134, 0.24));
+}
+
+.seed-loop-meta-row span:first-child {
+  color: #365247;
+  background: rgba(158, 208, 192, 0.25);
+}
+
+@media (max-width: 980px) {
+  .seed-detail-momentum {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .seed-card-highlight-stats {
+    grid-template-columns: 1fr;
+  }
+}
