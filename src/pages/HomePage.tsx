@@ -34,6 +34,21 @@ type ModalName = 'date' | 'custom' | 'rules' | 'matchmaking' | 'dailyMastered' |
 type LeaderboardFeedItem = { id: string; displayName: string; score: number; kind: 'rank' | 'new-score'; rank?: number };
 type LeaderboardView = { scope: LeaderboardScope; label: string; title: string; description: string };
 
+const feedbackPromptStorageKey = 'pocket_shuffle_feedback_prompt_status';
+const feedbackFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSfRCmADLmkjjVTzblrg2YQGB4ejapOvep3xNvAMAVATXxLmWw/viewform?usp=sharing&ouid=107338760467686122861';
+type FeedbackPromptStatus = 'ready' | 'dismissed' | 'opened';
+
+function getFeedbackPromptStatus(): FeedbackPromptStatus | null {
+  if (typeof localStorage === 'undefined') return null;
+  const storedStatus = localStorage.getItem(feedbackPromptStorageKey);
+  if (storedStatus === 'ready' || storedStatus === 'dismissed' || storedStatus === 'opened') return storedStatus;
+  return null;
+}
+
+function setFeedbackPromptStatus(status: FeedbackPromptStatus) {
+  if (typeof localStorage !== 'undefined') localStorage.setItem(feedbackPromptStorageKey, status);
+}
+
 type MatchmakingState =
   | { status: 'idle' }
   | { status: 'finding'; queueId?: string }
@@ -168,6 +183,7 @@ export function HomePage({
   const [playStreak, setPlayStreak] = useState(() => getPlayStreak());
   const [shieldProgression] = useState(readShieldProgression);
   const previousLeaderboardFeedSignatureRef = useRef('');
+  const [feedbackPromptOpen, setFeedbackPromptOpen] = useState(false);
   const [leaderboardDialogOpen, setLeaderboardDialogOpen] = useState(false);
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('daily');
   const [leaderboardDialogRows, setLeaderboardDialogRows] = useState<LeaderboardEntry[]>([]);
@@ -212,6 +228,18 @@ export function HomePage({
   useEffect(() => {
     const dateRefreshId = window.setInterval(() => setTodayKey(getUtcDateKey()), 60000);
     return () => window.clearInterval(dateRefreshId);
+  }, []);
+
+  useEffect(() => {
+    const storedStatus = getFeedbackPromptStatus();
+    if (!storedStatus) {
+      setFeedbackPromptStatus('ready');
+      return undefined;
+    }
+    if (storedStatus !== 'ready') return undefined;
+
+    const promptId = window.setTimeout(() => setFeedbackPromptOpen(true), 0);
+    return () => window.clearTimeout(promptId);
   }, []);
 
   useEffect(() => {
@@ -500,6 +528,22 @@ export function HomePage({
     else await onSeeded(matchTarget.seed, matchTarget.backRankCode);
   }
 
+  const askForFeedbackLater = useCallback(() => {
+    setFeedbackPromptStatus('ready');
+    setFeedbackPromptOpen(false);
+  }, []);
+
+  const closeFeedbackPrompt = useCallback(() => {
+    setFeedbackPromptStatus('dismissed');
+    setFeedbackPromptOpen(false);
+  }, []);
+
+  const openFeedbackForm = useCallback(() => {
+    setFeedbackPromptStatus('opened');
+    setFeedbackPromptOpen(false);
+    window.open(feedbackFormUrl, '_blank', 'noopener,noreferrer');
+  }, []);
+
   const closeModal = useCallback(() => {
     if (modal === 'matchmaking') {
       void cancelMatch();
@@ -522,6 +566,21 @@ export function HomePage({
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [closeModal, modal]);
+
+  useEffect(() => {
+    if (!feedbackPromptOpen) return undefined;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') closeFeedbackPrompt();
+    }
+
+    document.body.classList.add('home-modal-open');
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.classList.remove('home-modal-open');
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [closeFeedbackPrompt, feedbackPromptOpen]);
 
   useEffect(() => {
     if (matchmaking.status !== 'finding') return;
@@ -602,6 +661,20 @@ export function HomePage({
           <small>Tap for top 10 and global scores</small>
         </div>
       </button>
+      {feedbackPromptOpen && (
+        <div className="modal-backdrop feedback-prompt-backdrop" role="presentation" onClick={closeFeedbackPrompt}>
+          <section className="confirm-card utility-modal feedback-prompt-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-prompt-title" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="modal-close" onClick={closeFeedbackPrompt} aria-label="Never ask for feedback again"><X size={18} /></button>
+            <p className="eyebrow">Quick feedback</p>
+            <h2 id="feedback-prompt-title">Enjoying Pocket Shuffle Chess?</h2>
+            <p>Your feedback helps us decide what to improve next. You can share thoughts now, ask us to check back next time, or close this forever.</p>
+            <div className="panel-actions centered-actions feedback-prompt-actions">
+              <button type="button" className="secondary-action" onClick={askForFeedbackLater}>Ask later</button>
+              <button type="button" className="success-action" onClick={openFeedbackForm}>Give feedback</button>
+            </div>
+          </section>
+        </div>
+      )}
       {leaderboardDialogOpen && (
         <div className="modal-backdrop leaderboard-dialog-backdrop" role="presentation" onClick={() => setLeaderboardDialogOpen(false)}>
           <section className="modal-card leaderboard-dialog" role="dialog" aria-modal="true" aria-labelledby="leaderboard-dialog-title" onClick={(event) => event.stopPropagation()}>
