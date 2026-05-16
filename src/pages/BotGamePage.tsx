@@ -481,7 +481,9 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     const animationFrame = window.requestAnimationFrame(() => {
       if (activeReviewPly && activeReviewPly > 0) {
         const activeMove = historyList.querySelector<HTMLElement>(`[data-history-ply="${activeReviewPly}"]`);
-        activeMove?.scrollIntoView({ block: 'center', inline: 'nearest' });
+        if (activeMove) {
+          historyList.scrollTop = activeMove.offsetTop - (historyList.clientHeight - activeMove.clientHeight) / 2;
+        }
         return;
       }
 
