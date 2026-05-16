@@ -184,7 +184,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     .order('created_at', { ascending: true })
     .limit(scope === 'daily' ? 100 : 500);
 
-  if (scope === 'daily') query = query.eq('seed', seed).eq('mode', mode);
+  if (scope === 'daily') query = query.eq('seed', seed);
   if (scope === 'global-start-points') query = query.not('back_rank_code', 'is', null);
 
   const { data, error } = await query;
@@ -205,13 +205,13 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   const bestByPlayerSeedModeSide = new Map<string, ScoreRow>();
   for (const row of sourceRows) {
-    const key = scope === 'global' ? `${row.player_id}:${row.mode}:${row.side}` : `${row.player_id}:${row.seed}:${row.mode}:${row.side}`;
+    const key = scope === 'global' ? `${row.player_id}:${row.side}` : `${row.player_id}:${row.seed}:${row.side}`;
     if (!bestByPlayerSeedModeSide.has(key)) bestByPlayerSeedModeSide.set(key, row);
   }
 
   if (scope === 'daily' && seed) {
     for (const row of createDailyLeaderboardFillers(seed, mode)) {
-      const key = `${row.player_id}:${row.seed}:${row.mode}:${row.side}`;
+      const key = `${row.player_id}:${row.seed}:${row.side}`;
       if (!bestByPlayerSeedModeSide.has(key)) bestByPlayerSeedModeSide.set(key, row);
     }
   }
