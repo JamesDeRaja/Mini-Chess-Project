@@ -748,6 +748,19 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
   const leftPanelStatus = isCompleted ? onlineResultTitle : shareIsLoading ? 'Creating invite link' : isOnlineGameReady ? 'Active' : 'Waiting for opponent';
   const playerRoleLabel = role === 'spectator' ? 'Spectating' : `You are ${role === 'white' ? 'White' : 'Black'}`;
 
+  function renderReviewControls(className = 'review-controls') {
+    return (
+      <div className={className}>
+        <button type="button" onClick={() => setPreviewPly(0)} disabled={latestPly === 0 || previewPly === 0}>⏮</button>
+        <button type="button" onClick={() => setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0))} disabled={latestPly === 0 || previewPly === 0}>‹</button>
+        <button type="button" className={isPreviewing ? 'live-review-pending' : undefined} onClick={() => setPreviewPly(null)} disabled={!isPreviewing}>Live</button>
+        <button type="button" onClick={() => setPreviewPly((ply) => { const nextPly = Math.min((ply ?? 0) + 1, latestPly); return nextPly >= latestPly ? null : nextPly; })} disabled={latestPly === 0 || !isPreviewing}>›</button>
+        <button type="button" onClick={() => setPreviewPly(null)} disabled={latestPly === 0 || !isPreviewing}>⏭</button>
+      </div>
+    );
+  }
+
+
   return (
     <main className="game-page">
       <GameHeader title={opponentName ? `vs ${opponentName}` : 'Online Game'} turn={turn} status={displayStatus} playerRole={playerRoleLabel} details={primaryStatus} onTitleClick={onHome} statusLabelOverride={headerStatusLabel} turnLabelOverride={headerTurnLabel} scoreLabel={headerScoreLabel} />
@@ -801,6 +814,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
                 timer={isOnlineGameReady && !isCompleted && !isPreviewing && role !== 'spectator' ? { seconds: turnTimeLeft, isDanger: turnTimeLeft <= 5 } : null}
                 onSpawnComplete={handleBoardSpawnComplete}
               />
+              {renderReviewControls('review-controls board-review-controls')}
             </>
           )}
           {shouldShowWaitingOverlay && (
@@ -843,13 +857,7 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
             />
           </ol>
           <div className="review-footer history-actions">
-            <div className="review-controls">
-              <button type="button" onClick={() => setPreviewPly(0)} disabled={latestPly === 0 || previewPly === 0}>⏮</button>
-              <button type="button" onClick={() => setPreviewPly((ply) => Math.max((ply ?? latestPly) - 1, 0))} disabled={latestPly === 0 || previewPly === 0}>‹</button>
-              <button type="button" className={isPreviewing ? 'live-review-pending' : undefined} onClick={() => setPreviewPly(null)} disabled={!isPreviewing}>Live</button>
-              <button type="button" onClick={() => setPreviewPly((ply) => { const nextPly = Math.min((ply ?? 0) + 1, latestPly); return nextPly >= latestPly ? null : nextPly; })} disabled={latestPly === 0 || !isPreviewing}>›</button>
-              <button type="button" onClick={() => setPreviewPly(null)} disabled={latestPly === 0 || !isPreviewing}>⏭</button>
-            </div>
+            {renderReviewControls()}
             <div className="panel-actions stacked-actions">
               <button type="button" className="danger-action" onClick={() => handleOnlineGameAction('resign')} disabled={!canUseGameActions}>Resign</button>
               <button type="button" className="secondary-action" onClick={() => handleOnlineGameAction(drawOfferIsFromOpponent ? 'accept_draw' : 'request_draw')} disabled={!canUseGameActions || drawOfferBy === role}>{gameActionPending ? 'Updating...' : drawActionLabel}</button>

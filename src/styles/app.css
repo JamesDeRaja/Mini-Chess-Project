@@ -10126,3 +10126,38 @@ body.home-modal-open .home-page {
   0%, 100% { opacity: 0.6; }
   50%       { opacity: 1; }
 }
+
+/* Mobile/tablet gameplay: when side panels stack below the board, keep timer clear
+   of the header/status UI and surface review controls directly under the board. */
+.board-review-controls {
+  display: none;
+}
+
+@media (max-width: 1199px) {
+  .board-column {
+    padding-top: clamp(18px, 3svh, 34px);
+  }
+
+  .board-review-controls {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    width: min(100%, 520px);
+    margin: clamp(10px, 2svh, 16px) auto 0;
+  }
+
+  .board-review-controls button {
+    min-width: 0;
+    min-height: 42px;
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 799px) {
+  .board-column {
+    padding-top: clamp(24px, 4.5svh, 46px);
+  }
+
+  .board-review-controls {
+    width: min(100%, calc(100vw - 32px));
+  }
+}

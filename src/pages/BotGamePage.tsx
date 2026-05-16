@@ -1161,6 +1161,19 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }, [roundResult, submittedScore]);
 
 
+  function renderReviewControls(className = 'review-controls') {
+    return (
+      <div className={className}>
+        <button type="button" onClick={goToStartReview} disabled={moveHistory.length === 0}>⏮</button>
+        <button type="button" onClick={goToPreviousReviewPly} disabled={moveHistory.length === 0}>‹</button>
+        <button type="button" className={isVariationReview ? 'live-review-pending' : undefined} onClick={goToLiveReview}>Live</button>
+        <button type="button" onClick={goToNextReviewPly} disabled={moveHistory.length === 0}>›</button>
+        <button type="button" onClick={goToEndReview} disabled={moveHistory.length === 0}>⏭</button>
+      </div>
+    );
+  }
+
+
   return (
     <main className="game-page">
       <GameHeader
@@ -1232,6 +1245,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             timer={isTurnTimerEnabled && status === 'active' && !roundResult ? { seconds: turnTimeLeft, isDanger: turnTimeLeft <= 5 } : null}
             onSpawnComplete={handleBoardSpawnComplete}
           />
+          {renderReviewControls('review-controls board-review-controls')}
         </section>
 
         <aside className="side-panel review-panel history-panel">
@@ -1255,13 +1269,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
             />
           </ol>
           <div className="review-footer history-actions">
-            <div className="review-controls">
-              <button type="button" onClick={goToStartReview} disabled={moveHistory.length === 0}>⏮</button>
-              <button type="button" onClick={goToPreviousReviewPly} disabled={moveHistory.length === 0}>‹</button>
-              <button type="button" className={isVariationReview ? 'live-review-pending' : undefined} onClick={goToLiveReview}>Live</button>
-              <button type="button" onClick={goToNextReviewPly} disabled={moveHistory.length === 0}>›</button>
-              <button type="button" onClick={goToEndReview} disabled={moveHistory.length === 0}>⏭</button>
-            </div>
+            {renderReviewControls()}
             <div className={`panel-actions stacked-actions ${roundResult ? 'history-complete-actions' : ''}`}>
               {roundResult ? (
                 <>
