@@ -82,6 +82,27 @@ function createDailyLeaderboardFillers(seed: string, mode: string): ScoreRow[] {
   });
 }
 
+function createDailyScopeLeaderboardFillers(date = new Date()): ScoreRow[] {
+  const dateKey = date.toISOString().slice(0, 10);
+  const random = seededRandom(`daily-scope-defaults:${dateKey}`);
+  return shuffledDailyNames(`daily-scope-defaults:${dateKey}`).slice(0, 25).map((displayName, index) => {
+    const side = random() < 0.5 ? 'white' : 'black';
+    return {
+      id: `today-default-${dateKey}-${index}`,
+      player_id: `today-default-${index}`,
+      display_name: displayName,
+      seed: index % 3 === 0 ? `daily-${dateKey}` : `popular-default-${index + 1}`,
+      back_rank_code: defaultStartCodes[index % defaultStartCodes.length] ?? null,
+      mode: index % 3 === 0 ? 'daily' : index % 3 === 1 ? 'seed' : 'bot',
+      side,
+      result: side === 'white' ? 'white_won' : 'black_won',
+      score: Math.max(80, 104 - index - Math.floor(random() * 3)),
+      moves: 8 + index,
+      created_at: new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, index, 0)).toISOString(),
+    };
+  });
+}
+
 const defaultStartCodes = ['QNRBK', 'RKBQN', 'BNQKR', 'KRBNQ', 'NQBRK', 'RBKQN', 'QKNRB', 'BRQNK', 'NRKBQ', 'KQBRN'];
 
 function createGlobalLeaderboardFillers(): ScoreRow[] {
@@ -158,8 +179,16 @@ async function fetchSeedScoreRows(supabase: ReturnType<typeof getServerSupabase>
   else if (input.scope === 'daily') query = query.gte('created_at', utcDayStart());
 
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) return [];
   return ((data ?? []) as SeedScoreRow[]).map(mapSeedScoreToScore);
+}
+
+function createLeaderboardFillers(input: { scope: string; seed: string | null; mode: string }): ScoreRow[] {
+  if (input.scope === 'global') return createGlobalLeaderboardFillers();
+  if (input.scope === 'global-start-points') return createGlobalStartPointFillers();
+  if (input.scope === 'daily' && input.seed) return createDailyLeaderboardFillers(input.seed, input.mode);
+  if (input.scope === 'daily') return createDailyScopeLeaderboardFillers();
+  return [];
 }
 
 function sortScores(scores: ScoreRow[]): ScoreRow[] {
@@ -185,20 +214,20 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const mode = typeof request.query.mode === 'string' ? request.query.mode : 'daily';
   const scope = typeof request.query.scope === 'string' ? request.query.scope : 'daily';
 
-  const supabase = getServerSupabase();
-  let query = supabase
-    .from('scores')
-    .select('*')
-    .order('score', { ascending: false })
-    .order('moves', { ascending: true })
-    .order('created_at', { ascending: true })
-    .limit(scope === 'global' ? 500 : 100);
-
-  if (seed) query = query.eq('seed', seed);
-  else if (scope === 'daily') query = query.gte('created_at', utcDayStart());
-  if (scope === 'global-start-points') query = query.not('back_rank_code', 'is', null);
-
   try {
+    const supabase = getServerSupabase();
+    let query = supabase
+      .from('scores')
+      .select('*')
+      .order('score', { ascending: false })
+      .order('moves', { ascending: true })
+      .order('created_at', { ascending: true })
+      .limit(scope === 'global' ? 500 : 100);
+
+    if (seed) query = query.eq('seed', seed);
+    else if (scope === 'daily') query = query.gte('created_at', utcDayStart());
+    if (scope === 'global-start-points') query = query.not('back_rank_code', 'is', null);
+
     const [{ data, error }, seedScoreRows] = await Promise.all([
       query,
       fetchSeedScoreRows(supabase, { scope, seed }),
@@ -213,7 +242,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     }
 
     const databaseRows = [...((data ?? []) as ScoreRow[]), ...seedScoreRows];
-    const sourceRows = scope === 'global' ? [...databaseRows, ...createGlobalLeaderboardFillers()] : databaseRows;
+    const sourceRows = [...databaseRows, ...createLeaderboardFillers({ scope, seed, mode })];
 
     const bestByPlayerSeedModeSide = new Map<string, ScoreRow>();
     for (const row of sourceRows) {
@@ -221,15 +250,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
       if (!bestByPlayerSeedModeSide.has(key)) bestByPlayerSeedModeSide.set(key, row);
     }
 
-    if (scope === 'daily' && seed) {
-      for (const row of createDailyLeaderboardFillers(seed, mode)) {
-        const key = `${row.player_id}:${row.seed}:${row.side}`;
-        if (!bestByPlayerSeedModeSide.has(key)) bestByPlayerSeedModeSide.set(key, row);
-      }
-    }
-
     response.status(200).json({ scores: sortScores([...bestByPlayerSeedModeSide.values()]).slice(0, 25) });
   } catch (error) {
-    response.status(500).send(error instanceof Error ? error.message : 'Unable to load leaderboard');
+    console.error('Unable to load leaderboard rows; returning defaults.', error);
+    response.status(200).json({ scores: sortScores(createLeaderboardFillers({ scope, seed, mode })).slice(0, 25) });
   }
 }
