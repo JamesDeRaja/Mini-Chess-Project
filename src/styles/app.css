@@ -10641,3 +10641,98 @@ body.home-modal-open .home-page {
     grid-template-columns: 1fr;
   }
 }
+
+/* Responsive seed leaderboard refinement: stack earlier and remove mobile card clutter. */
+@media (max-width: 1100px) {
+  .seed-leaderboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .seed-leaderboard-table .leaderboard-row {
+    grid-template-columns: 44px minmax(120px, 1fr) 62px 58px 84px 56px 88px;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .seed-leaderboard-layout {
+    gap: 12px;
+  }
+
+  .seed-champion-card,
+  .seed-podium-row {
+    display: none;
+  }
+
+  .seed-leaderboard-table {
+    display: grid;
+    gap: 0;
+    padding: 0;
+    border: 1px solid rgba(222, 217, 203, 0.72);
+    border-radius: 22px;
+    background: rgba(255, 251, 239, 0.72);
+    overflow: hidden;
+  }
+
+  .seed-leaderboard-table .leaderboard-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'rank player score'
+      'rank details details';
+    gap: 3px 10px;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .seed-leaderboard-table .leaderboard-row + .leaderboard-row {
+    border-top: 1px solid rgba(222, 217, 203, 0.64);
+  }
+
+  .seed-leaderboard-table .leaderboard-row > :nth-child(1) { grid-area: rank; }
+  .seed-leaderboard-table .leaderboard-row > :nth-child(2) {
+    grid-area: player;
+    align-self: end;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .seed-leaderboard-table .leaderboard-row > :nth-child(3) {
+    grid-area: score;
+    align-self: end;
+    justify-self: end;
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+  .seed-leaderboard-table .leaderboard-row > :nth-child(4),
+  .seed-leaderboard-table .leaderboard-row > :nth-child(5),
+  .seed-leaderboard-table .leaderboard-row > :nth-child(6),
+  .seed-leaderboard-table .leaderboard-row > :nth-child(7) {
+    grid-area: details;
+    color: #61726a;
+    font-size: 0.82rem;
+    font-weight: 850;
+    line-height: 1.2;
+  }
+  .seed-leaderboard-table .leaderboard-row > :nth-child(4) { justify-self: start; }
+  .seed-leaderboard-table .leaderboard-row > :nth-child(5) { justify-self: start; padding-left: 4.7em; }
+  .seed-leaderboard-table .leaderboard-row > :nth-child(6) { justify-self: start; padding-left: 10.2em; text-transform: uppercase; letter-spacing: 0.06em; }
+  .seed-leaderboard-table .leaderboard-row > :nth-child(7) { justify-self: end; }
+}
+
+@media (max-width: 760px) {
+  .seed-leaderboard-table .leaderboard-row {
+    grid-template-areas:
+      'rank player score'
+      'rank moves result'
+      'rank color date';
+  }
+
+  .seed-leaderboard-table .leaderboard-row > :nth-child(4) { grid-area: moves; justify-self: start; padding-left: 0; }
+  .seed-leaderboard-table .leaderboard-row > :nth-child(5) { grid-area: result; justify-self: end; padding-left: 0; }
+  .seed-leaderboard-table .leaderboard-row > :nth-child(6) { grid-area: color; justify-self: start; padding-left: 0; }
+  .seed-leaderboard-table .leaderboard-row > :nth-child(7) { grid-area: date; justify-self: end; }
+}
