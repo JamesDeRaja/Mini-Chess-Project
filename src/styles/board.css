@@ -1156,9 +1156,14 @@
   font-size: clamp(1.35rem, 3vw, 2rem);
   font-variant-numeric: tabular-nums;
 }
-.board-turn-timer-danger {
+.board-turn-timer-danger,
+.board-turn-timer-danger:hover:not(:disabled),
+.board-turn-timer-danger:focus-visible,
+.board-turn-timer-danger:active:not(:disabled),
+.board-turn-timer-expanded.board-turn-timer-danger {
   color: #fff7f2;
   background: #c62f24;
+  background-image: none;
   box-shadow: 0 0 0 6px rgba(198, 47, 36, 0.2), 0 18px 44px rgba(198, 47, 36, 0.42);
   transform-origin: center;
   animation: board-timer-danger-shake 360ms linear infinite;

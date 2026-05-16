@@ -10135,7 +10135,7 @@ body.home-modal-open .home-page {
 
 @media (max-width: 1199px) {
   .board-column {
-    padding-top: clamp(18px, 3svh, 34px);
+    padding-top: clamp(34px, 5svh, 58px);
   }
 
   .board-review-controls {
@@ -10154,7 +10154,7 @@ body.home-modal-open .home-page {
 
 @media (max-width: 799px) {
   .board-column {
-    padding-top: clamp(24px, 4.5svh, 46px);
+    padding-top: clamp(48px, 7svh, 78px);
   }
 
   .board-review-controls {
