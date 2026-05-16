@@ -10877,19 +10877,19 @@ body.home-modal-open .home-page {
   }
 }
 
-/* The streak flame should only open on click; avoid generic button hover highlighting. */
+/* Keep streak hover feedback, but make the generic button highlight invisible. */
 .streak-brand-tile:hover:not(:disabled),
 .streak-brand-tile:focus:not(:focus-visible) {
   background: transparent;
-  box-shadow: none;
+  border-color: transparent;
+  box-shadow: 0 0 0 rgba(255, 255, 255, 0);
   filter: none;
-  transform: none;
+  transform: scale(1.1);
 }
 
-.streak-brand-tile:hover,
 .streak-brand-tile:hover::before,
 .streak-brand-tile:hover::after,
 .streak-brand-tile:hover svg,
 .streak-brand-tile:hover b {
-  animation-duration: inherit;
+  animation-duration: 0.85s;
 }
