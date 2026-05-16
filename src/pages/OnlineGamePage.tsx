@@ -15,6 +15,7 @@ import { squareLabel } from '../game/coordinates.js';
 import { getOpponent, getStatusForTurn } from '../game/gameStatus.js';
 import { getLegalMoves } from '../game/legalMoves.js';
 import { deriveBackRankCodeFromBoard } from '../game/seed.js';
+import { normalizeSeedSlug } from '../game/curatedSeeds.js';
 import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getLocalBestScore, saveLocalScoreEntry, type CompletedScoreEntry } from '../game/localScoreHistory.js';
 import { recordPlayStreak } from '../game/playStreak.js';
@@ -26,6 +27,7 @@ import { getNameFromPlayerId } from '../game/humanPlayers.js';
 import type { Board as ChessBoard, Color, GameStatus, Move, MoveDelta, MoveRecord } from '../game/types.js';
 import { createOnlineGame, createSeededGame, joinOnlineGame, submitOnlineGameAction, submitOnlineMove } from '../multiplayer/gameApi.js';
 import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../multiplayer/scoreApi.js';
+import { submitSeedScore } from '../multiplayer/challengeApi.js';
 import type { OnlineGameRecord } from '../multiplayer/gameApi.js';
 import { getPlayerId } from '../multiplayer/playerSession.js';
 import { subscribeToGame, unsubscribeFromGame } from '../multiplayer/realtime.js';
@@ -252,6 +254,22 @@ export function OnlineGamePage({ gameId, matchMode, onHome, onNewOnlineGame }: O
     if (!isCompleted || !isDailySeed) return;
     fetchLeaderboard(seedLabel, scoreMode).then(setLeaderboard).catch(() => setLeaderboard([]));
   }, [isCompleted, isDailySeed, scoreMode, seedLabel, submittedScore]);
+
+  useEffect(() => {
+    if (!isCompleted || isLifecycleTerminal || role === 'spectator' || !backRankCode || seedLabel === 'Random') return;
+    submitSeedScore({
+      seed_slug: normalizeSeedSlug(seedLabel),
+      seed: seedLabel,
+      back_rank_code: backRankCode,
+      player_id: playerId,
+      player_name: displayNameDraft,
+      score: scoreBreakdown.totalScore,
+      moves: scoreBreakdown.fullMoves,
+      result: status,
+      color: scoreSide,
+      challenge_id: effectiveGameId,
+    }).catch((error) => console.warn('Seed score unavailable.', error));
+  }, [backRankCode, displayNameDraft, effectiveGameId, isCompleted, isLifecycleTerminal, playerId, role, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreSide, seedLabel, status]);
 
   async function handleSubmitScore() {
     if (!isCompleted || role === 'spectator') return;
