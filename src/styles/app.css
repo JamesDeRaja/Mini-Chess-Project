@@ -10876,3 +10876,20 @@ body.home-modal-open .home-page {
     top: 33px;
   }
 }
+
+/* The streak flame should only open on click; avoid generic button hover highlighting. */
+.streak-brand-tile:hover:not(:disabled),
+.streak-brand-tile:focus:not(:focus-visible) {
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.streak-brand-tile:hover,
+.streak-brand-tile:hover::before,
+.streak-brand-tile:hover::after,
+.streak-brand-tile:hover svg,
+.streak-brand-tile:hover b {
+  animation-duration: inherit;
+}
