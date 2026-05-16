@@ -20,6 +20,8 @@ type SeedStatsRow = {
 
 function mergeBestLeaderboardScore(statsRow: SeedStatsRow | undefined, seedSlug: string, seedScores: SeedScoreRow[]): SeedStatsRow {
   const topScore = sortSeedScores([...seedScores, ...createSeedLeaderboardFillers(seedSlug)])[0];
+  const statsBestScore = statsRow?.best_score ?? null;
+  const shouldUseStatsBest = statsBestScore !== null && statsBestScore > (topScore?.score ?? Number.NEGATIVE_INFINITY);
   return {
     seed_slug: seedSlug,
     seed: statsRow?.seed ?? topScore?.seed ?? seedSlug,
@@ -28,9 +30,9 @@ function mergeBestLeaderboardScore(statsRow: SeedStatsRow | undefined, seedSlug:
     total_plays: statsRow?.total_plays ?? 0,
     total_completed: statsRow?.total_completed ?? 0,
     total_shares: statsRow?.total_shares ?? 0,
-    best_score: topScore?.score ?? statsRow?.best_score ?? null,
-    best_score_player_name: topScore?.player_name ?? statsRow?.best_score_player_name ?? null,
-    best_score_challenge_id: topScore?.challenge_id ?? statsRow?.best_score_challenge_id ?? null,
+    best_score: shouldUseStatsBest ? statsBestScore : topScore?.score ?? statsBestScore,
+    best_score_player_name: shouldUseStatsBest ? statsRow?.best_score_player_name ?? null : topScore?.player_name ?? statsRow?.best_score_player_name ?? null,
+    best_score_challenge_id: shouldUseStatsBest ? statsRow?.best_score_challenge_id ?? null : topScore?.challenge_id ?? statsRow?.best_score_challenge_id ?? null,
     last_played_at: statsRow?.last_played_at ?? topScore?.created_at ?? null,
     created_at: statsRow?.created_at,
   };

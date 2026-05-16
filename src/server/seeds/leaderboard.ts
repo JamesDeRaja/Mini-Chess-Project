@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { HUMAN_PLAYER_NAMES } from '../../game/humanPlayers.js';
 import { createSeedFromInput } from '../../game/seed.js';
 import { getServerSupabase } from '../supabase.js';
 
@@ -16,12 +17,6 @@ export type SeedScoreRow = {
   challenge_id: string | null;
   created_at: string;
 };
-
-const seedLeaderboardNames = [
-  'CheckmateGoblin', 'PawnGoblin', 'TinyRook', 'BishopBongo', 'KnightMare', 'ForkEnjoyer', 'BlunderChef', 'MateMagnet', 'PocketTactician', 'QueenSneak',
-  'RookSnack', 'BoardGremlin', 'CastlelessKing', 'TempoThief', 'PinCollector', 'SkewerWizard', 'PawnStormy', 'MiniMate', 'ShuffleGremlin', 'EndgameEel',
-  'TacticToaster', 'FiveBySixer', 'RankRascal', 'FileFerret', 'DiagonalDodo', 'CheckChaser', 'MateMoth', 'LooseKnight', 'SneakyBishop', 'RookRaccoon',
-];
 
 function cleanSeed(value: unknown) {
   return typeof value === 'string' ? value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 80) : '';
@@ -48,7 +43,7 @@ function seededRandom(seed: string): () => number {
 }
 
 function shuffledSeedNames(seedSlug: string): string[] {
-  const names = [...seedLeaderboardNames];
+  const names = [...new Set(HUMAN_PLAYER_NAMES)];
   const random = seededRandom(`seed-leaderboard-names:${seedSlug}`);
   for (let index = names.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(random() * (index + 1));

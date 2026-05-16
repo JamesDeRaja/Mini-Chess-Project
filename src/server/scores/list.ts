@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { HUMAN_PLAYER_NAMES } from '../../game/humanPlayers.js';
 import { getServerSupabase } from '../supabase.js';
 
 type ScoreRow = {
@@ -14,45 +15,6 @@ type ScoreRow = {
   moves: number;
   created_at: string;
 };
-
-const maleLeaderboardNames = [
-  'Liam', 'Noah', 'Oliver', 'Elijah', 'James', 'William', 'Benjamin', 'Lucas', 'Henry', 'Theodore',
-  'Jack', 'Levi', 'Alexander', 'Jackson', 'Mateo', 'Daniel', 'Michael', 'Mason', 'Sebastian', 'Ethan',
-  'Logan', 'Owen', 'Samuel', 'Jacob', 'Asher', 'Aiden', 'John', 'Joseph', 'Wyatt', 'David',
-  'Leo', 'Luke', 'Julian', 'Hudson', 'Grayson', 'Matthew', 'Ezra', 'Gabriel', 'Carter', 'Isaac',
-  'Jayden', 'Luca', 'Anthony', 'Dylan', 'Lincoln', 'Thomas', 'Maverick', 'Elias', 'Josiah', 'Charles',
-  'Caleb', 'Christopher', 'Ezekiel', 'Miles', 'Jaxon', 'Isaiah', 'Andrew', 'Joshua', 'Nathan', 'Nolan',
-  'Adrian', 'Cameron', 'Santiago', 'Eli', 'Aaron', 'Ryan', 'Angel', 'Cooper', 'Waylon', 'Easton',
-  'Kai', 'Christian', 'Landon', 'Colton', 'Roman', 'Axel', 'Brooks', 'Jonathan', 'Robert', 'Jameson',
-  'Ian', 'Everett', 'Greyson', 'Wesley', 'Jeremiah', 'Hunter', 'Leonardo', 'Jordan', 'Jose', 'Bennett',
-  'Silas', 'Nicholas', 'Parker', 'Beau', 'Weston', 'Austin', 'Connor', 'Carson', 'Dominic', 'Xavier',
-];
-
-const femaleLeaderboardNames = [
-  'Olivia', 'Emma', 'Charlotte', 'Amelia', 'Sophia', 'Mia', 'Isabella', 'Ava', 'Evelyn', 'Luna',
-  'Harper', 'Sofia', 'Camila', 'Eleanor', 'Elizabeth', 'Violet', 'Scarlett', 'Emily', 'Hazel', 'Lily',
-  'Gianna', 'Aurora', 'Penelope', 'Aria', 'Nora', 'Chloe', 'Ellie', 'Mila', 'Avery', 'Layla',
-  'Abigail', 'Ella', 'Isla', 'Eliana', 'Nova', 'Madison', 'Zoe', 'Ivy', 'Grace', 'Lucy',
-  'Willow', 'Emilia', 'Riley', 'Naomi', 'Victoria', 'Stella', 'Elena', 'Hannah', 'Valentina', 'Maya',
-  'Zoey', 'Delilah', 'Leah', 'Lainey', 'Lillian', 'Paisley', 'Genesis', 'Madelyn', 'Sadie', 'Sophie',
-  'Leilani', 'Addison', 'Natalie', 'Josephine', 'Alice', 'Ruby', 'Claire', 'Kinsley', 'Everly', 'Emery',
-  'Adeline', 'Kennedy', 'Maeve', 'Audrey', 'Autumn', 'Athena', 'Eden', 'Iris', 'Anna', 'Eloise',
-  'Jade', 'Maria', 'Caroline', 'Brooklyn', 'Quinn', 'Aaliyah', 'Vivian', 'Liliana', 'Gabriella', 'Hailey',
-  'Sarah', 'Savannah', 'Cora', 'Madeline', 'Natalia', 'Ariana', 'Lydia', 'Lyla', 'Clara', 'Allison',
-];
-
-const randomLeaderboardNames = [
-  'CheckmateGoblin', 'PawnGoblin', 'TinyRook', 'BishopBotherer', 'KnightMare', 'ForkEnjoyer', 'BlunderChef', 'MateMagnet', 'PocketTactician', 'QueenSneak',
-  'RookSnack', 'BoardGremlin', 'CastlelessKing', 'TempoThief', 'PinCollector', 'SkewerWizard', 'PawnStormy', 'MiniMate', 'ShuffleGremlin', 'EndgameEel',
-  'TacticToaster', 'FiveBySixer', 'RankRascal', 'FileFerret', 'DiagonalDodo', 'CheckChaser', 'MateMoth', 'LooseKnight', 'SneakyBishop', 'RookRaccoon',
-  'QueenQuokka', 'KingKobold', 'PawnPanic', 'TinyTerror', 'ForkGoblin', 'BlitzBadger', 'ShuffleShark', 'BoardBandit', 'TempoGoblin', 'PinPenguin',
-  'SkewerOtter', 'CaptureCrow', 'PocketPenguin', 'MateMoose', 'RookRider', 'BishopBean', 'KnightNoodle', 'PawnPigeon', 'QueenQuill', 'KingKiwi',
-  'CheckCactus', 'TinyTurtle', 'BlunderBard', 'TacticTurnip', 'ForkFalcon', 'BoardBurrito', 'ShuffleSloth', 'MateMango', 'RookRocket', 'BishopBiscuit',
-  'KnightKoala', 'PawnPumpkin', 'QueenQuasar', 'KingKetchup', 'CheckChurro', 'TempoTaco', 'PinPanda', 'SkewerSeal', 'CaptureCapybara', 'PocketPirate',
-  'MiniMischief', 'RankRabbit', 'FileFox', 'DiagonalDuck', 'EndgameImp', 'MateMeteor', 'RookPebble', 'BishopBubble', 'KnightNacho', 'PawnPretzel',
-  'QueenQuibble', 'KingKazoo', 'CheckComet', 'TinyThunder', 'BlunderBug', 'TacticTuna', 'ForkFerret', 'BoardBeetle', 'ShuffleSprite', 'MateMuffin',
-  'RookRiddle', 'BishopBongo', 'KnightKite', 'PawnPickle', 'QueenQuartz', 'KingCrab', 'CheckChipmunk', 'TempoToast', 'PinPuffin', 'SkewerSquid',
-];
 
 function hashString(value: string): number {
   let hash = 2166136261;
@@ -75,7 +37,7 @@ function seededRandom(seed: string): () => number {
 }
 
 function shuffledDailyNames(seed: string): string[] {
-  const names = [...maleLeaderboardNames, ...femaleLeaderboardNames, ...randomLeaderboardNames];
+  const names = [...new Set(HUMAN_PLAYER_NAMES)];
   const random = seededRandom(seed);
   for (let index = names.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(random() * (index + 1));
