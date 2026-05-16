@@ -69,6 +69,8 @@ type RoundResult = {
   message: string;
   progressionMessage?: string;
   didPlayerWin: boolean;
+  scoringSide: Color;
+  missingPlayerPieces: number;
   drawReason?: 'agreed' | 'stalemate' | 'bare-kings';
 };
 
@@ -257,6 +259,20 @@ type BotGameContentProps = BotGamePageProps & {
   seedValidation: ValidSeedValidation | null;
 };
 
+
+function sortLeaderboardEntries(entries: LeaderboardEntry[]): LeaderboardEntry[] {
+  return [...entries].sort((a, b) => b.score - a.score || a.moves - b.moves || a.created_at.localeCompare(b.created_at));
+}
+
+function mergeLeaderboardEntry(entries: LeaderboardEntry[], entry: LeaderboardEntry): LeaderboardEntry[] {
+  const bestByPlayerSeedSide = new Map<string, LeaderboardEntry>();
+  for (const row of sortLeaderboardEntries([entry, ...entries])) {
+    const key = `${row.player_id}:${row.seed}:${row.side}`;
+    if (!bestByPlayerSeedSide.has(key)) bestByPlayerSeedSide.set(key, row);
+  }
+  return sortLeaderboardEntries([...bestByPlayerSeedSide.values()]).slice(0, 25);
+}
+
 const MATCHED_GAME_BOT_LEVEL: BotLevel = 'strong';
 const MATCHED_GAME_BEST_MOVE_CHANCE = 0.65;
 
@@ -340,6 +356,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [displayNameDraft, setDisplayNameDraft] = useState(() => getDisplayName());
   const [localBestScore, setLocalBestScore] = useState<CompletedScoreEntry | null>(null);
   const [submittedScore, setSubmittedScore] = useState(false);
+  const [seedScoreSubmitted, setSeedScoreSubmitted] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
   const [variationStartPly, setVariationStartPly] = useState<number | null>(null);
@@ -413,7 +430,15 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }, []);
 
 
-  const scoreBreakdown = useMemo(() => calculateGameScore({ status, side: playerColor, moveHistory, missingPlayerPieces: dailyAscensionTier }), [dailyAscensionTier, moveHistory, playerColor, status]);
+  const scoringStatus = roundResult?.status ?? status;
+  const scoringSide = roundResult?.scoringSide ?? playerColor;
+  const scoringMissingPlayerPieces = roundResult?.missingPlayerPieces ?? dailyAscensionTier;
+  const scoreBreakdown = useMemo(() => calculateGameScore({
+    status: scoringStatus,
+    side: scoringSide,
+    moveHistory,
+    missingPlayerPieces: scoringMissingPlayerPieces,
+  }), [moveHistory, scoringMissingPlayerPieces, scoringSide, scoringStatus]);
   const headerScoreValue = status === 'active' ? scoreBreakdown.capturePoints : scoreBreakdown.totalScore;
   const headerScoreLabel = `Score ${headerScoreValue > 0 && status === 'active' ? '+' : ''}${headerScoreValue}`;
   const scoreMode = isDailyAI ? 'daily' : 'bot';
@@ -424,14 +449,14 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       seed: dailySeedInfo.seed,
       backRankCode: dailySeedInfo.backRankCode,
       mode: scoreMode,
-      side: playerColor,
+      side: scoringSide,
       result: roundResult.status,
       score: scoreBreakdown.totalScore,
       moves: scoreBreakdown.fullMoves,
     });
-    setLocalBestScore(getLocalBestScore(dailySeedInfo.seed, scoreMode, playerColor) ?? entry);
+    setLocalBestScore(getLocalBestScore(dailySeedInfo.seed, scoreMode, scoringSide) ?? entry);
     recordPlayStreak();
-  }, [dailySeedInfo.backRankCode, dailySeedInfo.seed, playerColor, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode]);
+  }, [dailySeedInfo.backRankCode, dailySeedInfo.seed, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode, scoringSide]);
 
   useEffect(() => {
     if (!roundResult || !isDailyAI) {
@@ -455,24 +480,41 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     return () => {
       isCancelled = true;
     };
-  }, [dailySeedInfo.seed, isDailyAI, roundResult, scoreMode, submittedScore]);
+  }, [dailySeedInfo.seed, isDailyAI, roundResult, scoreMode, seedScoreSubmitted, submittedScore]);
 
   useEffect(() => {
     if (!roundResult) return;
     const seedSlugForScore = normalizeSeedSlug(dailySeedInfo.seed);
+    setSeedScoreSubmitted(false);
+    const playerId = getAnonymousPlayerId();
     submitSeedScore({
       seed_slug: seedSlugForScore,
       seed: dailySeedInfo.seed,
       back_rank_code: dailySeedInfo.backRankCode,
-      player_id: getAnonymousPlayerId(),
+      player_id: playerId,
       player_name: displayNameDraft,
       score: scoreBreakdown.totalScore,
       moves: scoreBreakdown.fullMoves,
       result: roundResult.status,
-      color: playerColor,
+      color: scoringSide,
       challenge_id: activeChallengeContext?.challengeId,
+    }).then(() => {
+      setSeedScoreSubmitted(true);
+      setLeaderboard((entries) => mergeLeaderboardEntry(entries, {
+        id: `local-seed-score-${dailySeedInfo.seed}-${scoringSide}-${Date.now()}`,
+        player_id: playerId,
+        display_name: displayNameDraft,
+        seed: dailySeedInfo.seed,
+        backRankCode: dailySeedInfo.backRankCode,
+        mode: scoreMode,
+        side: scoringSide,
+        result: roundResult.status,
+        score: scoreBreakdown.totalScore,
+        moves: scoreBreakdown.fullMoves,
+        created_at: new Date().toISOString(),
+      }));
     }).catch((error) => console.warn('Seed score unavailable.', error));
-  }, [activeChallengeContext?.challengeId, dailySeedInfo.backRankCode, dailySeedInfo.seed, displayNameDraft, playerColor, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore]);
+  }, [activeChallengeContext?.challengeId, dailySeedInfo.backRankCode, dailySeedInfo.seed, displayNameDraft, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode, scoringSide]);
 
   useEffect(() => {
     const historyList = historyListRef.current;
@@ -725,8 +767,17 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       resultRevealTimerRef.current = null;
       setIsResultPanelReady(true);
     }, RESULT_REVEAL_DELAY_MS);
-    setRoundResult({ status: nextStatus, winner, message: messageOverride ?? getRoundMessage(nextStatus, drawReason), progressionMessage, didPlayerWin, drawReason });
-  }, [config.winsRequired, dailyAIProgress, isDailyAI, isMatchedGame, playerColor, score]);
+    setRoundResult({
+      status: nextStatus,
+      winner,
+      message: messageOverride ?? getRoundMessage(nextStatus, drawReason),
+      progressionMessage,
+      didPlayerWin,
+      scoringSide: playerColor,
+      missingPlayerPieces: dailyAscensionTier,
+      drawReason,
+    });
+  }, [config.winsRequired, dailyAIProgress, dailyAscensionTier, isDailyAI, isMatchedGame, playerColor, score]);
 
   const completeMove = useCallback((move: Move) => {
     const nextBoard = applyMove(board, move);
@@ -782,6 +833,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     setAnalysisByPly({});
     setMoveAnnouncement('');
     setSubmittedScore(false);
+    setSeedScoreSubmitted(false);
     setShareTaunt('');
     setChallengeUrl('');
     setCreatedChallengeId(null);
@@ -1107,7 +1159,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         score: scoreBreakdown.totalScore,
         moves: scoreBreakdown.fullMoves,
         result: roundResult.status,
-        color: playerColor,
+        color: scoringSide,
         parentChallengeId,
         chainRootId,
         chainDepth: activeChallengeContext ? (activeChallengeContext.chainDepth ?? 0) + 1 : 0,
@@ -1141,15 +1193,17 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     if (!roundResult) return;
     try {
       saveDisplayName(displayNameDraft);
-      await submitScore({
+      const result = await submitScore({
         seed: dailySeedInfo.seed,
         backRankCode: dailySeedInfo.backRankCode,
         mode: scoreMode,
-        side: playerColor,
+        side: scoringSide,
         result: roundResult.status,
         score: scoreBreakdown.totalScore,
         moves: scoreBreakdown.fullMoves,
       });
+      const submittedLeaderboardScore = result.score;
+      if (submittedLeaderboardScore) setLeaderboard((entries) => mergeLeaderboardEntry(entries, submittedLeaderboardScore));
       setSubmittedScore(true);
     } catch (error) {
       console.warn('Could not submit score online, but the local score is saved.', error);

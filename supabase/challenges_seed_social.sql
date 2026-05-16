@@ -59,3 +59,57 @@ create table if not exists public.seed_scores (
 create index if not exists seed_scores_seed_slug_idx on public.seed_scores(seed_slug);
 create index if not exists seed_scores_score_desc_idx on public.seed_scores(score desc);
 create index if not exists seed_scores_created_at_desc_idx on public.seed_scores(created_at desc);
+
+-- Preview/serverless API routes may fall back to the anon key, so the social seed
+-- leaderboard tables need explicit RLS policies for public reads and submissions.
+alter table public.challenges enable row level security;
+alter table public.seed_scores enable row level security;
+alter table public.seed_stats enable row level security;
+grant select, insert on public.challenges to anon, authenticated;
+grant select, insert on public.seed_scores to anon, authenticated;
+grant select, insert, update on public.seed_stats to anon, authenticated;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname = 'public' and tablename = 'challenges' and policyname = 'challenges_public_select'
+  ) then
+    create policy challenges_public_select on public.challenges for select to anon, authenticated using (true);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies where schemaname = 'public' and tablename = 'challenges' and policyname = 'challenges_public_insert'
+  ) then
+    create policy challenges_public_insert on public.challenges for insert to anon, authenticated with check (true);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies where schemaname = 'public' and tablename = 'seed_scores' and policyname = 'seed_scores_public_select'
+  ) then
+    create policy seed_scores_public_select on public.seed_scores for select to anon, authenticated using (true);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies where schemaname = 'public' and tablename = 'seed_scores' and policyname = 'seed_scores_public_insert'
+  ) then
+    create policy seed_scores_public_insert on public.seed_scores for insert to anon, authenticated with check (true);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies where schemaname = 'public' and tablename = 'seed_stats' and policyname = 'seed_stats_public_select'
+  ) then
+    create policy seed_stats_public_select on public.seed_stats for select to anon, authenticated using (true);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies where schemaname = 'public' and tablename = 'seed_stats' and policyname = 'seed_stats_public_insert'
+  ) then
+    create policy seed_stats_public_insert on public.seed_stats for insert to anon, authenticated with check (true);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies where schemaname = 'public' and tablename = 'seed_stats' and policyname = 'seed_stats_public_update'
+  ) then
+    create policy seed_stats_public_update on public.seed_stats for update to anon, authenticated using (true) with check (true);
+  end if;
+end $$;
