@@ -69,6 +69,8 @@ type RoundResult = {
   message: string;
   progressionMessage?: string;
   didPlayerWin: boolean;
+  scoringSide: Color;
+  missingPlayerPieces: number;
   drawReason?: 'agreed' | 'stalemate' | 'bare-kings';
 };
 
@@ -413,7 +415,15 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   }, []);
 
 
-  const scoreBreakdown = useMemo(() => calculateGameScore({ status, side: playerColor, moveHistory, missingPlayerPieces: dailyAscensionTier }), [dailyAscensionTier, moveHistory, playerColor, status]);
+  const scoringStatus = roundResult?.status ?? status;
+  const scoringSide = roundResult?.scoringSide ?? playerColor;
+  const scoringMissingPlayerPieces = roundResult?.missingPlayerPieces ?? dailyAscensionTier;
+  const scoreBreakdown = useMemo(() => calculateGameScore({
+    status: scoringStatus,
+    side: scoringSide,
+    moveHistory,
+    missingPlayerPieces: scoringMissingPlayerPieces,
+  }), [moveHistory, scoringMissingPlayerPieces, scoringSide, scoringStatus]);
   const headerScoreValue = status === 'active' ? scoreBreakdown.capturePoints : scoreBreakdown.totalScore;
   const headerScoreLabel = `Score ${headerScoreValue > 0 && status === 'active' ? '+' : ''}${headerScoreValue}`;
   const scoreMode = isDailyAI ? 'daily' : 'bot';
@@ -424,14 +434,14 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       seed: dailySeedInfo.seed,
       backRankCode: dailySeedInfo.backRankCode,
       mode: scoreMode,
-      side: playerColor,
+      side: scoringSide,
       result: roundResult.status,
       score: scoreBreakdown.totalScore,
       moves: scoreBreakdown.fullMoves,
     });
-    setLocalBestScore(getLocalBestScore(dailySeedInfo.seed, scoreMode, playerColor) ?? entry);
+    setLocalBestScore(getLocalBestScore(dailySeedInfo.seed, scoreMode, scoringSide) ?? entry);
     recordPlayStreak();
-  }, [dailySeedInfo.backRankCode, dailySeedInfo.seed, playerColor, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode]);
+  }, [dailySeedInfo.backRankCode, dailySeedInfo.seed, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoreMode, scoringSide]);
 
   useEffect(() => {
     if (!roundResult || !isDailyAI) {
@@ -469,10 +479,10 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       score: scoreBreakdown.totalScore,
       moves: scoreBreakdown.fullMoves,
       result: roundResult.status,
-      color: playerColor,
+      color: scoringSide,
       challenge_id: activeChallengeContext?.challengeId,
     }).catch((error) => console.warn('Seed score unavailable.', error));
-  }, [activeChallengeContext?.challengeId, dailySeedInfo.backRankCode, dailySeedInfo.seed, displayNameDraft, playerColor, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore]);
+  }, [activeChallengeContext?.challengeId, dailySeedInfo.backRankCode, dailySeedInfo.seed, displayNameDraft, roundResult, scoreBreakdown.fullMoves, scoreBreakdown.totalScore, scoringSide]);
 
   useEffect(() => {
     const historyList = historyListRef.current;
@@ -725,8 +735,17 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
       resultRevealTimerRef.current = null;
       setIsResultPanelReady(true);
     }, RESULT_REVEAL_DELAY_MS);
-    setRoundResult({ status: nextStatus, winner, message: messageOverride ?? getRoundMessage(nextStatus, drawReason), progressionMessage, didPlayerWin, drawReason });
-  }, [config.winsRequired, dailyAIProgress, isDailyAI, isMatchedGame, playerColor, score]);
+    setRoundResult({
+      status: nextStatus,
+      winner,
+      message: messageOverride ?? getRoundMessage(nextStatus, drawReason),
+      progressionMessage,
+      didPlayerWin,
+      scoringSide: playerColor,
+      missingPlayerPieces: dailyAscensionTier,
+      drawReason,
+    });
+  }, [config.winsRequired, dailyAIProgress, dailyAscensionTier, isDailyAI, isMatchedGame, playerColor, score]);
 
   const completeMove = useCallback((move: Move) => {
     const nextBoard = applyMove(board, move);
@@ -1107,7 +1126,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         score: scoreBreakdown.totalScore,
         moves: scoreBreakdown.fullMoves,
         result: roundResult.status,
-        color: playerColor,
+        color: scoringSide,
         parentChallengeId,
         chainRootId,
         chainDepth: activeChallengeContext ? (activeChallengeContext.chainDepth ?? 0) + 1 : 0,
@@ -1145,7 +1164,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
         seed: dailySeedInfo.seed,
         backRankCode: dailySeedInfo.backRankCode,
         mode: scoreMode,
-        side: playerColor,
+        side: scoringSide,
         result: roundResult.status,
         score: scoreBreakdown.totalScore,
         moves: scoreBreakdown.fullMoves,

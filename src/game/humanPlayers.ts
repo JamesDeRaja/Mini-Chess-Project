@@ -94,6 +94,29 @@ export const HUMAN_PLAYER_NAMES = [
   'ChessHero42', 'RookDragon', 'KnightFalcon', 'PocketWizard', 'ShuffleTiger', 'MiniPhoenix', 'TacticGoblin', 'PawnPanda3000', 'BoardNinja', 'SeedShark',
   'BlitzBob', 'AutoRook', 'CpuKnight', 'AIMaybe', 'TrainingKnight', 'PracticeWizard', 'RandoRocket', 'ChessFriend', 'HumanHero', 'PlayerOrNot',
   'AnonAce', 'GuestHero', 'TinyEngine', 'MoveMachine', 'QuickEngine', 'EasyKnight', 'MediumDragon', 'BlitzQueen', 'PuzzlePirate', 'MateWizard',
+  // Shared leaderboard filler names; keep this central so all generated players use one pool.
+  'Benjamin', 'Theodore', 'Alexander', 'Logan', 'Owen', 'Samuel', 'Jacob', 'Asher', 'John', 'Joseph',
+  'David', 'Leo', 'Hudson', 'Lincoln', 'Maverick', 'Elias', 'Christopher', 'Ezekiel', 'Miles', 'Jaxon',
+  'Isaiah', 'Joshua', 'Nolan', 'Eli', 'Angel', 'Cooper', 'Waylon', 'Easton', 'Landon', 'Colton',
+  'Roman', 'Axel', 'Brooks', 'Jonathan', 'Robert', 'Jameson', 'Ian', 'Everett', 'Greyson', 'Wesley',
+  'Jeremiah', 'Hunter', 'Bennett', 'Silas', 'Nicholas', 'Beau', 'Weston', 'Austin', 'Connor', 'Carson',
+  'Dominic', 'Xavier', 'Luna', 'Eleanor', 'Violet', 'Scarlett', 'Hazel', 'Gianna', 'Aria', 'Ellie',
+  'Isla', 'Eliana', 'Nova', 'Ivy', 'Willow', 'Naomi', 'Stella', 'Delilah', 'Leah', 'Lainey',
+  'Lillian', 'Genesis', 'Madelyn', 'Sadie', 'Sophie', 'Leilani', 'Addison', 'Josephine', 'Ruby', 'Kinsley',
+  'Emery', 'Adeline', 'Kennedy', 'Maeve', 'Autumn', 'Athena', 'Eden', 'Iris', 'Eloise', 'Jade',
+  'Aaliyah', 'Vivian', 'Liliana', 'Gabriella', 'Hailey', 'Sarah', 'Cora', 'Madeline', 'Natalia', 'Ariana',
+  'Lydia', 'Lyla', 'Allison', 'CheckmateGoblin', 'PawnGoblin', 'TinyRook', 'BishopBotherer', 'KnightMare', 'ForkEnjoyer', 'BlunderChef',
+  'MateMagnet', 'PocketTactician', 'QueenSneak', 'RookSnack', 'BoardGremlin', 'CastlelessKing', 'TempoThief', 'PinCollector', 'SkewerWizard', 'PawnStormy',
+  'MiniMate', 'ShuffleGremlin', 'EndgameEel', 'TacticToaster', 'FiveBySixer', 'RankRascal', 'FileFerret', 'DiagonalDodo', 'CheckChaser', 'MateMoth',
+  'LooseKnight', 'SneakyBishop', 'RookRaccoon', 'QueenQuokka', 'KingKobold', 'PawnPanic', 'TinyTerror', 'ForkGoblin', 'BlitzBadger', 'ShuffleShark',
+  'BoardBandit', 'TempoGoblin', 'PinPenguin', 'SkewerOtter', 'CaptureCrow', 'PocketPenguin', 'MateMoose', 'RookRider', 'BishopBean', 'KnightNoodle',
+  'PawnPigeon', 'QueenQuill', 'KingKiwi', 'CheckCactus', 'TinyTurtle', 'BlunderBard', 'TacticTurnip', 'ForkFalcon', 'BoardBurrito', 'ShuffleSloth',
+  'MateMango', 'RookRocket', 'BishopBiscuit', 'KnightKoala', 'PawnPumpkin', 'QueenQuasar', 'KingKetchup', 'CheckChurro', 'TempoTaco', 'PinPanda',
+  'SkewerSeal', 'CaptureCapybara', 'PocketPirate', 'MiniMischief', 'RankRabbit', 'FileFox', 'DiagonalDuck', 'EndgameImp', 'MateMeteor', 'RookPebble',
+  'BishopBubble', 'KnightNacho', 'PawnPretzel', 'QueenQuibble', 'KingKazoo', 'CheckComet', 'TinyThunder', 'BlunderBug', 'TacticTuna', 'ForkFerret',
+  'BoardBeetle', 'ShuffleSprite', 'MateMuffin', 'RookRiddle', 'BishopBongo', 'KnightKite', 'PawnPickle', 'QueenQuartz', 'KingCrab', 'CheckChipmunk',
+  'TempoToast', 'PinPuffin', 'SkewerSquid',
+
 ] as const;
 
 export function pickRandomPlayerName(exclude?: string): string {
