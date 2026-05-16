@@ -2778,6 +2778,21 @@ body.home-modal-open { overflow: hidden; }
   margin-top: 6px;
 }
 
+.feedback-prompt-actions .success-action {
+  color: #2d2b25;
+  background: #f4dd9b;
+  border-color: rgba(229, 202, 137, 0.74);
+  box-shadow: 0 5px 0 #e5ca89, 0 12px 22px rgba(119, 102, 60, 0.13);
+}
+
+.feedback-prompt-actions .success-action:hover:not(:disabled) {
+  box-shadow: 0 0 0 #e5ca89, 0 5px 10px rgba(119, 102, 60, 0.08);
+}
+
+.feedback-prompt-actions .success-action:active:not(:disabled) {
+  box-shadow: 0 0 0 #e5ca89, 0 4px 8px rgba(119, 102, 60, 0.08);
+}
+
 @keyframes home-modal-fade {
   from { opacity: 0; }
   to { opacity: 1; }
