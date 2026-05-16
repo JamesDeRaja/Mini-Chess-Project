@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { CURATED_SEEDS } from '../../game/curatedSeeds.js';
 import { getServerSupabase } from '../supabase.js';
-import { createSeedLeaderboardFillers, sortSeedScores, type SeedScoreRow } from './leaderboard.js';
+import { createSeedLeaderboardFillers, mapScoreRowToSeedScore, sortSeedScores, type SeedScoreRow } from './leaderboard.js';
+
+type ScoreRow = Parameters<typeof mapScoreRowToSeedScore>[0];
 
 type SeedStatsRow = {
   seed_slug: string;
@@ -42,15 +44,20 @@ export default async function handler(_request: VercelRequest, response: VercelR
   const seedSlugs = CURATED_SEEDS.map((seed) => seed.slug);
   try {
     const supabase = getServerSupabase();
-    const [{ data: statsData, error: statsError }, { data: scoreData, error: scoreError }] = await Promise.all([
+    const [{ data: statsData, error: statsError }, { data: scoreData, error: scoreError }, { data: sharedScoreData, error: sharedScoreError }] = await Promise.all([
       supabase.from('seed_stats').select('*').in('seed_slug', seedSlugs).order('total_shares', { ascending: false }).order('total_completed', { ascending: false }),
       supabase.from('seed_scores').select('*').in('seed_slug', seedSlugs).order('score', { ascending: false }).order('moves', { ascending: true }).order('created_at', { ascending: true }).limit(1000),
+      supabase.from('scores').select('id, player_id, display_name, seed, back_rank_code, side, result, score, moves, created_at').in('seed', seedSlugs).order('score', { ascending: false }).order('moves', { ascending: true }).order('created_at', { ascending: true }).limit(1000),
     ]);
-    if (statsError) throw statsError;
-    const statsBySeed = new Map(((statsData ?? []) as SeedStatsRow[]).map((row) => [row.seed_slug, row]));
+    const statsBySeed = new Map((statsError ? [] : (statsData ?? []) as SeedStatsRow[]).map((row) => [row.seed_slug, row]));
     const scoresBySeed = new Map<string, SeedScoreRow[]>();
     if (!scoreError) {
       for (const row of (scoreData ?? []) as SeedScoreRow[]) {
+        scoresBySeed.set(row.seed_slug, [...(scoresBySeed.get(row.seed_slug) ?? []), row]);
+      }
+    }
+    if (!sharedScoreError) {
+      for (const row of ((sharedScoreData ?? []) as ScoreRow[]).map(mapScoreRowToSeedScore)) {
         scoresBySeed.set(row.seed_slug, [...(scoresBySeed.get(row.seed_slug) ?? []), row]);
       }
     }
