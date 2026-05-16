@@ -34,7 +34,28 @@ type StatRange = {
 
 const featuredSeedSlugs = new Set(['gotham-chaos', 'boss-battle', 'queen-rush', 'knight-panic', 'final-boss']);
 const featuredSeedTags = new Set(['featured', 'promoted', 'viral', 'influencer', 'music', 'sports', 'celebrity']);
-const numberFormatter = new Intl.NumberFormat('en-US');
+
+export function formatCompactSeedCount(value: number): string {
+  const safeValue = Math.max(0, Math.floor(value));
+  const units = [
+    { value: 1_000_000_000, suffix: 'B' },
+    { value: 1_000_000, suffix: 'M' },
+    { value: 1_000, suffix: 'K' },
+  ];
+
+  for (let index = 0; index < units.length; index += 1) {
+    const unit = units[index];
+    if (safeValue >= unit.value) {
+      const scaledValue = safeValue / unit.value;
+      const roundedValue = scaledValue < 10 ? Math.round(scaledValue * 10) / 10 : Math.round(scaledValue);
+      const largerUnit = units[index - 1];
+      if (roundedValue >= 1000 && largerUnit) return formatCompactSeedCount(largerUnit.value);
+      return `${String(roundedValue).replace(/\.0$/, '')}${unit.suffix}`;
+    }
+  }
+
+  return String(safeValue);
+}
 
 function hashSeedText(seedText: string, salt: string): number {
   const input = `${salt}:${seedText.trim().toLowerCase()}`;
@@ -128,7 +149,7 @@ export function getDisplayedSeedStats(seedSlug: string, realStats?: RealSeedStat
     realShares,
     displayedPlays,
     displayedShares,
-    formattedPlays: numberFormatter.format(displayedPlays),
-    formattedShares: numberFormatter.format(displayedShares),
+    formattedPlays: formatCompactSeedCount(displayedPlays),
+    formattedShares: formatCompactSeedCount(displayedShares),
   };
 }
