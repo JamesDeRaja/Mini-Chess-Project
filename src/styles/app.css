@@ -10454,3 +10454,23 @@ body.home-modal-open .home-page {
     min-width: 700px;
   }
 }
+
+/* Seed leaderboard home button: keep it pinned to the screen corner and reserve header space. */
+.seed-leaderboard-page .seed-detail-home-button {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  z-index: 30;
+}
+
+.seed-leaderboard-card {
+  padding-top: clamp(76px, 8vw, 104px);
+}
+
+@media (max-width: 760px) {
+  .seed-leaderboard-page .seed-detail-home-button {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
+  }
+}
