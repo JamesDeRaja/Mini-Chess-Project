@@ -33,6 +33,7 @@ async function copyText(text: string) {
 export function ShareChallengeModal({ open, onClose, result, playerName, score, moves, seedSlug, backRankCode, challengeUrl, comparisonText, context = 'generic', style = 'trashTalk', initialTaunt, onUseShareText }: Props) {
   const [taunt, setTaunt] = useState(() => initialTaunt || getRandomShareTaunt(context));
   const [copyStatus, setCopyStatus] = useState('');
+  const [shareCopied, setShareCopied] = useState(false);
   const shareText = useMemo(() => buildShareMessage({ style, taunt, playerName, score, moves, seedSlug, backRankCode, challengeUrl, comparisonText }), [backRankCode, challengeUrl, comparisonText, moves, playerName, score, seedSlug, style, taunt]);
   if (!open) return null;
   async function rememberShare() { await onUseShareText?.(shareText, taunt); }
@@ -40,8 +41,11 @@ export function ShareChallengeModal({ open, onClose, result, playerName, score, 
   async function copyLink() { await rememberShare(); await copyText(challengeUrl); setCopyStatus('Challenge link copied.'); }
   async function nativeShare() {
     await rememberShare();
-    if (navigator.share) await navigator.share({ title: 'Pocket Shuffle Chess Challenge', text: shareText, url: challengeUrl });
-    else await copyShareText();
+    await copyText(challengeUrl);
+    setCopyStatus('Challenge link copied.');
+    setShareCopied(true);
+    window.setTimeout(() => setShareCopied(false), 1600);
+    if (navigator.share) await navigator.share({ title: 'Pocket Shuffle Chess Challenge', text: shareText });
   }
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -54,7 +58,7 @@ export function ShareChallengeModal({ open, onClose, result, playerName, score, 
         <p className="panel-note">Different roast, same challenge.</p>
         <div className="panel-actions centered-actions">
           <button type="button" className="secondary-action" onClick={() => setTaunt(getRandomShareTaunt(context, taunt))}><Shuffle size={17} /> Shuffle Taunt</button>
-          {'share' in navigator && <button type="button" onClick={() => { void nativeShare(); }}><Share2 size={17} /> Share Challenge</button>}
+          {'share' in navigator && <button type="button" onClick={() => { void nativeShare(); }}>{shareCopied ? <Copy size={17} /> : <Share2 size={17} />} {shareCopied ? 'Copied' : 'Share Challenge'}</button>}
           <button type="button" onClick={() => { void copyShareText(); }}><Copy size={17} /> Copy Text</button>
           <button type="button" className="secondary-action" onClick={() => { void copyLink(); }}>Copy Link</button>
         </div>

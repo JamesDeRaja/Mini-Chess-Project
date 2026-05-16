@@ -346,6 +346,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
   const [variationTimeline, setVariationTimeline] = useState<Array<{ board: ChessBoard; lastMove: (Pick<Move, 'from' | 'to'> & { color?: Color; isCapture?: boolean; captureScore?: number | null }) | null }>>([]);
   const [variationPly, setVariationPly] = useState(0);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareButtonCopied, setShareButtonCopied] = useState(false);
   const [shareTaunt, setShareTaunt] = useState('');
   const [challengeUrl, setChallengeUrl] = useState('');
   const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
@@ -1126,14 +1127,33 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
     }
   }
 
-  async function copyChallengeLink() {
-    const url = await ensureChallengeRecord();
-    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
+  async function copyPlainUrl(text: string) {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
   }
 
-  function openShareModal() {
+  async function copyChallengeLink() {
+    const url = await ensureChallengeRecord();
+    await copyPlainUrl(url);
+  }
+
+  async function openShareModal() {
     setShareTaunt(getRandomShareTaunt(tauntContext, shareTaunt));
-    setChallengeUrl((url) => url || createSeedChallengeUrl(seedSlug));
+    const url = await ensureChallengeRecord();
+    await copyPlainUrl(url);
+    setShareButtonCopied(true);
+    window.setTimeout(() => setShareButtonCopied(false), 1600);
     setShareModalOpen(true);
   }
 
@@ -1374,7 +1394,7 @@ function BotGameContent({ matchMode, dateKey: requestedDateKey, customSeed, cust
           actions={(
             <>
               <div className="result-action-row result-action-row-primary">
-                <button type="button" className="result-primary-action result-share-action" onClick={openShareModal}><Share2 size={17} /> Challenge Friend</button>
+                <button type="button" className="result-primary-action result-share-action" onClick={() => { void openShareModal(); }}>{shareButtonCopied ? <Copy size={17} /> : <Share2 size={17} />} {shareButtonCopied ? 'Copied' : 'Challenge Friend'}</button>
                 <button type="button" className="secondary-action result-primary-action result-review-action" onClick={startPostGameReview}><Sparkles size={18} /> Review Game</button>
               </div>
               <div className="result-action-row result-action-row-tools">
