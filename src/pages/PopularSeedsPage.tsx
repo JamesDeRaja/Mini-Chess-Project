@@ -99,9 +99,19 @@ export function PopularSeedsPage({ onPlaySeed, onChallengeSeed, onOpenSeed, onLe
                 <strong>{seed.slug}</strong>
                 <p className="seed-card-description">{seed.description}</p>
                 <div className="seed-tag-row">{seed.tags.slice(0, 4).map((tag) => <span key={tag}>{tag}</span>)}</div>
-                <p>Setup: <b>{setup}</b></p>
-                <p>Plays: {row?.total_plays ?? 0} · Shares: {row?.total_shares ?? 0}</p>
-                <p>Best Score: {row?.best_score ? `${row.best_score} by ${row.best_score_player_name ?? 'Anonymous Player'}` : '—'}</p>
+                <div className="seed-card-meta-row">
+                  <span>Setup <b>{setup}</b></span>
+                  <span>{row?.total_plays ?? 0} plays</span>
+                  <span>{row?.total_shares ?? 0} shares</span>
+                </div>
+                <div className="seed-card-best-score">
+                  <span>Leaderboard #1</span>
+                  {row?.best_score ? (
+                    <strong>{row.best_score}<small> by {row.best_score_player_name ?? 'Anonymous Player'}</small></strong>
+                  ) : (
+                    <strong>—<small> Play to claim it</small></strong>
+                  )}
+                </div>
                 <div className="seed-card-action-stack">
                   <div className="seed-card-action-row">
                     <button type="button" onClick={(event) => { event.stopPropagation(); onPlaySeed(seed.slug, setup); }}>Play AI</button>
