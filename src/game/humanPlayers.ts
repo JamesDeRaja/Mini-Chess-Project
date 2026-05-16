@@ -90,10 +90,10 @@ export const HUMAN_PLAYER_NAMES = [
   'PizzaPawn', 'NoodleFork', 'GoblinMode', 'TinyChaos', 'MemeRook', 'BonkKnight', 'CoffeePawn', 'SleepyMate', 'SnackAttack', 'MouseSlip',
   'NoPlanSam', 'OopsAllPawns', 'RandomRook', 'VeryNormal', 'DefinitelyHuman', 'MaybeWinning', 'JustVibing', 'OneMoreGame', 'LateNightPawn', 'LunchBreakGM',
 
-  // Bot-like and chess-site style names to make the pool feel mixed instead of too polished
-  'ChessBot42', 'RookBot', 'KnightBot', 'PocketBot', 'ShuffleBot', 'MiniBot', 'TacticBot', 'PawnBot3000', 'BoardBot', 'SeedBot',
-  'BotLikeBob', 'AutoRook', 'CpuKnight', 'AIMaybe', 'TrainingBot', 'PracticeBot', 'RandoBot', 'BotFriend', 'HumanBot', 'BotOrNot',
-  'AnonBot', 'GuestBot', 'TinyEngine', 'MoveMachine', 'QuickEngine', 'EasyBot', 'MediumBot', 'BlitzBot', 'PuzzleBot', 'MateBot',
+  // Chess-site style names with random nouns to make the pool feel mixed instead of too polished
+  'ChessHero42', 'RookDragon', 'KnightFalcon', 'PocketWizard', 'ShuffleTiger', 'MiniPhoenix', 'TacticGoblin', 'PawnPanda3000', 'BoardNinja', 'SeedShark',
+  'BlitzBob', 'AutoRook', 'CpuKnight', 'AIMaybe', 'TrainingKnight', 'PracticeWizard', 'RandoRocket', 'ChessFriend', 'HumanHero', 'PlayerOrNot',
+  'AnonAce', 'GuestHero', 'TinyEngine', 'MoveMachine', 'QuickEngine', 'EasyKnight', 'MediumDragon', 'BlitzQueen', 'PuzzlePirate', 'MateWizard',
 ] as const;
 
 export function pickRandomPlayerName(exclude?: string): string {

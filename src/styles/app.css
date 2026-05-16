@@ -1085,6 +1085,7 @@ body { background: var(--page-bg); }
 }
 .info-stack span { min-width: 0; }
 .info-stack strong { color: var(--text-primary); overflow-wrap: anywhere; text-align: right; }
+.info-stack .power-shield-badge { justify-self: end; }
 .match-actions { display: grid; gap: 12px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--card-border); }
 .wide-action { justify-content: center; width: 100%; min-height: 54px; font-weight: 900; }
 
@@ -9365,13 +9366,16 @@ body.home-modal-open .home-page {
 
 .power-shield-icon {
   display: grid;
+  flex: 0 0 auto;
   place-items: center;
-  min-width: 28px;
-  height: 31px;
-  padding: 0 5px 4px;
+  box-sizing: border-box;
+  width: 34px;
+  min-width: 34px;
+  height: 38px;
+  padding: 1px 7px 6px;
   color: #fffdf4;
   background: linear-gradient(145deg, color-mix(in srgb, var(--shield-accent), #ffffff 18%), var(--shield-accent));
-  clip-path: polygon(50% 0, 92% 14%, 84% 68%, 50% 100%, 16% 68%, 8% 14%);
+  clip-path: polygon(50% 0, 94% 16%, 86% 68%, 50% 100%, 14% 68%, 6% 16%);
   box-shadow: 0 8px 16px var(--shield-glow), inset 0 2px rgba(255, 255, 255, 0.34);
   font-size: 0.62rem;
   letter-spacing: -0.03em;
