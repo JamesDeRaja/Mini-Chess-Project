@@ -1,9 +1,11 @@
-import { Home, Share2, Trophy, Users } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { CopyCheck, Home, Share2, Trophy, Users } from 'lucide-react';
 import { HomepageInteractiveBoard } from '../home/interactiveBoard/HomepageInteractiveBoard.js';
 import { CURATED_SEEDS, getSeedDisplayName, normalizeSeedSlug } from '../game/curatedSeeds.js';
 import { createSeedChallengeUrl } from '../game/challenge.js';
 import { createSeedFromInput } from '../game/seed.js';
 import { buildSeedShareMessage, getRandomShareTaunt } from '../game/shareTaunts.js';
+import { fetchPopularSeedStats, fetchSeedLeaderboard, recordSeedShare, type SeedScoreRecord, type SeedStatsRecord } from '../multiplayer/challengeApi.js';
 
 type Props = {
   seedSlug: string;
@@ -18,6 +20,11 @@ function spacedCode(backRankCode: string): string {
   return backRankCode.split('').join(' ');
 }
 
+function getFallbackBackRankCode(seedSlug: string): string {
+  const validation = createSeedFromInput(seedSlug);
+  return validation.ok ? validation.backRankCode : 'BQKRN';
+}
+
 export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeaderboard, onOpenSeed, onHome }: Props) {
   const normalized = normalizeSeedSlug(seedSlug);
   const seed = CURATED_SEEDS.find((item) => item.slug === normalized);
@@ -28,6 +35,52 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
   const title = seed?.displayName ?? getSeedDisplayName(normalized);
   const shareUrl = createSeedChallengeUrl(normalized);
   const shareText = buildSeedShareMessage({ style: 'popularSeed', taunt: getRandomShareTaunt('friendChallenge'), seedSlug: normalized, backRankCode: setup, challengeUrl: shareUrl });
+  const [stats, setStats] = useState<SeedStatsRecord | null>(null);
+  const [topScores, setTopScores] = useState<SeedScoreRecord[]>([]);
+  const [copiedSeed, setCopiedSeed] = useState<string | null>(null);
+  const topThree = useMemo(() => topScores.slice(0, 3), [topScores]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    Promise.all([
+      fetchPopularSeedStats().catch(() => [] as SeedStatsRecord[]),
+      fetchSeedLeaderboard(normalized).catch(() => [] as SeedScoreRecord[]),
+    ]).then(([statsRows, scores]) => {
+      if (isCancelled) return;
+      setStats(statsRows.find((row) => row.seed_slug === normalized) ?? null);
+      setTopScores(scores.slice(0, 3));
+    });
+    return () => { isCancelled = true; };
+  }, [normalized]);
+
+  function applyShareStats(seedForShare: string, updatedStats: SeedStatsRecord | null) {
+    if (seedForShare !== normalized) return;
+    setStats((current) => updatedStats ?? {
+      seed_slug: normalized,
+      seed: normalized,
+      back_rank_code: setup,
+      total_shares: (current?.total_shares ?? 0) + 1,
+      total_plays: current?.total_plays ?? 0,
+      total_completed: current?.total_completed ?? 0,
+      best_score: current?.best_score ?? 0,
+      best_score_player_name: current?.best_score_player_name ?? null,
+      best_score_challenge_id: current?.best_score_challenge_id ?? null,
+      last_played_at: current?.last_played_at ?? null,
+      created_at: current?.created_at,
+    });
+  }
+
+  async function shareSeed(seedForShare: string, backRankCode: string, text: string) {
+    setCopiedSeed(seedForShare);
+    try {
+      await navigator.clipboard?.writeText(text);
+      const updatedStats = await recordSeedShare({ seed: seedForShare, seed_slug: seedForShare, back_rank_code: backRankCode });
+      applyShareStats(seedForShare, updatedStats);
+    } catch {
+      applyShareStats(seedForShare, null);
+    }
+    window.setTimeout(() => setCopiedSeed((current) => (current === seedForShare ? null : current)), 3000);
+  }
 
   return (
     <main className="challenge-page seed-detail-page">
@@ -42,12 +95,20 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
               <span><small>Seed</small><strong>{normalized}</strong></span>
               <span><small>Back rank</small><strong>{setup}</strong></span>
               <span><small>Tags</small><strong>{seed?.tags.join(', ') || 'custom'}</strong></span>
+              <span><small>Plays</small><strong>{stats?.total_plays ?? 0}</strong></span>
+              <span><small>Shares</small><strong>{stats?.total_shares ?? 0}</strong></span>
+            </div>
+            <div className="seed-detail-top-ranks" aria-label={`${title} top 3 rank holders`}>
+              <span>Top 3 rank holders</span>
+              {topThree.length > 0 ? topThree.map((score, index) => (
+                <p key={score.id}><b>#{index + 1}</b><strong>{score.player_name ?? 'Anonymous Player'}</strong><em>{score.score}</em></p>
+              )) : <p><b>—</b><strong>No scores yet</strong><em>Play now</em></p>}
             </div>
             <p className="panel-note">Both sides use this 5-piece back-rank order mirrored across the board, so everyone gets the same opening puzzle without memorized book lines.</p>
             <div className="panel-actions seed-detail-actions">
               <button type="button" onClick={() => onPlaySeed(normalized, setup)}>Play AI</button>
               <button type="button" onClick={() => { void onChallengeSeed(normalized, setup); }}><Users size={17} /> Challenge Friend</button>
-              <button type="button" className="secondary-action" onClick={() => { void navigator.clipboard?.writeText(shareText); }}><Share2 size={17} /> Share</button>
+              <button type="button" className="secondary-action" onClick={() => { void shareSeed(normalized, setup, shareText); }}>{copiedSeed === normalized ? <CopyCheck size={17} /> : <Share2 size={17} />} {copiedSeed === normalized ? 'Copied' : 'Share'}</button>
               <button type="button" className="secondary-action" onClick={() => onLeaderboard(normalized)}><Trophy size={17} /> Leaderboard</button>
             </div>
           </div>
@@ -76,8 +137,8 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
           </div>
           <div className="seed-card-grid seed-loop-grid">
             {others.map((item) => {
-              const nextValidation = createSeedFromInput(item.slug);
-              const nextSetup = nextValidation.ok ? nextValidation.backRankCode : 'BQKRN';
+              const nextSetup = getFallbackBackRankCode(item.slug);
+              const nextShareText = buildSeedShareMessage({ style: 'popularSeed', taunt: getRandomShareTaunt('friendChallenge'), seedSlug: item.slug, backRankCode: nextSetup, challengeUrl: createSeedChallengeUrl(item.slug) });
               return (
                 <article
                   className="seed-card seed-card-clickable"
@@ -98,7 +159,7 @@ export function SeedDetailPage({ seedSlug, onPlaySeed, onChallengeSeed, onLeader
                   <div className="seed-card-action-stack">
                     <div className="seed-card-action-row">
                       <button type="button" onClick={(event) => { event.stopPropagation(); onPlaySeed(item.slug, nextSetup); }}>Play AI</button>
-                      <button type="button" className="seed-icon-action" aria-label={`Share ${item.displayName}`} onClick={(event) => { event.stopPropagation(); void navigator.clipboard?.writeText(buildSeedShareMessage({ style: 'popularSeed', taunt: getRandomShareTaunt('friendChallenge'), seedSlug: item.slug, backRankCode: nextSetup, challengeUrl: createSeedChallengeUrl(item.slug) })); }}><Share2 size={15} /></button>
+                      <button type="button" className="seed-icon-action" aria-label={copiedSeed === item.slug ? `Copied ${item.displayName}` : `Share ${item.displayName}`} onClick={(event) => { event.stopPropagation(); void shareSeed(item.slug, nextSetup, nextShareText); }}>{copiedSeed === item.slug ? <CopyCheck size={15} /> : <Share2 size={15} />}</button>
                       <button type="button" className="seed-icon-action" aria-label={`${item.displayName} leaderboard`} onClick={(event) => { event.stopPropagation(); onLeaderboard(item.slug); }}><Trophy size={15} /></button>
                     </div>
                     <button type="button" className="secondary-action seed-challenge-action" onClick={(event) => { event.stopPropagation(); void onChallengeSeed(item.slug, nextSetup); }}><Users size={15} /> Challenge Friend</button>

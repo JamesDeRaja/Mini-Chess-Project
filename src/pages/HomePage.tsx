@@ -11,7 +11,7 @@ import { getLocalBestScoreForSeedMode, type CompletedScoreEntry } from '../game/
 import { getDisplayName, saveDisplayName } from '../game/localPlayer.js';
 import { getPlayStreak } from '../game/playStreak.js';
 import { getShareUrl } from '../app/seo.js';
-import { fetchLeaderboard, fetchScoreboard, type LeaderboardEntry, type LeaderboardScope } from '../multiplayer/scoreApi.js';
+import { fetchScoreboard, type LeaderboardEntry, type LeaderboardScope } from '../multiplayer/scoreApi.js';
 import { CURATED_SEEDS } from '../game/curatedSeeds.js';
 import { createSeedChallengeUrl } from '../game/challenge.js';
 import { buildSeedShareMessage, getRandomShareTaunt } from '../game/shareTaunts.js';
@@ -58,7 +58,7 @@ type MatchmakingState =
 
 
 const leaderboardViews: LeaderboardView[] = [
-  { scope: 'daily', label: 'Today’s Top 10', title: 'Today’s top 10', description: 'Best scores on today’s shared shuffle.' },
+  { scope: 'daily', label: 'Today’s Top 10', title: 'Today’s top 10', description: 'Best scores submitted today across every mode and seed.' },
   { scope: 'global', label: 'Global', title: 'Global scores', description: 'Best player scores across every saved game.' },
 ];
 
@@ -269,12 +269,12 @@ export function HomePage({
   }, [todayKey]);
 
   useEffect(() => {
-    fetchLeaderboard(dailySeed, 'daily').then((scores) => {
+    fetchScoreboard('daily').then((scores) => {
       const topScores = scores.slice(0, 10);
       setLeaderboardFeed(topScores.map(leaderboardEntryToFeedItem));
       setLeaderboardFeedIndex(0);
     }).catch(() => setLeaderboardFeed([])).finally(() => setLeaderboardFeedLoading(false));
-  }, [dailySeed]);
+  }, [todayKey]);
 
   useEffect(() => {
     const scrollId = window.setInterval(() => {
@@ -295,9 +295,9 @@ export function HomePage({
 
   useEffect(() => {
     if (!leaderboardDialogOpen) return;
-    const loadScores = leaderboardScope === 'daily' ? fetchScoreboard('daily', dailySeed, 'daily') : fetchScoreboard(leaderboardScope);
+    const loadScores = fetchScoreboard(leaderboardScope);
     loadScores.then((scores) => setLeaderboardDialogRows(scores.slice(0, 10))).catch(() => setLeaderboardDialogRows([])).finally(() => setLeaderboardDialogLoading(false));
-  }, [dailySeed, leaderboardDialogOpen, leaderboardScope]);
+  }, [leaderboardDialogOpen, leaderboardScope]);
 
   useEffect(() => {
     if (!leaderboardDialogOpen) return undefined;

@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { HUMAN_PLAYER_NAMES } from '../../game/humanPlayers.js';
 import { createSeedFromInput } from '../../game/seed.js';
 import { getServerSupabase } from '../supabase.js';
 
@@ -17,11 +18,18 @@ export type SeedScoreRow = {
   created_at: string;
 };
 
-const seedLeaderboardNames = [
-  'CheckmateGoblin', 'PawnGoblin', 'TinyRook', 'BishopBongo', 'KnightMare', 'ForkEnjoyer', 'BlunderChef', 'MateMagnet', 'PocketTactician', 'QueenSneak',
-  'RookSnack', 'BoardGremlin', 'CastlelessKing', 'TempoThief', 'PinCollector', 'SkewerWizard', 'PawnStormy', 'MiniMate', 'ShuffleGremlin', 'EndgameEel',
-  'TacticToaster', 'FiveBySixer', 'RankRascal', 'FileFerret', 'DiagonalDodo', 'CheckChaser', 'MateMoth', 'LooseKnight', 'SneakyBishop', 'RookRaccoon',
-];
+type ScoreRow = {
+  id: string;
+  player_id: string;
+  display_name: string;
+  seed: string;
+  back_rank_code: string | null;
+  side: string;
+  result: string;
+  score: number;
+  moves: number;
+  created_at: string;
+};
 
 function cleanSeed(value: unknown) {
   return typeof value === 'string' ? value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 80) : '';
@@ -48,7 +56,7 @@ function seededRandom(seed: string): () => number {
 }
 
 function shuffledSeedNames(seedSlug: string): string[] {
-  const names = [...seedLeaderboardNames];
+  const names = [...new Set(HUMAN_PLAYER_NAMES)];
   const random = seededRandom(`seed-leaderboard-names:${seedSlug}`);
   for (let index = names.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(random() * (index + 1));
@@ -91,6 +99,23 @@ export function createSeedLeaderboardFillers(seedSlug: string): SeedScoreRow[] {
   });
 }
 
+export function mapScoreRowToSeedScore(row: ScoreRow): SeedScoreRow {
+  return {
+    id: `score-${row.id}`,
+    seed_slug: cleanSeed(row.seed),
+    seed: row.seed,
+    back_rank_code: row.back_rank_code ?? 'BQKRN',
+    player_id: row.player_id,
+    player_name: row.display_name,
+    score: row.score,
+    moves: row.moves,
+    result: row.result,
+    color: row.side,
+    challenge_id: null,
+    created_at: row.created_at,
+  };
+}
+
 export function sortSeedScores(scores: SeedScoreRow[]): SeedScoreRow[] {
   return [...scores].sort((a, b) => b.score - a.score || a.moves - b.moves || a.created_at.localeCompare(b.created_at));
 }
@@ -99,16 +124,28 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const seed = cleanSeed(request.query.seed);
   if (!seed) { response.status(400).send('Invalid seed'); return; }
   try {
-    const { data, error } = await getServerSupabase()
-      .from('seed_scores')
-      .select('*')
-      .eq('seed_slug', seed)
-      .order('score', { ascending: false })
-      .order('moves', { ascending: true })
-      .order('created_at', { ascending: true })
-      .limit(50);
-    if (error) throw error;
-    response.status(200).json({ scores: sortSeedScores([...(data ?? []) as SeedScoreRow[], ...createSeedLeaderboardFillers(seed)]).slice(0, 50) });
+    const supabase = getServerSupabase();
+    const [{ data, error }, { data: sharedScoreData, error: sharedScoreError }] = await Promise.all([
+      supabase
+        .from('seed_scores')
+        .select('*')
+        .eq('seed_slug', seed)
+        .order('score', { ascending: false })
+        .order('moves', { ascending: true })
+        .order('created_at', { ascending: true })
+        .limit(50),
+      supabase
+        .from('scores')
+        .select('id, player_id, display_name, seed, back_rank_code, side, result, score, moves, created_at')
+        .eq('seed', seed)
+        .order('score', { ascending: false })
+        .order('moves', { ascending: true })
+        .order('created_at', { ascending: true })
+        .limit(50),
+    ]);
+    const seedScores = error ? [] : (data ?? []) as SeedScoreRow[];
+    const sharedScores = sharedScoreError ? [] : ((sharedScoreData ?? []) as ScoreRow[]).map(mapScoreRowToSeedScore);
+    response.status(200).json({ scores: sortSeedScores([...seedScores, ...sharedScores, ...createSeedLeaderboardFillers(seed)]).slice(0, 50) });
   } catch {
     response.status(200).json({ scores: sortSeedScores(createSeedLeaderboardFillers(seed)) });
   }

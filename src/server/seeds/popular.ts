@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { CURATED_SEEDS } from '../../game/curatedSeeds.js';
 import { getServerSupabase } from '../supabase.js';
-import { createSeedLeaderboardFillers, sortSeedScores, type SeedScoreRow } from './leaderboard.js';
+import { createSeedLeaderboardFillers, mapScoreRowToSeedScore, sortSeedScores, type SeedScoreRow } from './leaderboard.js';
+
+type ScoreRow = Parameters<typeof mapScoreRowToSeedScore>[0];
 
 type SeedStatsRow = {
   seed_slug: string;
@@ -20,6 +22,8 @@ type SeedStatsRow = {
 
 function mergeBestLeaderboardScore(statsRow: SeedStatsRow | undefined, seedSlug: string, seedScores: SeedScoreRow[]): SeedStatsRow {
   const topScore = sortSeedScores([...seedScores, ...createSeedLeaderboardFillers(seedSlug)])[0];
+  const statsBestScore = statsRow?.best_score ?? null;
+  const shouldUseStatsBest = statsBestScore !== null && statsBestScore > (topScore?.score ?? Number.NEGATIVE_INFINITY);
   return {
     seed_slug: seedSlug,
     seed: statsRow?.seed ?? topScore?.seed ?? seedSlug,
@@ -28,9 +32,9 @@ function mergeBestLeaderboardScore(statsRow: SeedStatsRow | undefined, seedSlug:
     total_plays: statsRow?.total_plays ?? 0,
     total_completed: statsRow?.total_completed ?? 0,
     total_shares: statsRow?.total_shares ?? 0,
-    best_score: topScore?.score ?? statsRow?.best_score ?? null,
-    best_score_player_name: topScore?.player_name ?? statsRow?.best_score_player_name ?? null,
-    best_score_challenge_id: topScore?.challenge_id ?? statsRow?.best_score_challenge_id ?? null,
+    best_score: shouldUseStatsBest ? statsBestScore : topScore?.score ?? statsBestScore,
+    best_score_player_name: shouldUseStatsBest ? statsRow?.best_score_player_name ?? null : topScore?.player_name ?? statsRow?.best_score_player_name ?? null,
+    best_score_challenge_id: shouldUseStatsBest ? statsRow?.best_score_challenge_id ?? null : topScore?.challenge_id ?? statsRow?.best_score_challenge_id ?? null,
     last_played_at: statsRow?.last_played_at ?? topScore?.created_at ?? null,
     created_at: statsRow?.created_at,
   };
@@ -40,15 +44,20 @@ export default async function handler(_request: VercelRequest, response: VercelR
   const seedSlugs = CURATED_SEEDS.map((seed) => seed.slug);
   try {
     const supabase = getServerSupabase();
-    const [{ data: statsData, error: statsError }, { data: scoreData, error: scoreError }] = await Promise.all([
+    const [{ data: statsData, error: statsError }, { data: scoreData, error: scoreError }, { data: sharedScoreData, error: sharedScoreError }] = await Promise.all([
       supabase.from('seed_stats').select('*').in('seed_slug', seedSlugs).order('total_shares', { ascending: false }).order('total_completed', { ascending: false }),
       supabase.from('seed_scores').select('*').in('seed_slug', seedSlugs).order('score', { ascending: false }).order('moves', { ascending: true }).order('created_at', { ascending: true }).limit(1000),
+      supabase.from('scores').select('id, player_id, display_name, seed, back_rank_code, side, result, score, moves, created_at').in('seed', seedSlugs).order('score', { ascending: false }).order('moves', { ascending: true }).order('created_at', { ascending: true }).limit(1000),
     ]);
-    if (statsError) throw statsError;
-    const statsBySeed = new Map(((statsData ?? []) as SeedStatsRow[]).map((row) => [row.seed_slug, row]));
+    const statsBySeed = new Map((statsError ? [] : (statsData ?? []) as SeedStatsRow[]).map((row) => [row.seed_slug, row]));
     const scoresBySeed = new Map<string, SeedScoreRow[]>();
     if (!scoreError) {
       for (const row of (scoreData ?? []) as SeedScoreRow[]) {
+        scoresBySeed.set(row.seed_slug, [...(scoresBySeed.get(row.seed_slug) ?? []), row]);
+      }
+    }
+    if (!sharedScoreError) {
+      for (const row of ((sharedScoreData ?? []) as ScoreRow[]).map(mapScoreRowToSeedScore)) {
         scoresBySeed.set(row.seed_slug, [...(scoresBySeed.get(row.seed_slug) ?? []), row]);
       }
     }

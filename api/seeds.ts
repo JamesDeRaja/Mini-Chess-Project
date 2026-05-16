@@ -4,6 +4,7 @@ import getChallenge from '../src/server/challenges/get.js';
 import seedLeaderboard from '../src/server/seeds/leaderboard.js';
 import popularSeeds from '../src/server/seeds/popular.js';
 import seedScore from '../src/server/seeds/score.js';
+import seedShare from '../src/server/seeds/share.js';
 
 function getAction(request: VercelRequest): string | null {
   const queryAction = typeof request.query.action === 'string' ? request.query.action : null;
@@ -18,6 +19,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
   if (action === 'leaderboard') return seedLeaderboard(request, response);
   if (action === 'popular') return popularSeeds(request, response);
   if (action === 'score') return seedScore(request, response);
+  if (action === 'share') return seedShare(request, response);
 
   response.status(400).send('Unknown seeds action');
 }

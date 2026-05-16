@@ -24,6 +24,11 @@ export async function submitSeedScore(payload: Omit<SeedScoreRecord, 'id' | 'cre
   await requestJson('/api/seeds', { method: 'POST', body: JSON.stringify({ action: 'score', ...payload }) });
 }
 
+export async function recordSeedShare(payload: { seed: string; seed_slug?: string; back_rank_code?: string }): Promise<SeedStatsRecord | null> {
+  const result = await requestJson<{ ok: boolean; stats?: SeedStatsRecord }>('/api/seeds', { method: 'POST', body: JSON.stringify({ action: 'share', seed_slug: payload.seed_slug ?? payload.seed, ...payload }) });
+  return result.stats ?? null;
+}
+
 export async function fetchPopularSeedStats(): Promise<SeedStatsRecord[]> {
   const result = await requestJson<{ seeds: SeedStatsRecord[] }>('/api/seeds?action=popular');
   return result.seeds;
