@@ -2756,6 +2756,43 @@ body.home-modal-open { overflow: hidden; }
 .home-page > .modal-backdrop > .rules-modal,
 .home-page > .modal-backdrop > .matchmaking-modal { width: min(100%, 680px); }
 
+.feedback-prompt-backdrop {
+  background: rgba(45, 43, 40, 0.4);
+}
+
+.feedback-prompt-modal {
+  gap: 12px;
+  max-width: 500px;
+}
+
+.feedback-prompt-modal h2 {
+  color: var(--ink);
+}
+
+.feedback-prompt-modal p:not(.eyebrow) {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.feedback-prompt-actions {
+  margin-top: 6px;
+}
+
+.feedback-prompt-actions .success-action {
+  color: #2d2b25;
+  background: #f4dd9b;
+  border-color: rgba(229, 202, 137, 0.74);
+  box-shadow: 0 5px 0 #e5ca89, 0 12px 22px rgba(119, 102, 60, 0.13);
+}
+
+.feedback-prompt-actions .success-action:hover:not(:disabled) {
+  box-shadow: 0 0 0 #e5ca89, 0 5px 10px rgba(119, 102, 60, 0.08);
+}
+
+.feedback-prompt-actions .success-action:active:not(:disabled) {
+  box-shadow: 0 0 0 #e5ca89, 0 4px 8px rgba(119, 102, 60, 0.08);
+}
+
 @keyframes home-modal-fade {
   from { opacity: 0; }
   to { opacity: 1; }
