@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createSeedFromInput } from '../../game/seed.js';
 import { getServerSupabase } from '../supabase.js';
 
-type SeedScoreRow = {
+export type SeedScoreRow = {
   id: string;
   seed_slug: string;
   seed: string;
@@ -57,7 +57,17 @@ function shuffledSeedNames(seedSlug: string): string[] {
   return names;
 }
 
-function createSeedLeaderboardFillers(seedSlug: string): SeedScoreRow[] {
+function randomRecentDate(random: () => number, index: number): Date {
+  const dayOffset = 2 + Math.floor(random() * 120) + index;
+  const hour = Math.floor(random() * 24);
+  const minute = Math.floor(random() * 60);
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() - dayOffset);
+  date.setUTCHours(hour, minute, 0, 0);
+  return date;
+}
+
+export function createSeedLeaderboardFillers(seedSlug: string): SeedScoreRow[] {
   const validation = createSeedFromInput(seedSlug);
   const backRankCode = validation.ok ? validation.backRankCode : 'BQKRN';
   const random = seededRandom(`seed-leaderboard:${seedSlug}`);
@@ -76,12 +86,12 @@ function createSeedLeaderboardFillers(seedSlug: string): SeedScoreRow[] {
       result,
       color,
       challenge_id: null,
-      created_at: new Date(Date.UTC(2026, 0, 4, 0, index, 0)).toISOString(),
+      created_at: randomRecentDate(random, index).toISOString(),
     };
   });
 }
 
-function sortScores(scores: SeedScoreRow[]): SeedScoreRow[] {
+export function sortSeedScores(scores: SeedScoreRow[]): SeedScoreRow[] {
   return [...scores].sort((a, b) => b.score - a.score || a.moves - b.moves || a.created_at.localeCompare(b.created_at));
 }
 
@@ -98,8 +108,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
       .order('created_at', { ascending: true })
       .limit(50);
     if (error) throw error;
-    response.status(200).json({ scores: sortScores([...(data ?? []) as SeedScoreRow[], ...createSeedLeaderboardFillers(seed)]).slice(0, 50) });
+    response.status(200).json({ scores: sortSeedScores([...(data ?? []) as SeedScoreRow[], ...createSeedLeaderboardFillers(seed)]).slice(0, 50) });
   } catch {
-    response.status(200).json({ scores: sortScores(createSeedLeaderboardFillers(seed)) });
+    response.status(200).json({ scores: sortSeedScores(createSeedLeaderboardFillers(seed)) });
   }
 }

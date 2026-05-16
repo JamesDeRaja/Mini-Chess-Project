@@ -10165,3 +10165,292 @@ body.home-modal-open .home-page {
     width: min(100%, calc(100vw - 32px));
   }
 }
+
+/* Seed leaderboard polish: richer hero, champion card, and mobile-friendly score rows. */
+.seed-leaderboard-page .challenge-card.wide {
+  width: min(100%, 1280px);
+  text-align: left;
+}
+
+.seed-leaderboard-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.seed-leaderboard-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 220px;
+  pointer-events: none;
+  background: radial-gradient(circle at 20% 0%, rgba(246, 214, 120, 0.38), transparent 46%), radial-gradient(circle at 82% 12%, rgba(158, 208, 192, 0.35), transparent 42%);
+}
+
+.seed-leaderboard-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.seed-leaderboard-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(16px, 3vw, 34px);
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.seed-leaderboard-hero h1 {
+  margin: 4px 0 8px;
+  text-align: left;
+}
+
+.seed-leaderboard-hero p {
+  margin: 0;
+  color: #61726a;
+  font-weight: 850;
+}
+
+.seed-leaderboard-setup-badge {
+  display: grid;
+  gap: 4px;
+  min-width: 160px;
+  padding: 18px 20px;
+  border: 1px solid rgba(126, 166, 133, 0.28);
+  border-radius: 24px;
+  background: rgba(255, 251, 239, 0.78);
+  box-shadow: 0 16px 36px rgba(80, 122, 108, 0.13);
+  text-align: center;
+}
+
+.seed-leaderboard-setup-badge span,
+.seed-champion-crown,
+.seed-podium-card span,
+.seed-card-best-score > span {
+  color: #7f9c86;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.seed-leaderboard-setup-badge strong {
+  color: #202428;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: 0.08em;
+}
+
+.seed-leaderboard-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.7fr) minmax(0, 1.3fr);
+  gap: clamp(16px, 2.4vw, 28px);
+  align-items: start;
+}
+
+.seed-champion-card,
+.seed-podium-card,
+.seed-card-best-score {
+  border: 1px solid rgba(222, 217, 203, 0.76);
+  background: rgba(255, 251, 239, 0.82);
+  box-shadow: 0 18px 36px rgba(80, 122, 108, 0.14);
+}
+
+.seed-champion-card {
+  display: grid;
+  gap: 10px;
+  padding: clamp(20px, 3vw, 30px);
+  border-radius: 30px;
+  background: linear-gradient(145deg, rgba(255, 251, 239, 0.92), rgba(246, 214, 120, 0.26));
+}
+
+.seed-champion-crown {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 8px 11px;
+  border-radius: 999px;
+  color: #6f5a19;
+  background: rgba(246, 214, 120, 0.42);
+}
+
+.seed-champion-card h2 {
+  margin: 0;
+  color: #202428;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 0.92;
+  letter-spacing: -0.055em;
+}
+
+.seed-champion-card > strong {
+  color: #202428;
+  font-size: clamp(3.4rem, 8vw, 6.4rem);
+  line-height: 0.9;
+}
+
+.seed-champion-card p,
+.seed-champion-card small {
+  margin: 0;
+  color: #61726a;
+  font-weight: 850;
+}
+
+.seed-leaderboard-list-wrap {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.seed-podium-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.seed-podium-card {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 13px;
+  border-radius: 20px;
+}
+
+.seed-podium-card strong {
+  overflow: hidden;
+  color: #202428;
+  font-size: 1.02rem;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seed-podium-card b {
+  color: #2d2b28;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.seed-podium-card small {
+  color: #61726a;
+  font-weight: 850;
+}
+
+.seed-leaderboard-table {
+  padding: 10px;
+  border: 1px solid rgba(222, 217, 203, 0.76);
+  border-radius: 26px;
+  background: rgba(255, 251, 239, 0.54);
+  overflow-x: auto;
+}
+
+.seed-leaderboard-table .leaderboard-row {
+  grid-template-columns: 56px minmax(150px, 1fr) 76px 68px 104px 72px 104px;
+  min-width: 760px;
+  padding: 10px 12px;
+  border-radius: 16px;
+}
+
+.seed-leaderboard-table .leaderboard-row:not(.leaderboard-head) {
+  background: rgba(255, 251, 239, 0.76);
+}
+
+.seed-leaderboard-table .leaderboard-head {
+  color: #7b897f;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.seed-rank-pill {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  color: #2d2b28;
+  background: rgba(246, 214, 120, 0.44);
+  font-weight: 950;
+}
+
+.seed-player-name {
+  color: #202428;
+  font-weight: 950;
+}
+
+.seed-leaderboard-table strong {
+  color: #202428;
+  font-size: 1rem;
+}
+
+.seed-leaderboard-table time {
+  color: #61726a;
+  font-weight: 850;
+}
+
+.seed-leaderboard-actions {
+  margin-top: clamp(18px, 3vw, 30px);
+}
+
+.seed-card-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 10px 0;
+}
+
+.seed-card-meta-row span {
+  padding: 7px 9px;
+  border-radius: 999px;
+  color: #4e6258;
+  background: rgba(158, 208, 192, 0.22);
+  font-size: 0.82rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.seed-card-best-score {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 4px;
+  padding: 14px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255, 251, 239, 0.86), rgba(246, 214, 120, 0.22));
+}
+
+.seed-card-best-score strong {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+  color: #202428;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  line-height: 0.95;
+}
+
+.seed-card-best-score small {
+  color: #61726a;
+  font-size: 0.88rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+@media (max-width: 920px) {
+  .seed-leaderboard-hero,
+  .seed-leaderboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .seed-leaderboard-setup-badge {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .seed-podium-row {
+    grid-template-columns: 1fr;
+  }
+
+  .seed-leaderboard-table .leaderboard-row {
+    min-width: 700px;
+  }
+}
